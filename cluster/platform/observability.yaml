@@ -15,6 +15,9 @@ spec:
       releaseName: observability
       valuesObject:
         grafana: { enabled: true }
+        # Its Service name is 64 characters, one over the limit, and Talos
+        # serves controller manager metrics on localhost only anyway.
+        kubeControllerManager: { enabled: false }
         vmsingle:
           spec:
             retentionPeriod: "90d"
