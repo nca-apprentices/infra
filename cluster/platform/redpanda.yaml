@@ -21,6 +21,10 @@ spec:
           cpu: { cores: 1, overprovisioned: true }
           memory: { container: { max: 1.5Gi } }
         storage: { persistentVolume: { storageClass: local-data, size: 50Gi } }
+        # The tuning container runs privileged, which the namespace's Pod
+        # Security level forbids. Redpanda runs without it, with fewer
+        # concurrent disk requests.
+        tuning: { tune_aio_events: false }
   destination:
     server: https://kubernetes.default.svc
     namespace: streaming
