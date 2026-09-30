@@ -4,6 +4,8 @@ excludes = [
   # Encrypted: sops rejects a file whose bytes changed.
   "secrets/**",
   "talos/talsecret.sops.yaml",
+  # Vendored unchanged, so an update replaces the whole file.
+  "cluster/platform/manifests/storage/local-path-provisioner.yaml",
 ]
 
 [formatter.tofu]

@@ -1,0 +1,35 @@
+# local-path-provisioner.yaml is upstream's deploy manifest, unchanged:
+# https://github.com/rancher/local-path-provisioner/blob/v0.0.37/deploy/local-path-storage.yaml
+# The patches fit it to Talos and to the one StorageClass in local-data.yaml.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - local-path-provisioner.yaml
+  - local-data.yaml
+patches:
+  # The helper pods that create and delete volumes mount host paths.
+  - patch: |-
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: local-path-storage
+        labels:
+          pod-security.kubernetes.io/enforce: privileged
+  # Talos keeps the encrypted data disk at /var/mnt/data, and /opt is
+  # read-only there.
+  - patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: local-path-config
+        namespace: local-path-storage
+      data:
+        config.json: |-
+          {"nodePathMap": [{"node": "DEFAULT_PATH_FOR_NON_LISTED_NODES", "paths": ["/var/mnt/data"]}]}
+  # local-data is the only StorageClass.
+  - patch: |-
+      $patch: delete
+      apiVersion: storage.k8s.io/v1
+      kind: StorageClass
+      metadata:
+        name: local-path
