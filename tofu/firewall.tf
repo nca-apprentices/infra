@@ -4,8 +4,7 @@
 resource "hcloud_firewall" "node" {
   name = "nca"
 
-  # The apps too, until they are ready for the public. Let's Encrypt can't
-  # reach port 80 meanwhile, so certificates don't renew over HTTP-01.
+  # The apps admit operators only, until they are ready for the public.
   rule {
     direction  = "in"
     protocol   = "tcp"
@@ -13,11 +12,13 @@ resource "hcloud_firewall" "node" {
     source_ips = var.operator_cidrs
   }
 
+  # Open to everyone for Let's Encrypt's HTTP-01 challenges. Traefik serves
+  # nothing else on port 80; see cluster/platform/traefik.yaml.
   rule {
     direction  = "in"
     protocol   = "tcp"
     port       = "80"
-    source_ips = var.operator_cidrs
+    source_ips = ["0.0.0.0/0", "::/0"]
   }
 
   rule {

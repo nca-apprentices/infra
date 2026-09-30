@@ -25,9 +25,15 @@ spec:
         # A host port can't be held twice, so the old pod goes first.
         updateStrategy: { rollingUpdate: { maxUnavailable: 1, maxSurge: 0 } }
         ports:
-          web: { hostPort: 80 }
+          # Open to the internet for ACME alone, so its requests leave no
+          # log line: whatever scans port 80 creates no data.
+          web: { hostPort: 80, observability: { accessLogs: false } }
           websecure:
             hostPort: 443
+            # An Ingress that names no entry point serves on 443 only. Port 80
+            # carries nothing but Let's Encrypt's HTTP-01 challenges, whose
+            # solver names it explicitly.
+            asDefault: true
             http3: { enabled: true }
             # gRPC and HTTP share :443 and are separated by ALPN, so the client
             # needs no second hostname or port.
