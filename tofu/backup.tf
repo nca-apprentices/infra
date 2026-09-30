@@ -16,9 +16,12 @@ resource "minio_s3_bucket" "backup" {
 # Every store overwrites or deletes its own backups: the WAL archive by its
 # retention policy, the others by mirroring the live data. Versioning keeps
 # what they replace for 30 more days.
+#
+# The resources below loop over local.backups, not the buckets, so their keys
+# are known before the buckets exist. tofu import fails otherwise.
 resource "minio_s3_bucket_versioning" "backup" {
-  for_each = minio_s3_bucket.backup
-  bucket   = each.value.bucket
+  for_each = local.backups
+  bucket   = minio_s3_bucket.backup[each.key].bucket
 
   versioning_configuration {
     status = "Enabled"
@@ -26,8 +29,8 @@ resource "minio_s3_bucket_versioning" "backup" {
 }
 
 resource "minio_ilm_policy" "backup" {
-  for_each = minio_s3_bucket.backup
-  bucket   = each.value.bucket
+  for_each = local.backups
+  bucket   = minio_s3_bucket.backup[each.key].bucket
 
   rule {
     id = "keep-replaced-30-days"
@@ -39,15 +42,15 @@ resource "minio_ilm_policy" "backup" {
 }
 
 resource "minio_s3_bucket_policy" "backup" {
-  for_each = minio_s3_bucket.backup
-  bucket   = each.value.bucket
+  for_each = local.backups
+  bucket   = minio_s3_bucket.backup[each.key].bucket
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Sid      = "WriterAndTofuOnly"
       Effect   = "Deny"
       Action   = "s3:*"
-      Resource = [each.value.arn, "${each.value.arn}/*"]
+      Resource = [minio_s3_bucket.backup[each.key].arn, "${minio_s3_bucket.backup[each.key].arn}/*"]
       NotPrincipal = {
         AWS = [
           for key in [var.backup_keys[each.key], var.s3_access_key] :
