@@ -79,7 +79,7 @@ sops --encrypt --in-place talos/talsecret.sops.yaml
 ## 5. Create the cluster secrets
 
 `mise run bootstrap` applies every `*.enc.yaml` under `secrets/` before
-Argo CD starts. Argo CD reads this private repository as a GitHub App, since
+Argo CD starts. Argo CD reads this repository as a GitHub App, since
 the organization allows no deploy keys. The jjforge chart and images on GHCR
 are public, so pulling them takes no credentials.
 
