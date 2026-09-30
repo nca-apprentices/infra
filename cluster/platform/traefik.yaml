@@ -32,7 +32,12 @@ spec:
             http:
               tls: { enabled: true }
         providers:
-          kubernetesIngress: { enabled: true }
+          kubernetesIngress:
+            enabled: true
+            # The Service is a ClusterIP and has no address to publish, so
+            # Ingresses report the domain instead and count as healthy.
+            publishedService: { enabled: false }
+            ingressEndpoint: { hostname: nca-apprentices.dev }
   destination:
     server: https://kubernetes.default.svc
     namespace: traefik
