@@ -41,6 +41,10 @@ then delete the local copy.
 | One S3 key pair per backup bucket, five in all     | Console, Object Storage                |
 | The project's numeric ID                           | Console, the project's URL             |
 
+A new Porkbun domain comes with parking records: an ALIAS at the apex and a
+wildcard CNAME, both to `pixie.porkbun.com`. Delete both under the domain's DNS
+settings. Tofu can't create its A records next to them.
+
 ## 3. Write the tofu credentials
 
 Write the file, then encrypt it before anything else reads the directory.
