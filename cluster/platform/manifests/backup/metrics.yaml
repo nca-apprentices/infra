@@ -20,7 +20,7 @@ spec:
               image: victoriametrics/vmbackup:v1.128.0
               args:
                 - -storageDataPath=/victoria-metrics-data
-                - -snapshot.createURL=http://vmsingle-observability-victoria-metrics-k8s-stack:8428/snapshot/create
+                - -snapshot.createURL=http://vmsingle-metrics:8428/snapshot/create
                 - -dst=s3://nca-backup-metrics/latest
                 - -customS3Endpoint=https://fsn1.your-objectstorage.com
               envFrom:
@@ -34,4 +34,4 @@ spec:
           volumes:
             - name: data
               persistentVolumeClaim:
-                claimName: vmsingle-observability-victoria-metrics-k8s-stack
+                claimName: vmsingle-metrics

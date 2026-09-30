@@ -24,11 +24,14 @@ spec:
               type: victoriametrics-logs-datasource
               access: proxy
               url: http://logs-victoria-logs-single-server.observability.svc:9428
-        # Talos serves controller manager and scheduler metrics on localhost
-        # only, so neither target is reachable. The controller manager's
-        # Service name is also 64 characters, one over the limit.
+        # The default prefix, observability-victoria-metrics-k8s-stack, made
+        # names and labels longer than the 63 characters Kubernetes allows.
+        fullnameOverride: metrics
+        # Talos serves controller manager, scheduler, and etcd metrics on
+        # localhost only, so none of these targets is reachable.
         kubeControllerManager: { enabled: false }
         kubeScheduler: { enabled: false }
+        kubeEtcd: { enabled: false }
         vmsingle:
           spec:
             retentionPeriod: "90d"
