@@ -13,7 +13,7 @@ spec:
   description: jjforge, production
   sourceRepos:
     - oci://ghcr.io/nca-apprentices/charts/jjforge
-    - git@github.com:nca-apprentices/infra.git
+    - https://github.com/nca-apprentices/infra.git
   destinations:
     - server: https://kubernetes.default.svc
       namespace: jjforge-prod

@@ -141,12 +141,12 @@ writing it down here rather than discovering it during an outage.
 `mise run bootstrap` applies every `*.enc.yaml` under `secrets/`, each
 into the namespace it names, and creates that namespace first.
 
-| Secret                | Namespace       | Directory               | What it is                                    |
-| --------------------- | --------------- | ----------------------- | --------------------------------------------- |
-| `infra-repo`          | `argocd`        | `platform/`             | Deploy key Argo CD reads this repository with |
-| `jjforge-<env>-chart` | `argocd`        | `apps/jjforge/<env>/`   | GHCR token Argo CD pulls the chart with       |
-| `ghcr`                | `jjforge-<env>` | `apps/jjforge/<env>/`   | GHCR token the jjforge images are pulled with |
-| `<store>-backup-s3`   | The store's     | See [Backups](#backups) | The store's key for its backup bucket         |
+| Secret                | Namespace       | Directory               | What it is                                        |
+| --------------------- | --------------- | ----------------------- | ------------------------------------------------- |
+| `infra-repo`          | `argocd`        | `platform/`             | GitHub App key Argo CD reads this repository with |
+| `jjforge-<env>-chart` | `argocd`        | `apps/jjforge/<env>/`   | GHCR token Argo CD pulls the chart with           |
+| `ghcr`                | `jjforge-<env>` | `apps/jjforge/<env>/`   | GHCR token the jjforge images are pulled with     |
+| `<store>-backup-s3`   | The store's     | See [Backups](#backups) | The store's key for its backup bucket             |
 
 Everything else in the cluster comes from Git.
 

@@ -10,7 +10,7 @@ metadata:
 spec:
   project: jjforge-ci
   source:
-    repoURL: git@github.com:nca-apprentices/infra.git
+    repoURL: https://github.com/nca-apprentices/infra.git
     targetRevision: main
     path: cluster/apps/jjforge/ci/manifests
   destination:

@@ -75,13 +75,22 @@ sops --encrypt --in-place talos/talsecret.sops.yaml
 ## 5. Create the cluster secrets
 
 `mise run bootstrap` applies every `*.enc.yaml` under `secrets/` before
-Argo CD starts. Argo CD reads this private repository with a read-only deploy
-key, and the cluster pulls the jjforge chart and images from GHCR with a token.
+Argo CD starts. Argo CD reads this private repository as a GitHub App, since
+the organization allows no deploy keys, and the cluster pulls the jjforge chart
+and images from GHCR with a token.
+
+Create the app at
+<https://github.com/organizations/nca-apprentices/settings/apps/new>: no
+webhook, the Contents repository permission set to read-only, and installable
+only on this account. Note its App ID, generate a private key, and install it on
+the `infra` repository only. The installation ID is the number at the end of the
+installation's settings URL.
 
 ```fish
 mkdir -p secrets/platform secrets/apps/jjforge/prod secrets/apps/jjforge/dev
-ssh-keygen -t ed25519 -N '' -C argocd@nca -f argocd-deploy
-gh repo deploy-key add argocd-deploy.pub --repo nca-apprentices/infra --title argocd
+set app_id 123456             # App ID
+set installation_id 12345678  # installation ID
+set app_key ~/Downloads/nca-argocd.*.private-key.pem
 ```
 
 Create a classic token with only the `read:packages` scope at
@@ -92,8 +101,10 @@ read -s -P 'GHCR token: ' token
 
 kubectl create secret generic infra-repo --namespace argocd \
     --from-literal type=git \
-    --from-literal url=git@github.com:nca-apprentices/infra.git \
-    --from-file sshPrivateKey=argocd-deploy \
+    --from-literal url=https://github.com/nca-apprentices/infra.git \
+    --from-literal githubAppID=$app_id \
+    --from-literal githubAppInstallationID=$installation_id \
+    --from-file githubAppPrivateKey=$app_key \
     --dry-run=client -o yaml |
     kubectl label --local -f - argocd.argoproj.io/secret-type=repository -o yaml \
     >secrets/platform/infra-repo.enc.yaml
@@ -144,7 +155,7 @@ Encrypt them all, remove the plain-text key, and commit `.sops.yaml`,
 for f in secrets/**.enc.yaml
     sops --encrypt --in-place $f
 end
-rm argocd-deploy argocd-deploy.pub
+rm $app_key
 set -e token
 ```
 

@@ -11,7 +11,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: git@github.com:nca-apprentices/infra.git
+    repoURL: https://github.com/nca-apprentices/infra.git
     targetRevision: main
     path: cluster/platform/manifests/backup
   destination:

@@ -10,7 +10,7 @@ metadata:
 spec:
   description: jjforge CI runners
   sourceRepos:
-    - git@github.com:nca-apprentices/infra.git
+    - https://github.com/nca-apprentices/infra.git
   destinations:
     - server: https://kubernetes.default.svc
       namespace: jjforge-ci
