@@ -12,7 +12,8 @@ data:
   connect.yaml: |
     input:
       kafka_franz:
-        seed_brokers: [redpanda:9093]
+        # The broker certificate names the full service name, not the short one.
+        seed_brokers: [redpanda.streaming.svc.cluster.local:9093]
         # Every topic, the schema registry's included, but not Redpanda's own.
         topics: ["^(_schemas|[^_].*)$"]
         regexp_topics: true
