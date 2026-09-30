@@ -10,7 +10,8 @@
 # The escrow key comes first. It is for recovery only, and its private half
 # lives in offline escrow. Then one key per operator, named after its owner.
 recipients: &recipients
-  - age1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsg9qz3 # escrow, placeholder
+  - age19dktsaqcp6xdhqwtq4qygk0y5ea5uc8y20dtez4jjua2nv4r0alslxp6s5 # escrow
+  - age1u8xgtntlm6ynx4lf6xsaeaya8wt5cy3ur2j46k7f5njq6nqpu92s8sf7ht # kevin-nca
 
 creation_rules:
   # Kubernetes Secrets: only the values are encrypted, so a diff still shows
