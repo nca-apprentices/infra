@@ -41,6 +41,10 @@ spec:
         hubble:
           relay: { enabled: true }
           ui: { enabled: true }
+        # Operator replicas refuse to share a node, so a second one stays
+        # Pending, and keeps this Application Degraded, until a second node
+        # joins.
+        operator: { replicas: 1 }
         # Turned on when the second node joins: node-to-node traffic then
         # leaves the machine and has to be encrypted.
         encryption:
