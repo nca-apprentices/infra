@@ -32,8 +32,12 @@ spec:
       destination:
         server: https://kubernetes.default.svc
         namespace: argocd
+      # Server-side apply, like every other Application. Argo CD diffs on the
+      # server, and a field removed from git that client-side apply wrote
+      # shows no difference there, so it would never leave the cluster.
       syncPolicy:
         automated: { prune: true, selfHeal: true }
+        syncOptions: [ServerSideApply=true]
   # In dev, Helm parameters set in the Argo CD UI stay, so a different image
   # deploys without a release. Git keeps the chart version and values. Every
   # other directory patches nothing.
@@ -45,7 +49,7 @@ spec:
           kind: Application
           jqPathExpressions: [.spec.source.helm.parameters]
       syncPolicy:
-        syncOptions: [RespectIgnoreDifferences=true]
+        syncOptions: [ServerSideApply=true, RespectIgnoreDifferences=true]
     {{- else }}
     {}
     {{- end }}
