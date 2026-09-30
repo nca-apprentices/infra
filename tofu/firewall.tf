@@ -43,14 +43,3 @@ resource "hcloud_firewall" "node" {
     source_ips = var.operator_cidrs
   }
 }
-
-# The servers now name the firewall themselves. Forget the old attachment
-# instead of destroying it, which would leave the node open until the servers
-# attach the firewall again. Delete this block after the next apply.
-removed {
-  from = hcloud_firewall_attachment.node
-
-  lifecycle {
-    destroy = false
-  }
-}
