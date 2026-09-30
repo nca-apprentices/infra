@@ -18,8 +18,7 @@ spec:
       valuesObject:
         imagePullSecrets: [{ name: ghcr }]
         ingress:
-          # Placeholder until the domain is chosen.
-          host: jjforge.example.com
+          host: jjforge.nca-apprentices.dev
   destination:
     server: https://kubernetes.default.svc
     namespace: jjforge-prod
