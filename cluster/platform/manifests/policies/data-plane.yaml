@@ -1,6 +1,6 @@
 # The data plane is reachable from namespaces labeled nca/data-plane and from
 # nothing else. An app opts in through that label on its namespace. A
-# compromised CI runner should not be one curl away from the object store.
+# compromised app should not be one curl away from the object store.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:

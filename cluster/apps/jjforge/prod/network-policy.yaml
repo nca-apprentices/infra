@@ -18,7 +18,3 @@ spec:
             k8s:io.kubernetes.pod.namespace: cnpg-system
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: observability
-        # The CI runners reach the jjforge API. Their own policy in ../ci
-        # limits them to it.
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: jjforge-ci

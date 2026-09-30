@@ -26,8 +26,7 @@ are namespaces in it, named `<app>-<env>`.
 The root Application syncs the files in `platform/`. Among them, the `apps`
 ApplicationSet creates one Application per directory in `apps/<app>/`, named
 `app-<app>-<env>`, which syncs the files directly in that directory. A
-directory that isn't an environment works the same way. `apps/jjforge/ci/`
-holds the CI runners, which serve `jjforge-prod`.
+directory that isn't an environment works the same way.
 
 Sync waves order the platform. Cilium comes first, then operators and storage,
 then what runs on them, then the apps.
