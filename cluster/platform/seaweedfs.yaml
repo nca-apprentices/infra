@@ -14,7 +14,14 @@ spec:
     helm:
       releaseName: seaweedfs
       valuesObject:
-        master: { replicas: 1 }
+        # Data on the encrypted data disk, logs in the pod. The chart's
+        # default host paths are forbidden by Pod Security baseline and would
+        # bypass the encryption.
+        master:
+          replicas: 1
+          data:
+            { type: persistentVolumeClaim, size: 1Gi, storageClass: local-data }
+          logs: { type: emptyDir }
         volume:
           replicas: 1
           dataDirs:
@@ -22,7 +29,12 @@ spec:
               type: persistentVolumeClaim
               size: 40Gi
               storageClass: local-data
-        filer: { replicas: 1, s3: { enabled: true } }
+        filer:
+          replicas: 1
+          s3: { enabled: true }
+          data:
+            { type: persistentVolumeClaim, size: 5Gi, storageClass: local-data }
+          logs: { type: emptyDir }
   destination:
     server: https://kubernetes.default.svc
     namespace: storage
