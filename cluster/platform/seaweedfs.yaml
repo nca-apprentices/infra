@@ -22,6 +22,11 @@ spec:
           data:
             { type: persistentVolumeClaim, size: 1Gi, storageClass: local-data }
           logs: { type: emptyDir }
+          # A new bucket claims copy_1 volumes up front, 7 by default, which
+          # one small node can't spare per bucket.
+          config: |-
+            [master.volume_growth]
+            copy_1 = 2
         volume:
           replicas: 1
           dataDirs:
@@ -29,6 +34,9 @@ spec:
               type: persistentVolumeClaim
               size: 40Gi
               storageClass: local-data
+              # 1 GB volumes (master volumeSizeLimitMB) on a 40 GB disk. The
+              # chart's fallback of 7 left no room for a second bucket.
+              maxVolumes: 38
         filer:
           replicas: 1
           s3: { enabled: true }
