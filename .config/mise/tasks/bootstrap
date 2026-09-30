@@ -26,15 +26,18 @@ kubectl config set-cluster nca --server "https://$ip:6443"
 until kubectl get --raw /readyz >/dev/null 2>&1; do sleep 5; done
 
 # Nothing schedules without a CNI, Argo CD included. Cilium goes in first, with
-# the chart and values that Argo CD takes over afterwards.
+# the chart and values that Argo CD takes over afterwards. Once Argo CD owns
+# it, applying the chart again conflicts with Argo CD's fields.
 cilium=cluster/platform/cilium.yaml
-yq .spec.source.helm.valuesObject "$cilium" |
-  helm template cilium cilium \
-    --repo "$(yq .spec.source.repoURL "$cilium")" \
-    --version "$(yq .spec.source.targetRevision "$cilium")" \
-    --namespace kube-system \
-    --values - |
-  kubectl apply --server-side -f -
+if ! kubectl -n argocd get application cilium >/dev/null 2>&1; then
+  yq .spec.source.helm.valuesObject "$cilium" |
+    helm template cilium cilium \
+      --repo "$(yq .spec.source.repoURL "$cilium")" \
+      --version "$(yq .spec.source.targetRevision "$cilium")" \
+      --namespace kube-system \
+      --values - |
+    kubectl apply --server-side -f -
+fi
 
 # The secrets that must exist before the first sync, for the platform and for
 # every app, each into the namespace it names. See docs/operations.md.
