@@ -1,0 +1,16 @@
+# The Hetzner metadata service hands the node's user data to anyone who asks,
+# and the user data is the Talos machine configuration with the cluster's CA
+# keys. No pod may reach it: one compromised app would own the cluster.
+#
+# Deny rules alone would put every pod in default deny, so the policy opts out
+# of it and blocks this one address only. Talos reads the metadata from the
+# host network, which the policy doesn't select.
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: no-cloud-metadata
+spec:
+  endpointSelector: {}
+  enableDefaultDeny: { ingress: false, egress: false }
+  egressDeny:
+    - toCIDR: [169.254.169.254/32]
