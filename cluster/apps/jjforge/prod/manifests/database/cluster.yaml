@@ -7,7 +7,7 @@ spec:
   # One instance: a second on the same node buys no availability, only memory.
   instances: 1
   priorityClassName: prod
-  imageName: ghcr.io/cloudnative-pg/postgresql:19.1
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.6
 
   postgresql:
     parameters:
