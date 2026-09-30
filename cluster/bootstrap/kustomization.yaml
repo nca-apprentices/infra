@@ -32,3 +32,15 @@ patches:
             end
           end
           return hs
+  # Server-side diff compares with what the API server would store, so fields
+  # that webhooks and defaults fill in don't show as drift under server-side
+  # apply. The timeout ends a sync that waits for health forever: a child that
+  # only a newer commit can fix otherwise blocks root from ever syncing it.
+  - patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: argocd-cmd-params-cm
+      data:
+        controller.diff.server.side: "true"
+        controller.sync.timeout.seconds: "900"
