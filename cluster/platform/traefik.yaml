@@ -14,8 +14,18 @@ spec:
     helm:
       releaseName: traefik
       valuesObject:
+        # One Traefik per node, bound to the node's ports 80 and 443. Plain
+        # Hetzner servers hand out no LoadBalancer addresses, and giving the
+        # Service the node's own IP makes Cilium drop every other port on it,
+        # the Kubernetes and Talos APIs included.
+        deployment: { kind: DaemonSet }
+        service: { spec: { type: ClusterIP } }
+        # A host port can't be held twice, so the old pod goes first.
+        updateStrategy: { rollingUpdate: { maxUnavailable: 1, maxSurge: 0 } }
         ports:
+          web: { hostPort: 80 }
           websecure:
+            hostPort: 443
             http3: { enabled: true }
             # gRPC and HTTP share :443 and are separated by ALPN, so the client
             # needs no second hostname or port.

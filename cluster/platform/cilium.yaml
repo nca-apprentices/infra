@@ -45,11 +45,6 @@ spec:
         # Pending, and keeps this Application Degraded, until a second node
         # joins.
         operator: { replicas: 1, rollOutPods: true }
-        # Nothing else hands out LoadBalancer addresses on plain Hetzner
-        # servers. Node IPAM gives each LoadBalancer the nodes' own IPs, so
-        # Traefik answers on :80 and :443 of every node.
-        nodeIPAM: { enabled: true }
-        defaultLBServiceIPAM: nodeipam
         # Turned on when the second node joins: node-to-node traffic then
         # leaves the machine and has to be encrypted.
         encryption:
