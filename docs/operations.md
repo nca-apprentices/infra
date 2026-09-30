@@ -176,6 +176,7 @@ into the namespace it names, and creates that namespace first.
 | `jjforge-<env>-chart` | `argocd`        | `apps/jjforge/<env>/`   | GHCR token Argo CD pulls the chart with           |
 | `ghcr`                | `jjforge-<env>` | `apps/jjforge/<env>/`   | GHCR token the jjforge images are pulled with     |
 | `<store>-backup-s3`   | The store's     | See [Backups](#backups) | The store's key for its backup bucket             |
+| `seaweedfs-s3-config` | `storage`       | `platform/`             | The S3 identities and the buckets each may use    |
 | `argocd-github`       | `argocd`        | `platform/`             | The GitHub OAuth 2.0 app of the ops portal        |
 | `grafana-github`      | `observability` | `platform/`             | The same OAuth 2.0 app                            |
 | `oauth2-proxy`        | `ops`           | `platform/`             | The same OAuth 2.0 app, and a cookie secret       |

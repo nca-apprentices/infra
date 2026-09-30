@@ -281,11 +281,6 @@ Every application reaches `Synced` and `Healthy`.
 <https://ops.nca-apprentices.dev> links to Argo CD and the other tools, as
 [operations.md](operations.md#ops-portal) describes.
 
-## Known gaps
-
-- The `seaweedfs` Application configures no S3 identities, so any namespace
-  admitted to the data plane can read and write every bucket.
-
 ## Operators
 
 An operator holds three things: an age key, which decrypts the secrets, an
