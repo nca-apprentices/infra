@@ -80,8 +80,8 @@ sops --encrypt --in-place talos/talsecret.sops.yaml
 
 `mise run bootstrap` applies every `*.enc.yaml` under `secrets/` before
 Argo CD starts. Argo CD reads this private repository as a GitHub App, since
-the organization allows no deploy keys, and the cluster pulls the jjforge chart
-and images from GHCR with a token.
+the organization allows no deploy keys. The jjforge chart and images on GHCR
+are public, so pulling them takes no credentials.
 
 Create the app at
 <https://github.com/organizations/nca-apprentices/settings/apps/new>: no
@@ -91,18 +91,13 @@ the `infra` repository only. The installation ID is the number at the end of the
 installation's settings URL.
 
 ```fish
-mkdir -p secrets/platform secrets/apps/jjforge/prod secrets/apps/jjforge/dev
+mkdir -p secrets/platform secrets/apps/jjforge/prod
 set app_id 123456             # App ID
 set installation_id 12345678  # installation ID
 set app_key ~/Downloads/nca-argocd.*.private-key.pem
 ```
 
-Create a classic token with only the `read:packages` scope at
-<https://github.com/settings/tokens/new?scopes=read:packages>, then:
-
 ```fish
-read -s -P 'GHCR token: ' token
-
 kubectl create secret generic infra-repo --namespace argocd \
     --from-literal type=git \
     --from-literal url=https://github.com/nca-apprentices/infra.git \
@@ -112,24 +107,19 @@ kubectl create secret generic infra-repo --namespace argocd \
     --dry-run=client -o yaml |
     kubectl label --local -f - argocd.argoproj.io/secret-type=repository -o yaml \
     >secrets/platform/infra-repo.enc.yaml
+```
 
-for env in prod dev
-    kubectl create secret generic jjforge-$env-chart --namespace argocd \
-        --from-literal type=oci \
-        --from-literal url=oci://ghcr.io/nca-apprentices/charts/jjforge \
-        --from-literal project=jjforge-$env \
-        --from-literal username=kevin-nca \
-        --from-literal password=$token \
-        --dry-run=client -o yaml |
-        kubectl label --local -f - argocd.argoproj.io/secret-type=repository -o yaml \
-        >secrets/apps/jjforge/$env/jjforge-chart.enc.yaml
+The SeaweedFS S3 identities. Every S3 request needs a key, and an app's
+identity reaches only its own bucket. Start with an administrator identity:
 
-    kubectl create secret docker-registry ghcr --namespace jjforge-$env \
-        --docker-server ghcr.io \
-        --docker-username kevin-nca \
-        --docker-password $token \
-        --dry-run=client -o yaml >secrets/apps/jjforge/$env/ghcr.enc.yaml
-end
+```fish
+set ak (openssl rand -hex 16)
+set sk (openssl rand -base64 30 | tr -d '/+=')
+printf '{"identities":[{"name":"admin","credentials":[{"accessKey":"%s","secretKey":"%s"}],"actions":["Admin","Read","List","Tagging","Write"]}]}' $ak $sk |
+    kubectl create secret generic seaweedfs-s3-config --namespace storage \
+        --from-file seaweedfs_s3_config=/dev/stdin \
+        --dry-run=client -o yaml >secrets/platform/seaweedfs-s3-config.enc.yaml
+set -e ak sk
 ```
 
 Each store's backup key, from step 2, into the store's namespace:
@@ -193,7 +183,7 @@ for f in secrets/**.enc.yaml
     sops --encrypt --in-place $f
 end
 rm $app_key
-set -e token secret
+set -e secret
 ```
 
 ## 6. Set the domain and publish the release

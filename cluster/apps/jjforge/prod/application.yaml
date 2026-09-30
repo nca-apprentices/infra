@@ -16,7 +16,6 @@ spec:
     path: .
     helm:
       valuesObject:
-        imagePullSecrets: [{ name: ghcr }]
         ingress:
           host: jjforge.nca-apprentices.dev
   destination:
