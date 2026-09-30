@@ -1,0 +1,26 @@
+# Serves the metrics.k8s.io API that Headlamp and kubectl top read.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: metrics-server
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://kubernetes-sigs.github.io/metrics-server/
+    chart: metrics-server
+    targetRevision: "3.14.0"
+    helm:
+      releaseName: metrics-server
+      valuesObject:
+        # Talos kubelets serve a self-signed certificate, which no CA in the
+        # cluster can verify.
+        args: [--kubelet-insecure-tls]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ServerSideApply=true]
