@@ -8,8 +8,10 @@ trap 'rm -rf "$scratch"' EXIT
 treefmt --ci
 mise run prose
 
-tofu -chdir=tofu init -backend=false -input=false >/dev/null
-tofu -chdir=tofu validate
+# A data directory of its own, so an operator's initialized backend in
+# tofu/.terraform doesn't make validation ask for state credentials.
+TF_DATA_DIR="$scratch/tofu" tofu -chdir=tofu init -backend=false -input=false >/dev/null
+TF_DATA_DIR="$scratch/tofu" tofu -chdir=tofu validate
 
 # A throwaway secret is enough to prove the config renders and is valid.
 talhelper gensecret >"$scratch/talsecret.yaml"
