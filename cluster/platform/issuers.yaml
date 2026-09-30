@@ -1,0 +1,20 @@
+# The certificate issuers. Needs the cert-manager CRDs from wave 1.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: issuers
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/nca-apprentices/infra.git
+    targetRevision: main
+    path: cluster/platform/manifests/issuers
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ServerSideApply=true]

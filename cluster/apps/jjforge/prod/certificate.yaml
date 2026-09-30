@@ -1,0 +1,11 @@
+# The certificate the chart's Ingress names in ingress.tls.secretName. The host
+# repeats ingress.host from application.yaml.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: jjforge-tls
+  namespace: jjforge-prod
+spec:
+  secretName: jjforge-tls
+  dnsNames: [jjforge.nca-apprentices.dev]
+  issuerRef: { kind: ClusterIssuer, name: letsencrypt }
