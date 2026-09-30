@@ -39,7 +39,15 @@ spec:
               maxVolumes: 38
         filer:
           replicas: 1
-          s3: { enabled: true }
+          # Every S3 request needs a key from the identities in
+          # secrets/platform/seaweedfs-s3-config.enc.yaml, which also limit
+          # each app to its own bucket.
+          s3:
+            {
+              enabled: true,
+              enableAuth: true,
+              existingConfigSecret: seaweedfs-s3-config,
+            }
           data:
             { type: persistentVolumeClaim, size: 5Gi, storageClass: local-data }
           logs: { type: emptyDir }
