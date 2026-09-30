@@ -4,18 +4,20 @@
 resource "hcloud_firewall" "node" {
   name = "nca"
 
+  # The apps too, until they are ready for the public. Let's Encrypt can't
+  # reach port 80 meanwhile, so certificates don't renew over HTTP-01.
   rule {
     direction  = "in"
     protocol   = "tcp"
     port       = "443"
-    source_ips = ["0.0.0.0/0", "::/0"]
+    source_ips = var.operator_cidrs
   }
 
   rule {
     direction  = "in"
     protocol   = "tcp"
     port       = "80"
-    source_ips = ["0.0.0.0/0", "::/0"]
+    source_ips = var.operator_cidrs
   }
 
   rule {
