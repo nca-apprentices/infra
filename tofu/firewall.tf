@@ -44,7 +44,13 @@ resource "hcloud_firewall" "node" {
   }
 }
 
-resource "hcloud_firewall_attachment" "node" {
-  firewall_id = hcloud_firewall.node.id
-  server_ids  = hcloud_server.node[*].id
+# The servers now name the firewall themselves. Forget the old attachment
+# instead of destroying it, which would leave the node open until the servers
+# attach the firewall again. Delete this block after the next apply.
+removed {
+  from = hcloud_firewall_attachment.node
+
+  lifecycle {
+    destroy = false
+  }
 }

@@ -32,6 +32,9 @@ resource "hcloud_server" "node" {
   # generates the file with talhelper first.
   user_data = file("${path.module}/../talos/clusterconfig/nca-nca-${count.index + 1}.yaml")
 
+  # Attached at creation, so a new node is never reachable without it.
+  firewall_ids = [hcloud_firewall.node.id]
+
   public_net {
     ipv4_enabled = true
     ipv6_enabled = true
