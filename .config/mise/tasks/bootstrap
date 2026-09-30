@@ -8,10 +8,15 @@ ip=$(sops exec-env secrets/tofu.enc.env "tofu -chdir=tofu output -raw node_ipv4"
 export TALOSCONFIG=talos/clusterconfig/talosconfig
 export KUBECONFIG=talos/clusterconfig/kubeconfig
 
-# etcd bootstraps once per cluster, and a second call fails.
+# etcd bootstraps once per cluster. A second call answers AlreadyExists, which
+# counts as done. Asking etcd status first doesn't work: it hangs until etcd
+# runs, and etcd only runs after the bootstrap.
 until talosctl -e "$ip" -n "$ip" version >/dev/null 2>&1; do sleep 5; done
-if ! talosctl -e "$ip" -n "$ip" etcd status >/dev/null 2>&1; then
-  talosctl -e "$ip" -n "$ip" bootstrap
+if ! out=$(talosctl -e "$ip" -n "$ip" bootstrap 2>&1); then
+  if ! grep -q AlreadyExists <<<"$out"; then
+    echo "$out" >&2
+    exit 1
+  fi
 fi
 
 # The generated kubeconfig names the private address. The public one is in the
