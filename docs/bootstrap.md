@@ -165,13 +165,17 @@ Set `domain` in `tofu/terraform.tfvars`, and replace `example.com` in
 every `cluster/apps/*/*/application.yaml` with it.
 
 Argo CD deploys the chart version in `cluster/apps/jjforge/*/application.yaml`,
-so that version must exist before the first sync. In a clone of
-[nca-apprentices/jjforge](https://github.com/nca-apprentices/jjforge), tag it:
+so that version must exist before the first sync. If its release is missing,
+tag it in a clone of
+[nca-apprentices/jjforge](https://github.com/nca-apprentices/jjforge) next to
+this one. The release workflow publishes the images, the chart, and a GitHub
+release:
 
 ```fish
-git tag v0.1.0
-git push origin v0.1.0
-gh run watch
+set version v(yq .spec.source.targetRevision cluster/apps/jjforge/prod/application.yaml)
+git -C ../jjforge tag -s $version -m $version
+git -C ../jjforge push origin $version
+gh run watch -R nca-apprentices/jjforge
 ```
 
 ## 7. Upload the Talos image
@@ -193,6 +197,7 @@ talhelper genconfig \
     --secret-file talos/talsecret.sops.yaml \
     --out-dir talos/clusterconfig
 sops exec-env secrets/tofu.enc.env "
+    export TF_VAR_s3_access_key=\$AWS_ACCESS_KEY_ID TF_VAR_s3_secret_key=\$AWS_SECRET_ACCESS_KEY &&
     tofu -chdir=tofu init -input=false &&
     tofu -chdir=tofu import 'hcloud_server.node[0]' $server
 "
