@@ -1,0 +1,28 @@
+# The product itself, from the released chart. The cluster is just another
+# installation of it -- if something cannot be expressed in the chart, it does
+# not belong in the product. Deploying is changing targetRevision.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: jjforge-prod
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: jjforge-prod
+  source:
+    repoURL: oci://ghcr.io/nca-apprentices/charts/jjforge
+    targetRevision: 0.1.0
+    path: .
+    helm:
+      valuesObject:
+        imagePullSecrets: [{ name: ghcr }]
+        ingress:
+          # Placeholder until the domain is chosen.
+          host: jjforge.example.com
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: jjforge-prod
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ServerSideApply=true]

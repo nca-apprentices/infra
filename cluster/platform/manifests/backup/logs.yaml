@@ -1,0 +1,69 @@
+# Nightly backup of VictoriaLogs, which keeps one directory per day. The job
+# snapshots every day's partition through the API, mirrors the snapshots to the
+# bucket, one directory per day, and deletes them. Days that retention removed
+# leave the mirror too, and bucket versioning keeps them 30 more days.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logs-backup
+  namespace: observability
+data:
+  backup.sh: |
+    set -eu
+    api=http://logs-victoria-logs-single-server:9428/internal/partition
+
+    # A run that failed halfway leaves its snapshots behind.
+    wget -qO- --post-data= "$api/snapshot/delete_stale?max_age=1h"
+
+    mkdir /tmp/days
+    for day in $(wget -qO- --post-data= "$api/list" | tr -d '[]" ' | tr , ' '); do
+      snapshot=$(wget -qO- --post-data= "$api/snapshot/create?partition_prefix=$day" | tr -d '[]" ')
+      ln -s "$snapshot" "/tmp/days/$day"
+    done
+
+    rclone sync --copy-links /tmp/days hetzner:nca-backup-logs
+
+    for day in /tmp/days/*; do
+      wget -qO- --post-data= "$api/snapshot/delete?path=$(readlink "$day")"
+    done
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: logs-backup
+  namespace: observability
+spec:
+  schedule: "30 2 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: rclone
+              image: rclone/rclone:1.75.1
+              command: [sh, /scripts/backup.sh]
+              env:
+                - { name: RCLONE_CONFIG_HETZNER_TYPE, value: s3 }
+                - { name: RCLONE_CONFIG_HETZNER_PROVIDER, value: Other }
+                - name: RCLONE_CONFIG_HETZNER_ENDPOINT
+                  value: https://fsn1.your-objectstorage.com
+                # Credentials and region from the AWS variables below.
+                - { name: RCLONE_CONFIG_HETZNER_ENV_AUTH, value: "true" }
+              envFrom:
+                - secretRef: { name: logs-backup-s3 }
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                # The snapshots are paths inside the store's volume, mounted
+                # where the store mounts it.
+                - name: data
+                  mountPath: /storage
+                  readOnly: true
+          volumes:
+            - name: scripts
+              configMap: { name: logs-backup }
+            - name: data
+              persistentVolumeClaim:
+                claimName: server-volume-logs-victoria-logs-single-server-0

@@ -1,0 +1,20 @@
+# What jjforge-dev's Applications may deploy: its chart and its directory
+# here, into its own namespace only. The namespace comes from this directory
+# under the platform's project, so the app creates no cluster-scoped objects
+# itself.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: jjforge-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  description: jjforge, development
+  sourceRepos:
+    - oci://ghcr.io/nca-apprentices/charts/jjforge
+    - git@github.com:nca-apprentices/infra.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: jjforge-dev
+  clusterResourceWhitelist: []

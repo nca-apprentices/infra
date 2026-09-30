@@ -1,0 +1,26 @@
+# Requests every container gets unless it sets its own, so the quota can count
+# them. Prod sets no default limit: its pods run at priority prod, and the node
+# evicts dev first under memory pressure.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: defaults
+  namespace: jjforge-prod
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  limits:
+    - type: Container
+      defaultRequest: { cpu: 100m, memory: 256Mi }
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: jjforge-prod
+  namespace: jjforge-prod
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: 8Gi

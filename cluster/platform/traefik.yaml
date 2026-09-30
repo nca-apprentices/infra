@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traefik
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://traefik.github.io/charts
+    chart: traefik
+    targetRevision: "41.6.0"
+    helm:
+      releaseName: traefik
+      valuesObject:
+        ports:
+          websecure:
+            http3: { enabled: true }
+            # gRPC and HTTP share :443 and are separated by ALPN, so the client
+            # needs no second hostname or port.
+            http:
+              tls: { enabled: true }
+        providers:
+          kubernetesIngress: { enabled: true }
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: traefik
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]

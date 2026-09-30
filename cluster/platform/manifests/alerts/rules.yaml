@@ -1,0 +1,37 @@
+# A backup that stops without anyone noticing is the usual way a restore
+# fails, and with auto-sync a failed sync is just as quiet.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: nca
+  namespace: observability
+spec:
+  groups:
+    - name: backup
+      rules:
+        - alert: BackupJobStale
+          expr: time() - max by (namespace, cronjob) (kube_cronjob_status_last_successful_time{cronjob=~".+-backup"}) > 26 * 3600
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.cronjob }} hasn't succeeded for more than a day."
+        - alert: BackupMirrorDown
+          expr: kube_deployment_status_replicas_available{deployment=~".+-backup"} < 1
+          for: 15m
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.deployment }} isn't running."
+        - alert: WalArchivingFailing
+          expr: cnpg_pg_stat_archiver_last_failed_time > cnpg_pg_stat_archiver_last_archived_time
+          for: 15m
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.pod }} can't archive WAL."
+    - name: argocd
+      rules:
+        - alert: ArgoAppOutOfSync
+          expr: argocd_app_info{sync_status!="Synced"} == 1
+          for: 15m
+          annotations:
+            summary: "Application {{ $labels.name }} is {{ $labels.sync_status }}."
+        - alert: ArgoAppUnhealthy
+          expr: argocd_app_info{health_status!="Healthy"} == 1
+          for: 15m
+          annotations:
+            summary: "Application {{ $labels.name }} is {{ $labels.health_status }}."

@@ -1,0 +1,24 @@
+# The Barman Cloud plugin, which archives CNPG backups to object storage. It
+# replaces the operator's built-in barmanObjectStore, which CNPG deprecated.
+# Needs cert-manager, and runs next to the operator.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: barman-cloud
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://cloudnative-pg.github.io/charts
+    chart: plugin-barman-cloud
+    targetRevision: "0.8.0"
+    helm:
+      releaseName: barman-cloud
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cnpg-system
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]

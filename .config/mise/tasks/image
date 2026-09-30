@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+#MISE description="Upload the Talos release in talconfig.yaml as a Hetzner snapshot"
+set -euo pipefail
+
+# The empty Image Factory schematic: stock Talos with no extensions.
+schematic=376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba
+version=$(yq .talosVersion talos/talconfig.yaml)
+
+sops exec-env secrets/tofu.enc.env "
+  HCLOUD_TOKEN=\$TF_VAR_hcloud_token hcloud-upload-image upload \
+    --image-url https://factory.talos.dev/image/$schematic/$version/hcloud-amd64.raw.xz \
+    --architecture x86 \
+    --compression xz \
+    --location nbg1 \
+    --labels os=talos,talos-version=$version
+"

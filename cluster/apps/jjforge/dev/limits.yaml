@@ -1,0 +1,26 @@
+# Requests every container gets unless it sets its own, so the quota can count
+# them. The default limit stops a leak in dev from taking memory prod needs.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: defaults
+  namespace: jjforge-dev
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  limits:
+    - type: Container
+      default: { cpu: "1", memory: 1Gi }
+      defaultRequest: { cpu: 100m, memory: 256Mi }
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: jjforge-dev
+  namespace: jjforge-dev
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 4Gi

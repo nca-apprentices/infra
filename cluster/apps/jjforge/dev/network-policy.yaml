@@ -1,0 +1,20 @@
+# Ingress comes from this namespace and the platform only, never from another
+# app or environment: a pod in one environment can't reach another's database.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: isolate
+  namespace: jjforge-dev
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  endpointSelector: {}
+  ingress:
+    - fromEndpoints:
+        - {}
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: traefik
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cnpg-system
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: observability

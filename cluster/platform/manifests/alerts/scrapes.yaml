@@ -1,0 +1,25 @@
+# The metrics the rules in rules.yaml read that the stack doesn't scrape on its
+# own: Argo CD's application states and each Postgres instance's WAL archiver.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: argocd
+  namespace: observability
+spec:
+  namespaceSelector: { matchNames: [argocd] }
+  selector:
+    matchLabels: { app.kubernetes.io/name: argocd-metrics }
+  endpoints:
+    - port: metrics
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: cnpg
+  namespace: observability
+spec:
+  namespaceSelector: { any: true }
+  selector:
+    matchLabels: { cnpg.io/podRole: instance }
+  podMetricsEndpoints:
+    - port: metrics

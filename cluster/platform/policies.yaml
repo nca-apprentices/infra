@@ -1,0 +1,21 @@
+# Cilium network policies and priority classes shared by every app. Needs the
+# Cilium CRDs.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: policies
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:nca-apprentices/infra.git
+    targetRevision: main
+    path: cluster/platform/manifests/policies
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]

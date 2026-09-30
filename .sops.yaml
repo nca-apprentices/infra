@@ -1,0 +1,24 @@
+# Public age keys only. Every file is encrypted to each key in this list, and
+# any one of them decrypts it. The private halves never enter this repo.
+#
+# To add or remove an operator, change the list, then re-encrypt every file as
+# docs/bootstrap.md#operators describes.
+#
+# Run sops from the repository root: it finds this file from the working
+# directory, and the path rules below expect paths relative to it.
+
+# The escrow key comes first. It is for recovery only, and its private half
+# lives in offline escrow. Then one key per operator, named after its owner.
+recipients: &recipients
+  - age1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsg9qz3 # escrow, placeholder
+
+creation_rules:
+  # Kubernetes Secrets: only the values are encrypted, so a diff still shows
+  # which secret changed.
+  - path_regex: secrets/.*\.enc\.yaml$
+    encrypted_regex: "^(data|stringData)$"
+    age: *recipients
+  # Everything else is encrypted whole: the tofu credentials and the Talos
+  # cluster secrets.
+  - path_regex: (secrets/.*\.enc\.env|talos/talsecret\.sops\.yaml)$
+    age: *recipients

@@ -1,0 +1,32 @@
+# `mise run fmt` formats with this file, and `mise run check` checks with it.
+excludes = [
+  ".terraform.lock.hcl",
+  # Encrypted: sops rejects a file whose bytes changed.
+  "secrets/**",
+  "talos/talsecret.sops.yaml",
+]
+
+[formatter.tofu]
+command = "tofu"
+options = ["fmt"]
+includes = ["*.tf", "*.tfvars"]
+
+[formatter.shell]
+command = "shfmt"
+options = ["--write", "--indent=2"]
+includes = [".config/mise/tasks/*"]
+
+[formatter.toml]
+command = "taplo"
+options = ["format"]
+includes = ["*.toml"]
+
+[formatter.yaml]
+command = "prettier"
+options = ["--write"]
+includes = ["*.yaml", "*.yml"]
+
+[formatter.markdown]
+command = "rumdl"
+options = ["fmt"]
+includes = ["*.md"]

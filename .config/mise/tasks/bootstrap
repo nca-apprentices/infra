@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+#MISE description="Bootstrap Talos, install Cilium and Argo CD, apply the pre-sync secrets"
+set -euo pipefail
+
+# Safe to rerun: each step checks first or converges.
+
+ip=$(sops exec-env secrets/tofu.enc.env "tofu -chdir=tofu output -raw node_ipv4")
+export TALOSCONFIG=talos/clusterconfig/talosconfig
+export KUBECONFIG=talos/clusterconfig/kubeconfig
+
+# etcd bootstraps once per cluster, and a second call fails.
+until talosctl -e "$ip" -n "$ip" version >/dev/null 2>&1; do sleep 5; done
+if ! talosctl -e "$ip" -n "$ip" etcd status >/dev/null 2>&1; then
+  talosctl -e "$ip" -n "$ip" bootstrap
+fi
+
+# The generated kubeconfig names the private address. The public one is in the
+# API server certificate too, and the firewall admits the operator to it.
+talosctl -e "$ip" -n "$ip" kubeconfig --force "$KUBECONFIG"
+kubectl config set-cluster nca --server "https://$ip:6443"
+until kubectl get --raw /readyz >/dev/null 2>&1; do sleep 5; done
+
+# Nothing schedules without a CNI, Argo CD included. Cilium goes in first, with
+# the chart and values that Argo CD takes over afterwards.
+cilium=cluster/platform/cilium.yaml
+yq .spec.source.helm.valuesObject "$cilium" |
+  helm template cilium cilium \
+    --repo "$(yq .spec.source.repoURL "$cilium")" \
+    --version "$(yq .spec.source.targetRevision "$cilium")" \
+    --namespace kube-system \
+    --values - |
+  kubectl apply --server-side -f -
+
+# The secrets that must exist before the first sync, for the platform and for
+# every app, each into the namespace it names. See docs/operations.md.
+while IFS= read -r secret; do
+  manifest=$(sops --decrypt "$secret")
+  namespace=$(yq .metadata.namespace <<<"$manifest")
+  kubectl create namespace "$namespace" --dry-run=client -o yaml | kubectl apply -f -
+  kubectl apply -f - <<<"$manifest"
+done < <(find secrets -name '*.enc.yaml' | sort)
+
+# The root Application needs its CRD established, which the first apply of
+# the Argo CD manifests only starts.
+kubectl apply --server-side -k cluster/bootstrap || {
+  kubectl wait --for condition=established crd/applications.argoproj.io
+  kubectl apply --server-side -k cluster/bootstrap
+}

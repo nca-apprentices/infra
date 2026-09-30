@@ -1,0 +1,37 @@
+# Nightly backup of VictoriaMetrics. vmbackup snapshots the running store
+# through its API and uploads only the files that changed since the last night.
+# The operator's own vmBackup field needs the Enterprise vmbackupmanager.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: metrics-backup
+  namespace: observability
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: vmbackup
+              # Same version as the VMSingle in observability.yaml.
+              image: victoriametrics/vmbackup:v1.128.0
+              args:
+                - -storageDataPath=/victoria-metrics-data
+                - -snapshot.createURL=http://vmsingle-observability-victoria-metrics-k8s-stack:8428/snapshot/create
+                - -dst=s3://nca-backup-metrics/latest
+                - -customS3Endpoint=https://fsn1.your-objectstorage.com
+              envFrom:
+                - secretRef: { name: metrics-backup-s3 }
+              volumeMounts:
+                - name: data
+                  mountPath: /victoria-metrics-data
+                  readOnly: true
+          # The store's own volume. A ReadWriteOnce volume admits a second pod
+          # on the same node.
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: vmsingle-observability-victoria-metrics-k8s-stack

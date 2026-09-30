@@ -1,0 +1,53 @@
+# Mirrors every bucket in SeaweedFS to its Hetzner bucket as changes happen.
+# The filer stores how far the mirror got, so a restart resumes there. Deletes
+# reach the mirror too, and bucket versioning keeps what they removed.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: seaweedfs-backup
+  namespace: storage
+data:
+  replication.toml: |
+    [sink.s3]
+    enabled = true
+    endpoint = "https://fsn1.your-objectstorage.com"
+    region = "fsn1"
+    bucket = "nca-backup-seaweedfs"
+    directory = "/"
+    is_incremental = false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs-backup
+  namespace: storage
+spec:
+  replicas: 1
+  # Two mirrors would race on the same position.
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: seaweedfs-backup }
+  template:
+    metadata:
+      labels: { app: seaweedfs-backup }
+    spec:
+      containers:
+        - name: filer-backup
+          image: chrislusf/seaweedfs:4.47
+          args:
+            - filer.backup
+            - -filer=seaweedfs-filer:8888
+            - -filerPath=/buckets
+            - -doDeleteFiles
+          # The S3 sink falls back to the AWS environment variables.
+          envFrom:
+            - secretRef: { name: seaweedfs-backup-s3 }
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+          volumeMounts:
+            - name: config
+              mountPath: /etc/seaweedfs
+              readOnly: true
+      volumes:
+        - name: config
+          configMap: { name: seaweedfs-backup }

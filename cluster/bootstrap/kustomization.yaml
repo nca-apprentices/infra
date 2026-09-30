@@ -1,0 +1,34 @@
+# The only imperative step in the whole instance: install Argo CD, then hand it
+# the root application and never touch the cluster by hand again.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: argocd
+
+resources:
+  - namespace.yaml
+  - https://raw.githubusercontent.com/argoproj/argo-cd/v3.3.2/manifests/install.yaml
+  - root.yaml
+
+# Sync waves order the child Applications only if Argo CD can tell when a child
+# is healthy, which it stopped doing by default in 1.8.
+patches:
+  - patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: argocd-cm
+      data:
+        resource.customizations.health.argoproj.io_Application: |
+          hs = {}
+          hs.status = "Progressing"
+          hs.message = ""
+          if obj.status ~= nil then
+            if obj.status.health ~= nil then
+              hs.status = obj.status.health.status
+              if obj.status.health.message ~= nil then
+                hs.message = obj.status.health.message
+              end
+            end
+          end
+          return hs

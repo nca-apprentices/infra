@@ -1,0 +1,36 @@
+# One Application per directory in ../apps/<app>, one level down, named
+# app-<app>-<dir>. The directory is an environment, such as jjforge/prod, or a
+# part every environment shares, such as jjforge/ci. Each directory holds its
+# namespace, its AppProject, and its own Applications, so adding an app or an
+# environment touches nothing outside that directory.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps
+  namespace: argocd
+  annotations:
+    # After the platform: apps need the operators, storage, and ingress.
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: git@github.com:nca-apprentices/infra.git
+        revision: main
+        directories:
+          - path: cluster/apps/*/*
+  template:
+    metadata:
+      name: "app-{{ index .path.segments 2 }}-{{ .path.basename }}"
+    spec:
+      project: default
+      source:
+        repoURL: git@github.com:nca-apprentices/infra.git
+        targetRevision: main
+        path: "{{ .path.path }}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: argocd
+      syncPolicy:
+        automated: { prune: true, selfHeal: true }

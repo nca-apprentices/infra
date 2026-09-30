@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+#MISE description="Validate tofu, Talos and the cluster manifests, without credentials"
+set -euo pipefail
+
+scratch=$(mktemp -d)
+trap 'rm -rf "$scratch"' EXIT
+
+treefmt --ci
+mise run prose
+
+tofu -chdir=tofu init -backend=false -input=false >/dev/null
+tofu -chdir=tofu validate
+
+# A throwaway secret is enough to prove the config renders and is valid.
+talhelper gensecret >"$scratch/talsecret.yaml"
+talhelper genconfig \
+  --config-file talos/talconfig.yaml \
+  --secret-file "$scratch/talsecret.yaml" \
+  --out-dir "$scratch/clusterconfig" >/dev/null
+for node in "$scratch"/clusterconfig/*.yaml; do
+  talosctl validate --config "$node" --mode cloud --strict
+done
+
+# Custom resources validate against the community CRD catalog. Kinds missing
+# from it are skipped rather than failed.
+kubeconform=(
+  kubeconform -strict -summary -ignore-missing-schemas
+  -schema-location default
+  -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+)
+kustomize build cluster/bootstrap | "${kubeconform[@]}"
+"${kubeconform[@]}" cluster/platform cluster/apps
+
+# Every third-party chart renders with the values its Application passes. The
+# jjforge chart is checked by the app CI before it is released.
+for app in cluster/platform/*.yaml cluster/apps/*/*/*.yaml; do
+  chart=$(yq '.spec.source.chart // ""' "$app")
+  if [[ -z $chart ]]; then
+    continue
+  fi
+
+  yq '.spec.source.helm.valuesObject // {}' "$app" |
+    helm template "$(yq .metadata.name "$app")" "$chart" \
+      --repo "$(yq .spec.source.repoURL "$app")" \
+      --version "$(yq .spec.source.targetRevision "$app")" \
+      --namespace "$(yq .spec.destination.namespace "$app")" \
+      --values - |
+    "${kubeconform[@]}"
+done

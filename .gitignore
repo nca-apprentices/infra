@@ -1,0 +1,12 @@
+# Local state, never committed
+.env
+.claude-notes/
+.DS_Store
+
+# Local state: tofu working files and generated Talos configuration, which
+# holds the cluster secrets in plain text
+*.tfstate
+*.tfstate.backup
+.terraform/
+talos/clusterconfig/
+*.decrypted.yaml

@@ -1,0 +1,25 @@
+# Ships every container's logs to VictoriaLogs in logs.yaml.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: logs-collector
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://victoriametrics.github.io/helm-charts
+    chart: victoria-logs-collector
+    targetRevision: "0.3.7"
+    helm:
+      releaseName: logs-collector
+      valuesObject:
+        remoteWrite:
+          - url: http://logs-victoria-logs-single-server:9428
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]

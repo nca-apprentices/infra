@@ -1,0 +1,23 @@
+# Runners execute code from pull requests. They may reach the internet and the
+# jjforge API, and nothing else in the cluster.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ci-runners-no-east-west
+  namespace: jjforge-ci
+spec:
+  endpointSelector: {}
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: jjforge-prod
+            app.kubernetes.io/component: server
+    - toEntities:
+        - world
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - { port: "53", protocol: UDP }

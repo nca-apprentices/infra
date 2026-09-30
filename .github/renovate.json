@@ -1,0 +1,22 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigestsToSemver"],
+  "rangeStrategy": "pin",
+  "schedule": ["* 0-5 1,15 * *"],
+  "minimumReleaseAge": "7 days",
+  "internalChecksFilter": "strict",
+  "argocd": {
+    "managerFilePatterns": ["/^cluster/.+\\.yaml$/"]
+  },
+  "kubernetes": {
+    "managerFilePatterns": ["/^cluster/.+\\.yaml$/"]
+  },
+  "packageRules": [
+    {
+      "description": "Our own releases deploy when they are published.",
+      "matchPackageNames": ["ghcr.io/nca-apprentices/**"],
+      "minimumReleaseAge": null,
+      "schedule": ["at any time"]
+    }
+  ]
+}

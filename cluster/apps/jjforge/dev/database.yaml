@@ -1,0 +1,20 @@
+# The Postgres cluster. Needs the CNPG operator and storage.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: jjforge-dev-database
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: jjforge-dev
+  source:
+    repoURL: git@github.com:nca-apprentices/infra.git
+    targetRevision: main
+    path: cluster/apps/jjforge/dev/manifests/database
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: jjforge-dev
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ServerSideApply=true]

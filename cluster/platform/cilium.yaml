@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cilium
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://helm.cilium.io
+    chart: cilium
+    targetRevision: "1.19.2"
+    helm:
+      releaseName: cilium
+      valuesObject:
+        # Talos requirements: KubePrism as the API endpoint, the cgroup mount
+        # Talos already provides, and no SYS_MODULE, which Talos denies.
+        ipam: { mode: kubernetes }
+        kubeProxyReplacement: true
+        k8sServiceHost: localhost
+        k8sServicePort: 7445
+        cgroup:
+          autoMount: { enabled: false }
+          hostRoot: /sys/fs/cgroup
+        securityContext:
+          capabilities:
+            ciliumAgent:
+              - CHOWN
+              - KILL
+              - NET_ADMIN
+              - NET_RAW
+              - IPC_LOCK
+              - SYS_ADMIN
+              - SYS_RESOURCE
+              - DAC_OVERRIDE
+              - FOWNER
+              - SETGID
+              - SETUID
+            cleanCiliumState: [NET_ADMIN, SYS_ADMIN, SYS_RESOURCE]
+        hubble:
+          relay: { enabled: true }
+          ui: { enabled: true }
+        # Turned on when the second node joins: node-to-node traffic then
+        # leaves the machine and has to be encrypted.
+        encryption:
+          enabled: false
+          type: wireguard
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]

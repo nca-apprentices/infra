@@ -1,0 +1,77 @@
+# Copies every record of every topic to the bucket as it arrives, one object
+# per record at <topic>/<partition>/<offset>.json. Topic retention can then
+# drop what the bucket holds. Tiered Storage would do this inside Redpanda, but
+# it needs an Enterprise license. A restore replays the objects in key order,
+# which docs/restore-drill.md describes. Consumer offsets aren't kept.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redpanda-backup
+  namespace: streaming
+data:
+  connect.yaml: |
+    input:
+      kafka_franz:
+        seed_brokers: [redpanda:9093]
+        # Every topic, the schema registry's included, but not Redpanda's own.
+        topics: ["^(_schemas|[^_].*)$"]
+        regexp_topics: true
+        consumer_group: backup
+        tls:
+          enabled: true
+          root_cas_file: /etc/redpanda-tls/ca.crt
+
+    pipeline:
+      processors:
+        - mapping: |
+            root.headers = @.filter(kv -> !kv.key.has_prefix("kafka_"))
+            root.key = @kafka_key
+            root.timestamp = @kafka_timestamp_unix
+            root.value = content().encode("base64")
+            meta s3_key = "%s/%d/%020d.json".format(@kafka_topic, @kafka_partition.int64(), @kafka_offset.int64())
+
+    output:
+      aws_s3:
+        bucket: nca-backup-redpanda
+        endpoint: https://fsn1.your-objectstorage.com
+        region: fsn1
+        force_path_style_urls: true
+        path: ${! @s3_key }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redpanda-backup
+  namespace: streaming
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: redpanda-backup }
+  template:
+    metadata:
+      labels: { app: redpanda-backup }
+    spec:
+      containers:
+        - name: connect
+          image: docker.redpanda.com/redpandadata/connect:4.111.0
+          args: [run, /etc/connect/connect.yaml]
+          # The aws_s3 output reads the AWS environment variables.
+          envFrom:
+            - secretRef: { name: redpanda-backup-s3 }
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+          volumeMounts:
+            - name: config
+              mountPath: /etc/connect
+              readOnly: true
+            - name: tls
+              mountPath: /etc/redpanda-tls
+              readOnly: true
+      volumes:
+        - name: config
+          configMap: { name: redpanda-backup }
+        # The CA the chart's cert-manager issuer signs the brokers with.
+        - name: tls
+          secret:
+            secretName: redpanda-default-cert
+            items: [{ key: ca.crt, path: ca.crt }]

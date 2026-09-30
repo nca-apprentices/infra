@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: observability
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://victoriametrics.github.io/helm-charts
+    chart: victoria-metrics-k8s-stack
+    targetRevision: "0.62.0"
+    helm:
+      releaseName: observability
+      valuesObject:
+        grafana: { enabled: true }
+        vmsingle:
+          spec:
+            retentionPeriod: "90d"
+            # On the encrypted data disk. The cluster has no default class.
+            storage: { storageClassName: local-data }
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]

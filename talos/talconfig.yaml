@@ -1,0 +1,50 @@
+# talhelper input. Talos has no shell and no SSH: the machine configuration in
+# this file is the entire contract with the operating system, which is what
+# makes a node replaceable rather than repairable.
+clusterName: nca
+talosVersion: v1.12.2
+kubernetesVersion: v1.35.1
+endpoint: https://10.0.1.2:6443
+
+cniConfig:
+  # Cilium is installed by Argo CD, not by Talos.
+  name: none
+
+nodes:
+  - hostname: nca-1
+    ipAddress: 10.0.1.2
+    controlPlane: true
+    installDisk: /dev/sda
+    nodeLabels:
+      topology.kubernetes.io/zone: nbg1
+    # The Hetzner volume, found by model rather than by device name, so attach
+    # order does not matter. Talos mounts it at /var/mnt/data.
+    userVolumes:
+      - name: data
+        provisioning:
+          diskSelector:
+            match: disk.model == "Volume" && !system_disk
+          minSize: 10GiB
+
+controlPlane:
+  patches:
+    - |-
+      cluster:
+        # Phase A is a single node, so the control plane is also the worker.
+        # Without this nothing schedules and the cluster looks empty.
+        allowSchedulingOnControlPlanes: true
+        network:
+          cni:
+            name: none
+        proxy:
+          # Cilium replaces kube-proxy; running both is a slower way to get the
+          # same result.
+          disabled: true
+    - |-
+      machine:
+        kubelet:
+          extraMounts:
+            - destination: /var/mnt/data
+              type: bind
+              source: /var/mnt/data
+              options: [bind, rshared, rw]

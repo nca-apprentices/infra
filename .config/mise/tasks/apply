@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#MISE description="Generate the Talos node config and apply the tofu configuration"
+set -euo pipefail
+
+# The node boots from this file as Hetzner user data. talhelper decrypts the
+# cluster secrets itself.
+talhelper genconfig \
+  --config-file talos/talconfig.yaml \
+  --secret-file talos/talsecret.sops.yaml \
+  --out-dir talos/clusterconfig
+
+# The key that holds the state also manages the backup buckets, and each
+# bucket policy names it, so tofu needs it as a variable too.
+sops exec-env secrets/tofu.enc.env "
+  export TF_VAR_s3_access_key=\$AWS_ACCESS_KEY_ID TF_VAR_s3_secret_key=\$AWS_SECRET_ACCESS_KEY &&
+  tofu -chdir=tofu init -input=false &&
+  tofu -chdir=tofu apply
+"

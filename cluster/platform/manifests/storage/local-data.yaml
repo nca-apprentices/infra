@@ -1,0 +1,12 @@
+# The encrypted data disk from talconfig.yaml, exposed as a StorageClass.
+# Everything stateful in the cluster lands here, which means everything
+# stateful is encrypted at rest without any component knowing about it.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-data
+provisioner: rancher.io/local-path
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  nodePath: /var/mnt/data

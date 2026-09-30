@@ -1,0 +1,33 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: jjforge-db
+  namespace: jjforge-prod
+spec:
+  # One instance: a second on the same node buys no availability, only memory.
+  instances: 1
+  priorityClassName: prod
+  imageName: ghcr.io/cloudnative-pg/postgresql:19.1
+
+  postgresql:
+    parameters:
+      max_connections: "200"
+    pg_hba:
+      # Password auth over TLS only; no trust, no local shortcuts.
+      - hostssl all all all scram-sha-256
+
+  bootstrap:
+    initdb:
+      database: jjforge
+      owner: jjforge
+
+  storage:
+    storageClass: local-data
+    size: 20Gi
+
+  # Continuous WAL archiving to object-store.yaml, for point-in-time restore.
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: jjforge-db

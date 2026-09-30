@@ -1,0 +1,10 @@
+# The label admits the namespace to the data plane. See
+# ../../platform/manifests/policies/data-plane.yaml.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jjforge-prod
+  labels:
+    nca/data-plane: "true"
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
