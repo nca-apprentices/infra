@@ -11,6 +11,8 @@ Cloud, set up by OpenTofu and kept in sync with this repository by Argo CD.
 | `secrets/`  | SOPS-encrypted credentials                                             |
 | `docs/`     | [Operating it](docs/operations.md), [first install](docs/bootstrap.md) |
 
+Apprentices start with [the guide for apprentices](docs/onboarding.md).
+
 Apps run from released charts only. Adding one is a new directory under
 `cluster/apps/<app>/<env>/`, as [docs/operations.md](docs/operations.md#add-an-app-or-an-environment)
 describes.

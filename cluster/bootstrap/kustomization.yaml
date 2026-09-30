@@ -44,3 +44,50 @@ patches:
       data:
         controller.diff.server.side: "true"
         controller.sync.timeout.seconds: "900"
+  # Served at ops.nca-apprentices.dev/argocd over plain HTTP behind Traefik,
+  # which ends TLS. Members of the GitHub organization sign in through the
+  # bundled Dex. The admin password is off, and kubectl stays the fallback.
+  - patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: argocd-cmd-params-cm
+      data:
+        server.insecure: "true"
+        server.rootpath: /argocd
+        server.basehref: /argocd
+  - patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: argocd-cm
+      data:
+        url: https://ops.nca-apprentices.dev/argocd
+        admin.enabled: "false"
+        dex.config: |
+          connectors:
+            - type: github
+              id: github
+              name: GitHub
+              config:
+                clientID: $argocd-github:clientID
+                clientSecret: $argocd-github:clientSecret
+                orgs:
+                  - name: nca-apprentices
+                teamNameField: slug
+  # The admins team runs Argo CD. The dev team also syncs jjforge-dev and sets
+  # its Helm parameters, which is how another image reaches dev. Every other
+  # member of the organization only reads.
+  - patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: argocd-rbac-cm
+      data:
+        policy.default: role:readonly
+        scopes: "[groups]"
+        policy.csv: |
+          g, nca-apprentices:admins, role:admin
+          g, nca-apprentices:dev, role:dev
+          p, role:dev, applications, sync, jjforge-dev/*, allow
+          p, role:dev, applications, update, jjforge-dev/*, allow

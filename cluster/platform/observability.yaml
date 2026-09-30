@@ -18,6 +18,29 @@ spec:
         grafana:
           enabled: true
           plugins: [victoriametrics-logs-datasource]
+          # Served at ops.nca-apprentices.dev/grafana. Members of the GitHub
+          # organization sign in, the admins team as Admin and everyone else
+          # as Viewer. Viewers may use Explore, which searches the logs.
+          envValueFrom:
+            GF_AUTH_GITHUB_CLIENT_ID:
+              secretKeyRef: { name: grafana-github, key: clientID }
+            GF_AUTH_GITHUB_CLIENT_SECRET:
+              secretKeyRef: { name: grafana-github, key: clientSecret }
+          grafana.ini:
+            server:
+              domain: ops.nca-apprentices.dev
+              root_url: https://ops.nca-apprentices.dev/grafana/
+              serve_from_sub_path: true
+            auth:
+              disable_login_form: true
+            auth.github:
+              enabled: true
+              scopes: user:email,read:org
+              allowed_organizations: nca-apprentices
+              allow_sign_up: true
+              role_attribute_path: contains(groups[*], '@nca-apprentices/admins') && 'Admin' || 'Viewer'
+            users:
+              viewers_can_edit: true
         defaultDatasources:
           extra:
             - name: VictoriaLogs

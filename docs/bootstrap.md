@@ -152,6 +152,39 @@ backup-secret metrics-backup-s3 observability platform
 backup-secret logs-backup-s3 observability platform
 ```
 
+The GitHub login of `ops.nca-apprentices.dev`, which Argo CD, Grafana, and
+`oauth2-proxy` share. Create an OAuth 2.0 app at
+<https://github.com/organizations/nca-apprentices/settings/applications/new>
+with the homepage `https://ops.nca-apprentices.dev`, add these callback URLs,
+and generate a client secret:
+
+- `https://ops.nca-apprentices.dev/argocd/api/dex/callback`
+- `https://ops.nca-apprentices.dev/grafana/login/github`
+- `https://ops.nca-apprentices.dev/oauth2/callback`
+
+```fish
+read -P 'OAuth client ID: ' id
+read -s -P 'OAuth client secret: ' secret
+
+kubectl create secret generic argocd-github --namespace argocd \
+    --from-literal clientID=$id \
+    --from-literal clientSecret=$secret \
+    --dry-run=client -o yaml |
+    kubectl label --local -f - app.kubernetes.io/part-of=argocd -o yaml \
+    >secrets/platform/argocd-github.enc.yaml
+
+kubectl create secret generic grafana-github --namespace observability \
+    --from-literal clientID=$id \
+    --from-literal clientSecret=$secret \
+    --dry-run=client -o yaml >secrets/platform/grafana-github.enc.yaml
+
+kubectl create secret generic oauth2-proxy --namespace ops \
+    --from-literal client-id=$id \
+    --from-literal client-secret=$secret \
+    --from-literal cookie-secret=(openssl rand -hex 16) \
+    --dry-run=client -o yaml >secrets/platform/oauth2-proxy.enc.yaml
+```
+
 Encrypt them all, remove the plain-text key, and commit `.sops.yaml`,
 `secrets/`, and `talos/talsecret.sops.yaml`:
 
@@ -160,7 +193,7 @@ for f in secrets/**.enc.yaml
     sops --encrypt --in-place $f
 end
 rm $app_key
-set -e token
+set -e token secret
 ```
 
 ## 6. Set the domain and publish the release
@@ -237,7 +270,6 @@ mise run bootstrap
 
 ```fish
 set -x TALOSCONFIG (pwd)/talos/clusterconfig/talosconfig
-set -x KUBECONFIG (pwd)/talos/clusterconfig/kubeconfig
 talosctl config endpoint $ip
 talosctl config node $ip
 
@@ -245,14 +277,9 @@ talosctl health
 kubectl -n argocd get applications
 ```
 
-Every application reaches `Synced` and `Healthy`. To open the Argo CD UI at
-<https://localhost:8080>, sign in as `admin` with this password:
-
-```fish
-kubectl -n argocd get secret argocd-initial-admin-secret \
-    -o jsonpath='{.data.password}' | base64 -d
-kubectl -n argocd port-forward svc/argocd-server 8080:443
-```
+Every application reaches `Synced` and `Healthy`.
+<https://ops.nca-apprentices.dev> links to Argo CD and the other tools, as
+[operations.md](operations.md#ops-portal) describes.
 
 ## Known gaps
 
@@ -308,14 +335,13 @@ Kubernetes kubeconfig with full access.
 
    ```fish
    set -x SOPS_AGE_KEY_FILE ~/.config/sops/age/nca.txt
-   mkdir -p ~/.talos ~/.kube
+   mkdir -p ~/.talos talos/clusterconfig
    age -d -i $SOPS_AGE_KEY_FILE -o ~/.talos/nca alice.talosconfig.age
    set -x TALOSCONFIG ~/.talos/nca
    talosctl config endpoint 2.28.199.18
    talosctl config node 2.28.199.18
 
-   set -x KUBECONFIG ~/.kube/nca
-   talosctl kubeconfig $KUBECONFIG
+   talosctl kubeconfig talos/clusterconfig/kubeconfig
    kubectl config set-cluster nca --server https://2.28.199.18:6443
    ```
 

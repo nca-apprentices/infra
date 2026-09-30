@@ -1,0 +1,96 @@
+# Argo CD and Grafana sign in with GitHub themselves, so they need no
+# github-login middleware, and the argocd CLI keeps working.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  entryPoints: [websecure]
+  routes:
+    - kind: Rule
+      match: Host(`ops.nca-apprentices.dev`) && PathPrefix(`/argocd`)
+      services: [{ name: argocd-server, port: 80 }]
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: grafana
+  namespace: observability
+spec:
+  entryPoints: [websecure]
+  routes:
+    - kind: Rule
+      match: Host(`ops.nca-apprentices.dev`) && PathPrefix(`/grafana`)
+      services: [{ name: observability-grafana, port: 80 }]
+---
+# VictoriaLogs has no login, and outside /select/ it writes, deletes, and
+# detaches partitions. Only the read-only /select/ part is routed.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: logs
+  namespace: observability
+spec:
+  entryPoints: [websecure]
+  routes:
+    - kind: Rule
+      match: Host(`ops.nca-apprentices.dev`) && PathPrefix(`/logs/select/`)
+      middlewares: [{ name: github-login }, { name: strip-logs }]
+      services: [{ name: logs-victoria-logs-single-server, port: 9428 }]
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-logs
+  namespace: observability
+spec:
+  stripPrefix:
+    prefixes: [/logs]
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: github-login
+  namespace: observability
+spec:
+  forwardAuth:
+    address: http://oauth2-proxy.ops.svc.cluster.local/
+    trustForwardHeader: true
+---
+# Headlamp acts as its own account for whoever reaches it, so only Traefik,
+# after the GitHub login, may.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: headlamp
+  namespace: headlamp
+spec:
+  entryPoints: [websecure]
+  routes:
+    - kind: Rule
+      match: Host(`ops.nca-apprentices.dev`) && PathPrefix(`/headlamp`)
+      middlewares: [{ name: github-login }]
+      services: [{ name: headlamp, port: 80 }]
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: github-login
+  namespace: headlamp
+spec:
+  forwardAuth:
+    address: http://oauth2-proxy.ops.svc.cluster.local/
+    trustForwardHeader: true
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: traefik-only
+  namespace: headlamp
+spec:
+  endpointSelector: {}
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: traefik

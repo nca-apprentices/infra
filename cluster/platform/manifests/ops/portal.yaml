@@ -1,0 +1,108 @@
+# Traefik picks a certificate by the name the browser asks for, from all it
+# has loaded, so every route on the host below serves this one.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ops-tls
+  namespace: ops
+spec:
+  secretName: ops-tls
+  dnsNames: [ops.nca-apprentices.dev]
+  issuerRef: { kind: ClusterIssuer, name: letsencrypt }
+---
+# Asks oauth2-proxy about every request. A visitor without a session goes to
+# GitHub and comes back to the page they asked for. Traefik can't reference a
+# middleware in another namespace, so each namespace with a route holds a copy.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: github-login
+  namespace: ops
+spec:
+  forwardAuth:
+    address: http://oauth2-proxy.ops.svc.cluster.local/
+    trustForwardHeader: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: portal
+  namespace: ops
+spec:
+  entryPoints: [websecure]
+  routes:
+    - kind: Rule
+      match: Host(`ops.nca-apprentices.dev`) && PathPrefix(`/oauth2/`)
+      services: [{ name: oauth2-proxy, port: 80 }]
+    - kind: Rule
+      match: Host(`ops.nca-apprentices.dev`)
+      middlewares: [{ name: github-login }]
+      services: [{ name: portal, port: 80 }]
+  tls: { secretName: ops-tls }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portal
+  namespace: ops
+data:
+  index.html: |
+    <!doctype html>
+    <html lang="en">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>nca ops</title>
+    <style>
+      body { font: 16px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; }
+      a { display: block; padding: .75rem 0; }
+    </style>
+    <h1>nca ops</h1>
+    <a href="/argocd/">Argo CD: deployments, and another jjforge-dev image</a>
+    <a href="/grafana/">Grafana: metrics, and logs under Explore</a>
+    <a href="/headlamp/">Headlamp: everything in the cluster</a>
+    <a href="/logs/select/vmui/">VictoriaLogs: search the logs</a>
+    </html>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portal
+  namespace: ops
+spec:
+  selector:
+    matchLabels: { app: portal }
+  template:
+    metadata:
+      labels: { app: portal }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.30.5-alpine-slim
+          ports: [{ containerPort: 8080 }]
+          resources:
+            requests: { cpu: 5m, memory: 16Mi }
+            limits: { memory: 32Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: html, mountPath: /usr/share/nginx/html }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: html
+          configMap: { name: portal }
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: portal
+  namespace: ops
+spec:
+  selector: { app: portal }
+  ports: [{ port: 80, targetPort: 8080 }]

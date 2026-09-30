@@ -28,3 +28,5 @@ vale = "3.21.0"
 [env]
 TREEFMT_CONFIG = "{{config_root}}/.config/treefmt.toml"
 VALE_CONFIG_PATH = "{{config_root}}/.config/vale/vale.ini"
+# Written by `mise run bootstrap`, or by talosctl when an operator is added.
+KUBECONFIG = "{{config_root}}/talos/clusterconfig/kubeconfig"

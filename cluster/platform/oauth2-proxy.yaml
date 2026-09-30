@@ -1,0 +1,35 @@
+# The GitHub login in front of ops.nca-apprentices.dev for the tools without
+# one of their own. Traefik asks it about every request, see manifests/ops.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: oauth2-proxy
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://oauth2-proxy.github.io/manifests
+    chart: oauth2-proxy
+    targetRevision: "10.7.0"
+    helm:
+      releaseName: oauth2-proxy
+      valuesObject:
+        config:
+          # client-id, client-secret, and cookie-secret. See docs/operations.md.
+          existingSecret: oauth2-proxy
+          # Answers 202 to a signed-in request, which Traefik then passes on.
+          upstreams: ["static://202"]
+        extraArgs:
+          provider: github
+          github-org: nca-apprentices
+          redirect-url: https://ops.nca-apprentices.dev/oauth2/callback
+          reverse-proxy: "true"
+          skip-provider-button: "true"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ops
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]

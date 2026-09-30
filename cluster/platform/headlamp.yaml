@@ -10,10 +10,17 @@ spec:
   source:
     repoURL: https://kubernetes-sigs.github.io/headlamp/
     chart: headlamp
-    targetRevision: "0.40.0"
+    targetRevision: "0.45.0"
     helm:
       releaseName: headlamp
       valuesObject:
+        # Served at ops.nca-apprentices.dev/headlamp behind the GitHub login in
+        # manifests/ops. Everyone who passes it acts as Headlamp's own account,
+        # which reads everything except Secrets.
+        config:
+          baseURL: /headlamp
+          unsafeUseServiceAccountToken: true
+        clusterRoleBinding: { clusterRoleName: view }
         ingress: { enabled: false }
   destination:
     server: https://kubernetes.default.svc

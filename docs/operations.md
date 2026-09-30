@@ -83,6 +83,36 @@ can use it.
 `mise run check` validates all of it without credentials, and CI runs it on
 every PR.
 
+## Ops portal
+
+<https://ops.nca-apprentices.dev> links to the tools below. Only members of
+the `nca-apprentices` organization on GitHub get in, and two of its teams
+grant more:
+
+- `admins`: administrator in Argo CD and Grafana. Every operator belongs here.
+- `dev`: the apprentices. They also sync `jjforge-dev` and set its Helm
+  parameters in Argo CD.
+
+| Path        | Tool          | Signs in with          | Everyone else in the organization         |
+| ----------- | ------------- | ---------------------- | ----------------------------------------- |
+| `/argocd`   | Argo CD       | Its own GitHub login   | Reads                                     |
+| `/grafana`  | Grafana       | Its own GitHub login   | Reads, and searches the logs in Explore   |
+| `/headlamp` | Headlamp      | `oauth2-proxy`         | Reads everything except Secrets           |
+| `/logs`     | VictoriaLogs  | `oauth2-proxy`         | Searches the logs                         |
+
+Headlamp acts as its own account for everyone, bound to the `view` role. For
+more, use kubectl. Argo CD has no administrator password, so kubectl is also the way
+in when the GitHub login fails.
+
+In `jjforge-dev`, a Helm parameter set in the Argo CD UI, such as an image tag,
+stays until someone removes it. Git still sets the chart version and values.
+The `apps` ApplicationSet grants that to `dev` directories only.
+
+Argo CD reads its settings from `cluster/bootstrap/`, so a change there takes
+`mise run bootstrap`, not a merge. The server reads `argocd-cmd-params-cm` only
+when it starts, so a change to it also takes
+`kubectl -n argocd rollout restart deployment argocd-server`.
+
 ## First install
 
 Run the tasks from the repository root.
@@ -146,6 +176,9 @@ into the namespace it names, and creates that namespace first.
 | `jjforge-<env>-chart` | `argocd`        | `apps/jjforge/<env>/`   | GHCR token Argo CD pulls the chart with           |
 | `ghcr`                | `jjforge-<env>` | `apps/jjforge/<env>/`   | GHCR token the jjforge images are pulled with     |
 | `<store>-backup-s3`   | The store's     | See [Backups](#backups) | The store's key for its backup bucket             |
+| `argocd-github`       | `argocd`        | `platform/`             | The GitHub OAuth 2.0 app of the ops portal        |
+| `grafana-github`      | `observability` | `platform/`             | The same OAuth 2.0 app                            |
+| `oauth2-proxy`        | `ops`           | `platform/`             | The same OAuth 2.0 app, and a cookie secret       |
 
 Everything else in the cluster comes from Git.
 
