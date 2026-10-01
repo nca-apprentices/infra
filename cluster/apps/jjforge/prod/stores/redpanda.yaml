@@ -1,7 +1,7 @@
-# Half a core is enough while traffic is low. Redpanda uses about 220 MiB
-# without traffic, so it requests 1 GiB of its 1.5 GiB limit.
+# Half a core is enough while traffic is low. Redpanda gets 80% of the
+# memory request, and production mode refuses to start below 1 GiB.
 statefulset: { priorityClassName: prod }
 resources:
   cpu: { cores: 500m }
-  memory: { container: { min: 1Gi, max: 1.5Gi } }
+  memory: { container: { min: 1.3Gi, max: 1.5Gi } }
 storage: { persistentVolume: { size: 50Gi } }

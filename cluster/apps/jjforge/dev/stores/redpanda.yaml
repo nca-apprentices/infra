@@ -1,8 +1,15 @@
 # Dev data is disposable, so it gets a fifth of a core, less memory and space,
-# and no backup.
+# and no backup. Developer mode lets Redpanda start below the 1 GiB that
+# production mode demands. Without traffic it runs in 448 MiB.
+config: { node: { developer_mode: true } }
 resources:
   cpu: { cores: 200m }
-  memory: { container: { max: 1Gi } }
+  memory:
+    container: { min: 512Mi, max: 1Gi }
+    redpanda: { memory: 448Mi, reserveMemory: 0Mi }
+# Developer mode drops the reserve flag, and Seastar's default reserve leaves
+# too little of the container for Redpanda.
+statefulset: { additionalRedpandaCmdFlags: [--reserve-memory=0M] }
 storage: { persistentVolume: { size: 5Gi } }
 # The external listener takes fixed NodePorts, which prod holds.
 external: { enabled: false }
