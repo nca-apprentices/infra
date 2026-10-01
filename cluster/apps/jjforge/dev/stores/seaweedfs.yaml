@@ -1,11 +1,13 @@
-# Dev data is disposable, so it gets less space and no backup.
+# Dev data is disposable, so it gets less space and no backup. Every
+# collection, the filer's own included, claims 7 volumes up front, so dev
+# makes them small: 38 volumes of 128 MB on the 5 GB disk.
+master: { volumeSizeLimitMB: 128 }
 volume:
   dataDirs:
     - name: data
       type: persistentVolumeClaim
       size: 5Gi
       storageClass: local-data
-      # 1 GB volumes (master volumeSizeLimitMB), room for two buckets.
-      maxVolumes: 4
+      maxVolumes: 38
 filer:
   data: { size: 1Gi }
