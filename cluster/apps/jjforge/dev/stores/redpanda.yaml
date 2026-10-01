@@ -7,9 +7,6 @@ resources:
   memory:
     container: { min: 512Mi, max: 1Gi }
     redpanda: { memory: 448Mi, reserveMemory: 0Mi }
-# Developer mode drops the reserve flag, and Seastar's default reserve leaves
-# too little of the container for Redpanda.
-statefulset: { additionalRedpandaCmdFlags: [--reserve-memory=0M] }
 storage: { persistentVolume: { size: 5Gi } }
 # The external listener takes fixed NodePorts, which prod holds.
 external: { enabled: false }
