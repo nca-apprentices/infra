@@ -1,0 +1,18 @@
+# What every environment's Redpanda shares. See ../redpanda.yaml.
+# Sized for a shared 8 GB node. The chart default reserves 2.5 GB and pins
+# cores it does not have here. Each environment sets its cores and memory.
+resources:
+  cpu: { overprovisioned: true }
+# The sidecar requests near the 43 MiB it uses. The namespace default of
+# 256 MiB doesn't fit the node twice over.
+statefulset:
+  replicas: 1
+  sideCars: { resources: { requests: { cpu: 10m, memory: 64Mi } } }
+# The Argo CD sync waits for this one-off Job, which must fit beside the rest.
+post_install_job: { resources: { requests: { cpu: 10m, memory: 64Mi } } }
+# No route leads to the console, and rpk in the broker pod does its job.
+console: { enabled: false }
+storage: { persistentVolume: { storageClass: local-data } }
+# The tuning container runs privileged, which the namespace's Pod Security
+# level forbids. Redpanda runs without it, with fewer concurrent disk requests.
+tuning: { tune_aio_events: false }

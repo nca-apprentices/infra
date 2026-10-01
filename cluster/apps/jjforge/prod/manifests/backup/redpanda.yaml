@@ -7,13 +7,13 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: redpanda-backup
-  namespace: streaming
+  namespace: jjforge-prod
 data:
   connect.yaml: |
     input:
       kafka_franz:
         # The broker certificate names the full service name, not the short one.
-        seed_brokers: [redpanda.streaming.svc.cluster.local:9093]
+        seed_brokers: [redpanda.jjforge-prod.svc.cluster.local:9093]
         # Every topic, the schema registry's included, but not Redpanda's own.
         topics: ["^(_schemas|[^_].*)$"]
         regexp_topics: true
@@ -33,7 +33,7 @@ data:
 
     output:
       aws_s3:
-        bucket: nca-backup-redpanda
+        bucket: nca-backup-jjforge-prod-redpanda
         endpoint: https://fsn1.your-objectstorage.com
         region: fsn1
         force_path_style_urls: true
@@ -43,7 +43,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redpanda-backup
-  namespace: streaming
+  namespace: jjforge-prod
 spec:
   replicas: 1
   selector:
@@ -52,6 +52,7 @@ spec:
     metadata:
       labels: { app: redpanda-backup }
     spec:
+      priorityClassName: prod
       containers:
         - name: connect
           image: docker.redpanda.com/redpandadata/connect:4.111.0
@@ -60,7 +61,7 @@ spec:
           envFrom:
             - secretRef: { name: redpanda-backup-s3 }
           resources:
-            requests: { cpu: 50m, memory: 128Mi }
+            requests: { cpu: 50m, memory: 64Mi }
           volumeMounts:
             - name: config
               mountPath: /etc/connect

@@ -1,0 +1,11 @@
+# Dev data is disposable, so it gets less space and no backup.
+volume:
+  dataDirs:
+    - name: data
+      type: persistentVolumeClaim
+      size: 5Gi
+      storageClass: local-data
+      # 1 GB volumes (master volumeSizeLimitMB), room for two buckets.
+      maxVolumes: 4
+filer:
+  data: { size: 1Gi }

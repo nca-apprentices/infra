@@ -1,59 +1,45 @@
+# One SeaweedFS per environment that has stores/seaweedfs.yaml, such as
+# ../apps/jjforge/prod/stores/seaweedfs.yaml, named <app>-<env>-seaweedfs. It
+# runs in the environment's namespace under the environment's AppProject.
+# stores/seaweedfs.yaml here holds the values every environment shares, and the
+# environment's file holds what differs.
 apiVersion: argoproj.io/v1alpha1
-kind: Application
+kind: ApplicationSet
 metadata:
   name: seaweedfs
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    # With the apps: each needs its environment's namespace and AppProject.
+    argocd.argoproj.io/sync-wave: "4"
 spec:
-  project: default
-  source:
-    repoURL: https://seaweedfs.github.io/seaweedfs/helm
-    chart: seaweedfs
-    targetRevision: "4.47.0"
-    helm:
-      releaseName: seaweedfs
-      valuesObject:
-        # Data on the encrypted data disk, logs in the pod. The chart's
-        # default host paths are forbidden by Pod Security baseline and would
-        # bypass the encryption.
-        master:
-          replicas: 1
-          data:
-            { type: persistentVolumeClaim, size: 1Gi, storageClass: local-data }
-          logs: { type: emptyDir }
-          # A new bucket claims copy_1 volumes up front, 7 by default, which
-          # one small node can't spare per bucket.
-          config: |-
-            [master.volume_growth]
-            copy_1 = 2
-        volume:
-          replicas: 1
-          dataDirs:
-            - name: data
-              type: persistentVolumeClaim
-              size: 40Gi
-              storageClass: local-data
-              # 1 GB volumes (master volumeSizeLimitMB) on a 40 GB disk. The
-              # chart's fallback of 7 left no room for a second bucket.
-              maxVolumes: 38
-        filer:
-          replicas: 1
-          # Every S3 request needs a key from the identities in
-          # secrets/platform/seaweedfs-s3-config.enc.yaml, which also limit
-          # each app to its own bucket.
-          s3:
-            {
-              enabled: true,
-              enableAuth: true,
-              existingConfigSecret: seaweedfs-s3-config,
-            }
-          data:
-            { type: persistentVolumeClaim, size: 5Gi, storageClass: local-data }
-          logs: { type: emptyDir }
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: storage
-  syncPolicy:
-    automated: { prune: true, selfHeal: true }
-    syncOptions: [CreateNamespace=true, ServerSideApply=true]
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/nca-apprentices/infra.git
+        revision: main
+        files:
+          - path: cluster/apps/*/*/stores/seaweedfs.yaml
+  template:
+    metadata:
+      name: "{{ index .path.segments 2 }}-{{ index .path.segments 3 }}-seaweedfs"
+    spec:
+      project: "{{ index .path.segments 2 }}-{{ index .path.segments 3 }}"
+      sources:
+        - repoURL: https://seaweedfs.github.io/seaweedfs/helm
+          chart: seaweedfs
+          targetRevision: "4.47.0"
+          helm:
+            releaseName: seaweedfs
+            valueFiles:
+              - $values/cluster/platform/stores/seaweedfs.yaml
+              - "$values/{{ .path.path }}/seaweedfs.yaml"
+        - repoURL: https://github.com/nca-apprentices/infra.git
+          targetRevision: main
+          ref: values
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{ index .path.segments 2 }}-{{ index .path.segments 3 }}"
+      syncPolicy:
+        automated: { prune: true, selfHeal: true }
+        syncOptions: [ServerSideApply=true]

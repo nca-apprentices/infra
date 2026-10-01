@@ -5,14 +5,14 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: seaweedfs-backup
-  namespace: storage
+  namespace: jjforge-prod
 data:
   replication.toml: |
     [sink.s3]
     enabled = true
     endpoint = "https://fsn1.your-objectstorage.com"
     region = "fsn1"
-    bucket = "nca-backup-seaweedfs"
+    bucket = "nca-backup-jjforge-prod-seaweedfs"
     directory = "/"
     is_incremental = false
 ---
@@ -20,7 +20,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: seaweedfs-backup
-  namespace: storage
+  namespace: jjforge-prod
 spec:
   replicas: 1
   # Two mirrors would race on the same position.
@@ -31,6 +31,7 @@ spec:
     metadata:
       labels: { app: seaweedfs-backup }
     spec:
+      priorityClassName: prod
       containers:
         - name: filer-backup
           image: chrislusf/seaweedfs:4.47
@@ -43,7 +44,7 @@ spec:
           envFrom:
             - secretRef: { name: seaweedfs-backup-s3 }
           resources:
-            requests: { cpu: 50m, memory: 128Mi }
+            requests: { cpu: 50m, memory: 64Mi }
           volumeMounts:
             - name: config
               mountPath: /etc/seaweedfs

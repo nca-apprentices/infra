@@ -1,0 +1,8 @@
+# Dev data is disposable, so it gets a fifth of a core, less memory and space,
+# and no backup.
+resources:
+  cpu: { cores: 200m }
+  memory: { container: { max: 1Gi } }
+storage: { persistentVolume: { size: 5Gi } }
+# The external listener takes fixed NodePorts, which prod holds.
+external: { enabled: false }

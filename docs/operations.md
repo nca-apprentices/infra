@@ -19,6 +19,7 @@ are namespaces in it, named `<app>-<env>`.
 | `cluster/platform/manifests/`            | Plain manifests a platform Application points at   | Argo CD                                |
 | `cluster/apps/<app>/<env>/`              | The namespace, AppProject, and Applications        | Argo CD                                |
 | `cluster/apps/<app>/<env>/manifests/`    | Plain manifests an app Application points at       | Argo CD                                |
+| `cluster/apps/<app>/<env>/stores/`       | Helm values of the environment's stores            | Argo CD                                |
 | `secrets/platform/`                      | SOPS-encrypted platform credentials                | `mise run bootstrap`                   |
 | `secrets/apps/<app>/<env>/`              | SOPS-encrypted app credentials                     | `mise run bootstrap`                   |
 | `secrets/tofu.enc.env`                   | SOPS-encrypted cloud credentials                   | `mise run apply`, `mise run bootstrap` |
@@ -51,9 +52,12 @@ the app's reach:
   outlast it when the node runs short of memory. The jjforge chart needs a value
   for it before its own pods do.
 
-The data plane in the `storage` namespace admits only namespaces labeled
-`nca/data-plane: "true"`. An app that needs the object store sets that label
-on its namespace.
+Each environment runs its own Redpanda and SeaweedFS, so no environment
+reaches the topics and buckets of another. A file in the environment's
+`stores/` directory, such as `stores/redpanda.yaml`, opts it in. The
+ApplicationSet of the same name in `platform/` installs the store in the
+environment's namespace, with the values in `platform/stores/` first and the
+environment's file over them.
 
 ### Add an app or an environment
 
@@ -62,7 +66,8 @@ on its namespace.
    `application.yaml` at the app's chart and version. The host is
    `<app>.<domain>` in `prod` and `<app>-<env>.<domain>` elsewhere, which the
    wildcard DNS record already covers.
-3. Keep only the manifests the environment needs, such as a database.
+3. Keep only the manifests and stores the environment needs, such as a
+   database.
 4. Add the environment's secrets under `secrets/apps/<app>/<env>/`, then run
    `mise run bootstrap` to apply them.
 5. Merge. Argo CD picks the directory up without any other change.
@@ -154,16 +159,16 @@ writing it down here rather than discovering it during an outage.
 5. One Object Storage key per backup bucket in [Backups](#backups), in the
    same project as `nca-tofu`. Hetzner has no API for keys.
 
-| Variable                           | What it is                                                  |
-| ---------------------------------- | ----------------------------------------------------------- |
-| `TF_VAR_hcloud_token`              | Hetzner Cloud API token with read and write access          |
-| `TF_VAR_porkbun_api_key`           | Porkbun API key                                             |
-| `TF_VAR_porkbun_secret_key`        | Porkbun secret key                                          |
-| `TF_VAR_operator_cidrs`            | Where talosctl and kubectl run from, as a list              |
-| `AWS_ACCESS_KEY_ID`                | Object Storage key for the tofu state and buckets           |
-| `AWS_SECRET_ACCESS_KEY`            | Object Storage secret for the tofu state and buckets        |
-| `TF_VAR_object_storage_project_id` | Numeric ID of the Hetzner project                           |
-| `TF_VAR_backup_keys`               | Access key per backup bucket, as `{"seaweedfs"="...", ...}` |
+| Variable                           | What it is                                                |
+| ---------------------------------- | --------------------------------------------------------- |
+| `TF_VAR_hcloud_token`              | Hetzner Cloud API token with read and write access        |
+| `TF_VAR_porkbun_api_key`           | Porkbun API key                                           |
+| `TF_VAR_porkbun_secret_key`        | Porkbun secret key                                        |
+| `TF_VAR_operator_cidrs`            | Where talosctl and kubectl run from, as a list            |
+| `AWS_ACCESS_KEY_ID`                | Object Storage key for the tofu state and buckets         |
+| `AWS_SECRET_ACCESS_KEY`            | Object Storage secret for the tofu state and buckets      |
+| `TF_VAR_object_storage_project_id` | Numeric ID of the Hetzner project                         |
+| `TF_VAR_backup_keys`               | Access key per backup bucket, as `{"metrics"="...", ...}` |
 
 ### Secrets that must exist before the first sync
 
@@ -174,7 +179,7 @@ into the namespace it names, and creates that namespace first.
 | --------------------- | --------------- | ----------------------- | ------------------------------------------------- |
 | `infra-repo`          | `argocd`        | `platform/`             | GitHub App key Argo CD reads this repository with |
 | `<store>-backup-s3`   | The store's     | See [Backups](#backups) | The store's key for its backup bucket             |
-| `seaweedfs-s3-config` | `storage`       | `platform/`             | The S3 identities and the buckets each may use    |
+| `seaweedfs-s3-config` | `<app>-<env>`   | `apps/<app>/<env>/`     | The S3 identities and the buckets each may use    |
 | `argocd-github`       | `argocd`        | `platform/`             | The GitHub OAuth 2.0 app of the ops portal        |
 | `grafana-github`      | `observability` | `platform/`             | The same OAuth 2.0 app                            |
 | `oauth2-proxy`        | `ops`           | `platform/`             | The same OAuth 2.0 app, and a cookie secret       |
@@ -187,20 +192,20 @@ The cluster keeps state in five stores. Each backs itself up to its own
 Hetzner bucket in `fsn1`, away from the node in `nbg1`. Everything else is
 rebuilt from this repository, so nothing else is backed up.
 
-| Store                 | Bucket                       | Method                                            | Loses at most                 | Secret                                 |
-| --------------------- | ---------------------------- | ------------------------------------------------- | ----------------------------- | -------------------------------------- |
-| jjforge-prod Postgres | `nca-backup-jjforge-prod-db` | WAL and nightly base backups through Barman Cloud | Seconds                       | `jjforge-backup-s3` in `jjforge-prod`  |
-| SeaweedFS             | `nca-backup-seaweedfs`       | `weed filer.backup` mirrors every change          | Seconds                       | `seaweedfs-backup-s3` in `storage`     |
-| Redpanda              | `nca-backup-redpanda`        | Redpanda Connect copies every record              | Seconds, and consumer offsets | `redpanda-backup-s3` in `streaming`    |
-| VictoriaMetrics       | `nca-backup-metrics`         | `vmbackup` nightly                                | A day                         | `metrics-backup-s3` in `observability` |
-| VictoriaLogs          | `nca-backup-logs`            | Partition snapshots and `rclone` nightly          | A day                         | `logs-backup-s3` in `observability`    |
+| Store                  | Bucket                              | Method                                            | Loses at most                 | Secret                                  |
+| ---------------------- | ----------------------------------- | ------------------------------------------------- | ----------------------------- | --------------------------------------- |
+| jjforge-prod Postgres  | `nca-backup-jjforge-prod-db`        | WAL and nightly base backups through Barman Cloud | Seconds                       | `jjforge-backup-s3` in `jjforge-prod`   |
+| jjforge-prod SeaweedFS | `nca-backup-jjforge-prod-seaweedfs` | `weed filer.backup` mirrors every change          | Seconds                       | `seaweedfs-backup-s3` in `jjforge-prod` |
+| jjforge-prod Redpanda  | `nca-backup-jjforge-prod-redpanda`  | Redpanda Connect copies every record              | Seconds, and consumer offsets | `redpanda-backup-s3` in `jjforge-prod`  |
+| VictoriaMetrics        | `nca-backup-metrics`                | `vmbackup` nightly                                | A day                         | `metrics-backup-s3` in `observability`  |
+| VictoriaLogs           | `nca-backup-logs`                   | Partition snapshots and `rclone` nightly          | A day                         | `logs-backup-s3` in `observability`     |
 
 `tofu/backup.tf` creates the buckets. Each bucket keeps replaced and deleted
 objects for 30 days, and its policy admits only its store's key and the tofu
 key. Each secret holds `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and
 `AWS_REGION`.
 
-Dev databases have no backup. The `BackupJobStale`, `BackupMirrorDown`, and
+Dev stores have no backup. The `BackupJobStale`, `BackupMirrorDown`, and
 `WalArchivingFailing` alerts fire when a backup stops. No alert receiver is set
 up yet, so they show in vmalert and Grafana only.
 

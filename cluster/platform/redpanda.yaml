@@ -1,33 +1,45 @@
+# One Redpanda per environment that has stores/redpanda.yaml, such as
+# ../apps/jjforge/prod/stores/redpanda.yaml, named <app>-<env>-redpanda. It
+# runs in the environment's namespace under the environment's AppProject.
+# stores/redpanda.yaml here holds the values every environment shares, and the
+# environment's file holds what differs.
 apiVersion: argoproj.io/v1alpha1
-kind: Application
+kind: ApplicationSet
 metadata:
   name: redpanda
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    # With the apps: each needs its environment's namespace and AppProject.
+    argocd.argoproj.io/sync-wave: "4"
 spec:
-  project: default
-  source:
-    repoURL: https://charts.redpanda.com
-    chart: redpanda
-    targetRevision: "5.10.5"
-    helm:
-      releaseName: redpanda
-      valuesObject:
-        statefulset: { replicas: 1 }
-        # Sized for a shared 8 GB node. The chart default reserves 2.5 GB and
-        # pins cores it does not have here.
-        resources:
-          cpu: { cores: 1, overprovisioned: true }
-          memory: { container: { max: 1.5Gi } }
-        storage: { persistentVolume: { storageClass: local-data, size: 50Gi } }
-        # The tuning container runs privileged, which the namespace's Pod
-        # Security level forbids. Redpanda runs without it, with fewer
-        # concurrent disk requests.
-        tuning: { tune_aio_events: false }
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: streaming
-  syncPolicy:
-    automated: { prune: true, selfHeal: true }
-    syncOptions: [CreateNamespace=true, ServerSideApply=true]
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/nca-apprentices/infra.git
+        revision: main
+        files:
+          - path: cluster/apps/*/*/stores/redpanda.yaml
+  template:
+    metadata:
+      name: "{{ index .path.segments 2 }}-{{ index .path.segments 3 }}-redpanda"
+    spec:
+      project: "{{ index .path.segments 2 }}-{{ index .path.segments 3 }}"
+      sources:
+        - repoURL: https://charts.redpanda.com
+          chart: redpanda
+          targetRevision: "5.10.5"
+          helm:
+            releaseName: redpanda
+            valueFiles:
+              - $values/cluster/platform/stores/redpanda.yaml
+              - "$values/{{ .path.path }}/redpanda.yaml"
+        - repoURL: https://github.com/nca-apprentices/infra.git
+          targetRevision: main
+          ref: values
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{ index .path.segments 2 }}-{{ index .path.segments 3 }}"
+      syncPolicy:
+        automated: { prune: true, selfHeal: true }
+        syncOptions: [ServerSideApply=true]

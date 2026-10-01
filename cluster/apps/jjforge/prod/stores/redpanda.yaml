@@ -1,0 +1,7 @@
+# Half a core is enough while traffic is low. Redpanda uses about 220 MiB
+# without traffic, so it requests 1 GiB of its 1.5 GiB limit.
+statefulset: { priorityClassName: prod }
+resources:
+  cpu: { cores: 500m }
+  memory: { container: { min: 1Gi, max: 1.5Gi } }
+storage: { persistentVolume: { size: 50Gi } }

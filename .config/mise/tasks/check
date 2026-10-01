@@ -31,7 +31,8 @@ kubeconform=(
   -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
 )
 kustomize build cluster/bootstrap | "${kubeconform[@]}"
-"${kubeconform[@]}" cluster/platform cluster/apps
+# The stores directories hold Helm values, not manifests.
+"${kubeconform[@]}" -ignore-filename-pattern '/stores/' cluster/platform cluster/apps
 
 # Every third-party chart renders with the values its Application passes. The
 # jjforge chart is checked by the app CI before it is released.
@@ -47,5 +48,22 @@ for app in cluster/platform/*.yaml cluster/apps/*/*/*.yaml; do
       --version "$(yq .spec.source.targetRevision "$app")" \
       --namespace "$(yq .spec.destination.namespace "$app")" \
       --values - |
+    "${kubeconform[@]}"
+done
+
+# Every environment's store renders with the shared values and its own, as its
+# ApplicationSet in cluster/platform passes them.
+for values in cluster/apps/*/*/stores/*.yaml; do
+  store=$(basename "$values" .yaml)
+  set=cluster/platform/$store.yaml
+  source=.spec.template.spec.sources[0]
+  IFS=/ read -r _ _ app env _ <<<"$values"
+
+  helm template "$store" "$(yq "$source.chart" "$set")" \
+    --repo "$(yq "$source.repoURL" "$set")" \
+    --version "$(yq "$source.targetRevision" "$set")" \
+    --namespace "$app-$env" \
+    --values "cluster/platform/stores/$store.yaml" \
+    --values "$values" |
     "${kubeconform[@]}"
 done

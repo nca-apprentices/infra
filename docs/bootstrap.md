@@ -63,7 +63,7 @@ TF_VAR_operator_cidrs=["203.0.113.7/32"]
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 TF_VAR_object_storage_project_id=...
-TF_VAR_backup_keys={"jjforge-prod-db"="...","seaweedfs"="...","redpanda"="...","metrics"="...","logs"="..."}
+TF_VAR_backup_keys={"jjforge-prod-db"="...","jjforge-prod-seaweedfs"="...","jjforge-prod-redpanda"="...","metrics"="...","logs"="..."}
 ```
 
 `TF_VAR_backup_keys` names each backup key by its access key only. The secret
@@ -91,7 +91,7 @@ the `infra` repository only. The installation ID is the number at the end of the
 installation's settings URL.
 
 ```fish
-mkdir -p secrets/platform secrets/apps/jjforge/prod
+mkdir -p secrets/platform secrets/apps/jjforge/prod secrets/apps/jjforge/dev
 set app_id 123456             # App ID
 set installation_id 12345678  # installation ID
 set app_key ~/Downloads/nca-argocd.*.private-key.pem
@@ -109,16 +109,19 @@ kubectl create secret generic infra-repo --namespace argocd \
     >secrets/platform/infra-repo.enc.yaml
 ```
 
-The SeaweedFS S3 identities. Every S3 request needs a key, and an app's
-identity reaches only its own bucket. Start with an administrator identity:
+The SeaweedFS S3 identities, one set per environment. Every S3 request needs a
+key, and an app's identity reaches only its own bucket. Start with an
+administrator identity:
 
 ```fish
-set ak (openssl rand -hex 16)
-set sk (openssl rand -base64 30 | tr -d '/+=')
-printf '{"identities":[{"name":"admin","credentials":[{"accessKey":"%s","secretKey":"%s"}],"actions":["Admin","Read","List","Tagging","Write"]}]}' $ak $sk |
-    kubectl create secret generic seaweedfs-s3-config --namespace storage \
-        --from-file seaweedfs_s3_config=/dev/stdin \
-        --dry-run=client -o yaml >secrets/platform/seaweedfs-s3-config.enc.yaml
+for env in prod dev
+    set ak (openssl rand -hex 16)
+    set sk (openssl rand -base64 30 | tr -d '/+=')
+    printf '{"identities":[{"name":"admin","credentials":[{"accessKey":"%s","secretKey":"%s"}],"actions":["Admin","Read","List","Tagging","Write"]}]}' $ak $sk |
+        kubectl create secret generic seaweedfs-s3-config --namespace jjforge-$env \
+            --from-file seaweedfs_s3_config=/dev/stdin \
+            --dry-run=client -o yaml >secrets/apps/jjforge/$env/seaweedfs-s3-config.enc.yaml
+end
 set -e ak sk
 ```
 
@@ -136,8 +139,8 @@ function backup-secret -a name namespace dir
 end
 
 backup-secret jjforge-backup-s3 jjforge-prod apps/jjforge/prod
-backup-secret seaweedfs-backup-s3 storage platform
-backup-secret redpanda-backup-s3 streaming platform
+backup-secret seaweedfs-backup-s3 jjforge-prod apps/jjforge/prod
+backup-secret redpanda-backup-s3 jjforge-prod apps/jjforge/prod
 backup-secret metrics-backup-s3 observability platform
 backup-secret logs-backup-s3 observability platform
 ```

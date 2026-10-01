@@ -1,0 +1,37 @@
+# What every environment's SeaweedFS shares. See ../seaweedfs.yaml.
+#
+# The AppProjects admit no cluster-scoped objects, and no SeaweedFS component
+# uses the ClusterRole.
+global: { seaweedfs: { createClusterRole: false } }
+# Data on the encrypted data disk, logs in the pod. The chart's default host
+# paths are forbidden by Pod Security baseline and would bypass the
+# encryption. Requests sit near use without traffic: 25 MiB for the master
+# and the volume server, 92 MiB for the filer. Each environment sets the
+# volume server's disk.
+master:
+  replicas: 1
+  resources: { requests: { cpu: 50m, memory: 64Mi } }
+  data: { type: persistentVolumeClaim, size: 1Gi, storageClass: local-data }
+  logs: { type: emptyDir }
+  # A new bucket claims copy_1 volumes up front, 7 by default, which one small
+  # node can't spare per bucket.
+  config: |-
+    [master.volume_growth]
+    copy_1 = 2
+volume:
+  replicas: 1
+  resources: { requests: { cpu: 50m, memory: 64Mi } }
+filer:
+  replicas: 1
+  resources: { requests: { cpu: 50m, memory: 128Mi } }
+  # Every S3 request needs a key from the identities in the environment's
+  # seaweedfs-s3-config secret, which also limit each identity to its own
+  # bucket.
+  s3:
+    {
+      enabled: true,
+      enableAuth: true,
+      existingConfigSecret: seaweedfs-s3-config,
+    }
+  data: { type: persistentVolumeClaim, size: 5Gi, storageClass: local-data }
+  logs: { type: emptyDir }

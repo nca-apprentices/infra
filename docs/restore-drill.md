@@ -14,11 +14,12 @@ store's backup key, from the secret named in that table.
 Blobs and rows are backed up separately, so the only real test is a page that
 needs both.
 
-1. Create the namespace `drill` with the label `nca/data-plane: "true"`, and
-   copy `jjforge-backup-s3` into it.
+1. Copy `jjforge-backup-s3` and `seaweedfs-backup-s3` into `jjforge-dev`. The
+   drill runs there, next to dev's own stores.
 2. Create an `ObjectStore` like
-   `cluster/apps/jjforge/prod/manifests/database/object-store.yaml` in `drill`,
-   and a CNPG `Cluster` that bootstraps from it:
+   `cluster/apps/jjforge/prod/manifests/database/object-store.yaml` in
+   `jjforge-dev`, and a CNPG `Cluster` named `drill-db` that bootstraps from
+   it:
 
    ```yaml
    bootstrap:
@@ -36,23 +37,24 @@ needs both.
 3. Wait for `Cluster in healthy state`, then run
    `SELECT count(*) FROM review_round;` and compare with production.
 4. Copy the SeaweedFS mirror into a scratch bucket. `rclone copy` from
-   `nca-backup-seaweedfs/<bucket>` to the `drill` bucket in SeaweedFS.
-5. Point a throwaway jjforge release in `drill` at both, open one change with
-   more than one round, and check that a round diff renders.
+   `nca-backup-jjforge-prod-seaweedfs/<bucket>` to the `drill` bucket in dev's
+   SeaweedFS.
+5. Point a throwaway jjforge release in `jjforge-dev` at both, open one change
+   with more than one round, and check that a round diff renders.
 
 ## Redpanda
 
-1. Create each topic as `drill.<topic>` with the partition count it has in
-   production.
-2. Run Redpanda Connect once with this pipeline. It reads the objects in key
-   order, so each partition's records arrive in offset order. Record headers
-   travel as metadata, and the control values start with an underscore, so a
-   header whose name does too is lost:
+1. Copy `redpanda-backup-s3` into `jjforge-dev`, and create each topic in dev's
+   Redpanda as `drill.<topic>` with the partition count it has in production.
+2. Run Redpanda Connect once in `jjforge-dev` with this pipeline. It reads the
+   objects in key order, so each partition's records arrive in offset order.
+   Record headers travel as metadata, and the control values start with an
+   underscore, so a header whose name does too is lost:
 
    ```yaml
    input:
      aws_s3:
-       bucket: nca-backup-redpanda
+       bucket: nca-backup-jjforge-prod-redpanda
        endpoint: https://fsn1.your-objectstorage.com
        region: fsn1
        force_path_style_urls: true
@@ -96,6 +98,6 @@ needs both.
 
 ## Record
 
-Wall-clock time per store, and anything that had to be done by hand. Delete the
-`drill` namespace, its bucket, the `drill.` topics, and the scratch pods
-afterwards.
+Wall-clock time per store, and anything that had to be done by hand. Delete
+`drill-db`, the `drill` bucket, the `drill.` topics, the copied secrets, and the
+scratch pods from `jjforge-dev` afterwards.

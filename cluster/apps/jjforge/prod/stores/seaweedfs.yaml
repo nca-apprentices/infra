@@ -1,0 +1,12 @@
+master: { priorityClassName: prod }
+volume:
+  priorityClassName: prod
+  dataDirs:
+    - name: data
+      type: persistentVolumeClaim
+      size: 40Gi
+      storageClass: local-data
+      # 1 GB volumes (master volumeSizeLimitMB) on a 40 GB disk. The chart's
+      # fallback of 7 left no room for a second bucket.
+      maxVolumes: 38
+filer: { priorityClassName: prod }

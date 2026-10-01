@@ -21,8 +21,8 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
-  # Prod and dev together stay below the node, 4 CPUs and 8 GB, which
-  # also carries the platform.
+  # Prod and dev together may request more than the node, 4 CPUs and 8 GB,
+  # which also carries the platform. Prod then preempts dev.
   hard:
-    requests.cpu: "1"
-    requests.memory: 2Gi
+    requests.cpu: "1.5"
+    requests.memory: 3.5Gi
