@@ -55,6 +55,11 @@ spec:
         kubeControllerManager: { enabled: false }
         kubeScheduler: { enabled: false }
         kubeEtcd: { enabled: false }
+        # The chart generates a new webhook CA on every render, and the running
+        # operator keeps serving the old certificate, so every VictoriaMetrics
+        # object fails to apply. cert-manager issues it once instead.
+        victoria-metrics-operator:
+          admissionWebhooks: { certManager: { enabled: true } }
         vmsingle:
           spec:
             retentionPeriod: "90d"
