@@ -5,6 +5,7 @@
   "schedule": ["* 0-5 1,15 * *"],
   "minimumReleaseAge": "7 days",
   "internalChecksFilter": "strict",
+  "prHourlyLimit": 0,
   "argocd": {
     "managerFilePatterns": ["/^cluster/.+\\.yaml$/"]
   },
@@ -13,10 +14,33 @@
   },
   "packageRules": [
     {
+      "description": "Everything else arrives as one PR per schedule window.",
+      "matchPackageNames": ["*"],
+      "groupName": "dependencies",
+      "separateMajorMinor": false
+    },
+    {
       "description": "Our own releases deploy when they are published.",
       "matchPackageNames": ["ghcr.io/nca-apprentices/**"],
+      "groupName": null,
       "minimumReleaseAge": null,
       "schedule": ["at any time"]
+    },
+    {
+      "description": "Dev takes our releases without review. Renovate merges the PR itself, through its ruleset bypass, because GitHub auto-merge would wait for the review.",
+      "matchPackageNames": ["ghcr.io/nca-apprentices/**"],
+      "matchFileNames": ["cluster/apps/*/dev/**"],
+      "additionalBranchPrefix": "dev-",
+      "commitMessageSuffix": "in dev",
+      "automerge": true,
+      "platformAutomerge": false
+    },
+    {
+      "description": "Prod takes our releases through a reviewed PR.",
+      "matchPackageNames": ["ghcr.io/nca-apprentices/**"],
+      "matchFileNames": ["cluster/apps/*/prod/**"],
+      "additionalBranchPrefix": "prod-",
+      "commitMessageSuffix": "in prod"
     }
   ]
 }
