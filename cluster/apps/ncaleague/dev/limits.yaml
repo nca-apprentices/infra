@@ -21,6 +21,8 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
+  # Room for the app and its database, as in prod, and no more: see the
+  # quota in ../prod/limits.yaml.
   hard:
-    requests.cpu: 500m
-    requests.memory: 512Mi
+    requests.cpu: 200m
+    requests.memory: 384Mi

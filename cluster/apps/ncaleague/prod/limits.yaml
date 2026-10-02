@@ -21,7 +21,9 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
-  # The app, its database, and a backup or restore pod beside them.
+  # The app and its database request about 120m and 310 MiB. The quotas of all
+  # environments together stay under 1.5 times the node, where the
+  # KubeCPUQuotaOvercommit and KubeMemoryQuotaOvercommit alerts fire.
   hard:
-    requests.cpu: "1"
-    requests.memory: 1Gi
+    requests.cpu: 300m
+    requests.memory: 512Mi
