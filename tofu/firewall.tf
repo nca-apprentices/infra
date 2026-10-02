@@ -4,12 +4,13 @@
 resource "hcloud_firewall" "node" {
   name = "nca"
 
-  # The apps admit operators only, until they are ready for the public.
+  # Open to everyone. Only ncaleague-prod serves the public. Every other host
+  # signs in with GitHub first, see docs/operations.md#apps.
   rule {
     direction  = "in"
     protocol   = "tcp"
     port       = "443"
-    source_ips = var.operator_cidrs
+    source_ips = ["0.0.0.0/0", "::/0"]
   }
 
   # Open to everyone for Let's Encrypt's HTTP-01 challenges. Traefik serves
