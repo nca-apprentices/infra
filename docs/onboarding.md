@@ -13,7 +13,8 @@ try another image in dev.
 ## Find your way
 
 jjforge runs at <https://jjforge-dev.nca-apprentices.dev> and
-<https://jjforge.nca-apprentices.dev>. The ops page links to these tools:
+<https://jjforge.nca-apprentices.dev>, behind the same GitHub sign-in. The ops
+page links to these tools:
 
 | Tool         | Use it to                                                           |
 | ------------ | ------------------------------------------------------------------- |

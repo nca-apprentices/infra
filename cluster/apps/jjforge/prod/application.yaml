@@ -12,12 +12,13 @@ spec:
   project: jjforge-prod
   source:
     repoURL: oci://ghcr.io/nca-apprentices/charts/jjforge
-    targetRevision: 0.2.2
+    targetRevision: 0.2.3
     path: .
     helm:
       valuesObject:
         ingress:
           host: jjforge.nca-apprentices.dev
+          middlewares: [github-login]
   destination:
     server: https://kubernetes.default.svc
     namespace: jjforge-prod

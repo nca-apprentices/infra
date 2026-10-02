@@ -1,5 +1,7 @@
 # The GitHub login in front of ops.nca-apprentices.dev for the tools without
-# one of their own. Traefik asks it about every request, see manifests/ops.
+# one of their own, and in front of every app environment but ncaleague-prod.
+# Traefik asks it about every request, see manifests/ops and the github-login
+# Middleware of each app environment.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -27,6 +29,10 @@ spec:
           redirect-url: https://ops.nca-apprentices.dev/oauth2/callback
           reverse-proxy: "true"
           skip-provider-button: "true"
+          # One sign-in for every host under the domain. The cookie covers them
+          # all, and the callback may return to any of them.
+          cookie-domain: .nca-apprentices.dev
+          whitelist-domain: .nca-apprentices.dev
   destination:
     server: https://kubernetes.default.svc
     namespace: ops
