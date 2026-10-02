@@ -1,0 +1,51 @@
+# Turns each firing alert into an issue labeled alert in this repository, and
+# closes it when the alert resolves. Everyone who watches the repository gets
+# the notification. Alertmanager groups by alert name, so one alert name is
+# one issue. The token is a fine-grained one, see docs/operations.md.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-alerts
+  namespace: observability
+spec:
+  selector:
+    matchLabels: { app: github-alerts }
+  template:
+    metadata:
+      labels: { app: github-alerts }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: receiver
+          image: measurementlab/alertmanager-github-receiver:v0.11@sha256:66447b5adffc7415f1150a12f5b5e5bd3cfa261c55ff6d8ab91e830a9d5dc032
+          args:
+            - -authtoken-file=/token/token
+            - -org=nca-apprentices
+            - -repo=infra
+            - -alertlabel=alert
+            - -enable-auto-close
+          ports: [{ name: http, containerPort: 9393 }]
+          resources:
+            requests: { cpu: 5m, memory: 16Mi }
+            limits: { memory: 64Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: token, mountPath: /token, readOnly: true }
+      volumes:
+        - name: token
+          secret: { secretName: github-alerts }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: github-alerts
+  namespace: observability
+spec:
+  selector: { app: github-alerts }
+  ports: [{ port: 80, targetPort: http }]

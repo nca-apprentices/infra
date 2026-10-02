@@ -60,6 +60,22 @@ spec:
         # object fails to apply. cert-manager issues it once instead.
         victoria-metrics-operator:
           admissionWebhooks: { certManager: { enabled: true } }
+        # Every alert goes to GitHub, see manifests/alerts/github.yaml, except
+        # the always-firing Watchdog and the info alerts.
+        alertmanager:
+          config:
+            route:
+              receiver: blackhole
+              group_by: [alertname]
+              routes:
+                - matchers: ['severity!~"info|none"']
+                  receiver: github
+            receivers:
+              - name: blackhole
+              - name: github
+                webhook_configs:
+                  - url: http://github-alerts.observability.svc/v1/receiver
+                    send_resolved: true
         vmsingle:
           spec:
             retentionPeriod: "90d"

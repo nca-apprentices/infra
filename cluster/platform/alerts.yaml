@@ -1,4 +1,6 @@
-# Alerts on the backups and on Argo CD. Needs the observability operator.
+# The scrapes, alerts, and overview dashboard for the backups, Argo CD, and the
+# workloads, and the GitHub receiver for the alerts. Needs the observability
+# operator.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:

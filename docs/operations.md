@@ -175,14 +175,15 @@ writing it down here rather than discovering it during an outage.
 `mise run bootstrap` applies every `*.enc.yaml` under `secrets/`, each
 into the namespace it names, and creates that namespace first.
 
-| Secret                | Namespace       | Directory               | What it is                                        |
-| --------------------- | --------------- | ----------------------- | ------------------------------------------------- |
-| `infra-repo`          | `argocd`        | `platform/`             | GitHub App key Argo CD reads this repository with |
-| `<store>-backup-s3`   | The store's     | See [Backups](#backups) | The store's key for its backup bucket             |
-| `seaweedfs-s3-config` | `<app>-<env>`   | `apps/<app>/<env>/`     | The S3 identities and the buckets each may use    |
-| `argocd-github`       | `argocd`        | `platform/`             | The GitHub OAuth 2.0 app of the ops portal        |
-| `grafana-github`      | `observability` | `platform/`             | The same OAuth 2.0 app                            |
-| `oauth2-proxy`        | `ops`           | `platform/`             | The same OAuth 2.0 app, and a cookie secret       |
+| Secret                | Namespace       | Directory               | What it is                                               |
+| --------------------- | --------------- | ----------------------- | -------------------------------------------------------- |
+| `infra-repo`          | `argocd`        | `platform/`             | GitHub App key Argo CD reads this repository with        |
+| `<store>-backup-s3`   | The store's     | See [Backups](#backups) | The store's key for its backup bucket                    |
+| `seaweedfs-s3-config` | `<app>-<env>`   | `apps/<app>/<env>/`     | The S3 identities and the buckets each may use           |
+| `argocd-github`       | `argocd`        | `platform/`             | The GitHub OAuth 2.0 app of the ops portal               |
+| `grafana-github`      | `observability` | `platform/`             | The same OAuth 2.0 app                                   |
+| `oauth2-proxy`        | `ops`           | `platform/`             | The same OAuth 2.0 app, and a cookie secret              |
+| `github-alerts`       | `observability` | `platform/`             | The token that opens alert issues, see [Alerts](#alerts) |
 
 Everything else in the cluster comes from Git.
 
@@ -206,7 +207,31 @@ key. Each secret holds `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and
 `AWS_REGION`.
 
 Dev stores have no backup. The `BackupJobStale`, `BackupMirrorDown`, and
-`WalArchivingFailing` alerts fire when a backup stops. No alert receiver is set
-up yet, so they show in vmalert and Grafana only.
+`WalArchivingFailing` alerts fire when a backup stops, see [Alerts](#alerts).
 
 The quarterly [restore drill](restore-drill.md) restores each store.
+
+## Alerts
+
+The rules live in `cluster/platform/manifests/alerts/`, next to the scrapes and
+the `nca overview` dashboard in Grafana. Every alert except the info alerts
+opens an issue labeled `alert` in this repository, and the issue closes when
+the alert resolves. Watch the repository to get the notifications.
+
+`github-alerts` holds a fine-grained token that expires. When it expires, alerts
+stop opening issues without any error in Grafana. To renew it:
+
+1. As an organization owner, create a fine-grained token on GitHub with
+   `nca-apprentices` as the resource owner, access to `infra` only, and
+   read and write access to Issues. Remind the admins team a week before it
+   expires.
+2. Write it to the secret, encrypt it, and apply it:
+
+   ```sh
+   kubectl -n observability create secret generic github-alerts \
+     --from-literal token=<token> --dry-run=client -o yaml \
+     > secrets/platform/github-alerts.enc.yaml
+   sops --encrypt --in-place secrets/platform/github-alerts.enc.yaml
+   sops --decrypt secrets/platform/github-alerts.enc.yaml | kubectl apply -f -
+   kubectl -n observability rollout restart deployment github-alerts
+   ```

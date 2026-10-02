@@ -1,5 +1,5 @@
-# The metrics the rules in rules.yaml read that the stack doesn't scrape on its
-# own: Argo CD's application states and each Postgres instance's WAL archiver.
+# What the stack doesn't scrape on its own: Argo CD, the Postgres instances,
+# and the workloads. rules.yaml and dashboard.yaml read them.
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMServiceScrape
 metadata:
@@ -22,4 +22,77 @@ spec:
   selector:
     matchLabels: { cnpg.io/podRole: instance }
   podMetricsEndpoints:
+    - port: metrics
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: traefik
+  namespace: observability
+spec:
+  namespaceSelector: { matchNames: [traefik] }
+  selector:
+    matchLabels: { app.kubernetes.io/name: traefik }
+  podMetricsEndpoints:
+    - port: metrics
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: cert-manager
+  namespace: observability
+spec:
+  namespaceSelector: { matchNames: [cert-manager] }
+  selector:
+    matchLabels: { app.kubernetes.io/instance: cert-manager }
+  podMetricsEndpoints:
+    - port: http-metrics
+---
+# Each environment's SeaweedFS. The master serves its metrics on the same port
+# as the filer and the volume server but doesn't declare it, so the port goes
+# by number.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: seaweedfs
+  namespace: observability
+spec:
+  namespaceSelector: { any: true }
+  selector:
+    matchLabels: { app.kubernetes.io/name: seaweedfs }
+  podMetricsEndpoints:
+    - portNumber: 9327
+---
+# Each environment's Redpanda. The admin port speaks TLS only, with a CA and a
+# certificate name per environment, which one scrape can't name. It reads
+# metrics only, so it skips the verification.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: redpanda
+  namespace: observability
+spec:
+  namespaceSelector: { any: true }
+  selector:
+    matchLabels: { app.kubernetes.io/component: redpanda-statefulset }
+  podMetricsEndpoints:
+    - port: admin
+      path: /public_metrics
+      scheme: https
+      tlsConfig: { insecureSkipVerify: true }
+---
+# The server's actuator and vcsd, in every jjforge environment. The chart
+# serves both on ports the Ingress doesn't route.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: jjforge
+  namespace: observability
+spec:
+  namespaceSelector: { any: true }
+  selector:
+    matchLabels: { app.kubernetes.io/name: jjforge }
+  podMetricsEndpoints:
+    - port: management
+      path: /actuator/prometheus
     - port: metrics
