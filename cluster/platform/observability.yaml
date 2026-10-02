@@ -21,6 +21,8 @@ spec:
           # Served at ops.nca-apprentices.dev/grafana. Members of the GitHub
           # organization sign in, the admins team as Admin and everyone else
           # as Viewer. Viewers may use Explore, which searches the logs.
+          # Grafana skips its login page and goes to GitHub, which returns
+          # at once to anyone signed in to the ops portal.
           envValueFrom:
             GF_AUTH_GITHUB_CLIENT_ID:
               secretKeyRef: { name: grafana-github, key: clientID }
@@ -35,6 +37,7 @@ spec:
               disable_login_form: true
             auth.github:
               enabled: true
+              auto_login: true
               scopes: user:email,read:org
               allowed_organizations: nca-apprentices
               allow_sign_up: true

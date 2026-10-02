@@ -94,3 +94,57 @@ spec:
     - fromEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: traefik
+---
+# Hubble UI has no login. Its nginx serves under /hubble/ itself, see
+# hubble.ui.baseUrl in cilium.yaml.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: hubble
+  namespace: kube-system
+spec:
+  entryPoints: [websecure]
+  routes:
+    - kind: Rule
+      match: Host(`ops.nca-apprentices.dev`) && PathPrefix(`/hubble/`)
+      middlewares: [{ name: github-login }]
+      services: [{ name: hubble-ui, port: 80 }]
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: github-login
+  namespace: kube-system
+spec:
+  forwardAuth:
+    address: http://oauth2-proxy.ops.svc.cluster.local/
+    trustForwardHeader: true
+---
+# The jjforge-dev stores' UIs have no login, and each serves under its own
+# prefix, see stores/ in apps/jjforge/dev.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: stores
+  namespace: jjforge-dev
+spec:
+  entryPoints: [websecure]
+  routes:
+    - kind: Rule
+      match: Host(`ops.nca-apprentices.dev`) && PathPrefix(`/jjforge-dev/redpanda`)
+      middlewares: [{ name: github-login }]
+      services: [{ name: redpanda-console, port: 8080 }]
+    - kind: Rule
+      match: Host(`ops.nca-apprentices.dev`) && PathPrefix(`/jjforge-dev/seaweedfs`)
+      middlewares: [{ name: github-login }]
+      services: [{ name: seaweedfs-admin, port: 23646 }]
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: github-login
+  namespace: jjforge-dev
+spec:
+  forwardAuth:
+    address: http://oauth2-proxy.ops.svc.cluster.local/
+    trustForwardHeader: true

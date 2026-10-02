@@ -53,14 +53,41 @@ data:
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>nca ops</title>
     <style>
-      body { font: 16px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; }
-      a { display: block; padding: .75rem 0; }
+      :root { color-scheme: light dark; --bg: #f6f7f9; --card: #fff; --text: #1b1f24; --muted: #5b6470; --line: #dde1e6; --accent: #2563eb; }
+      @media (prefers-color-scheme: dark) {
+        :root { --bg: #0f1216; --card: #171b21; --text: #e6e9ed; --muted: #9aa3ae; --line: #2a3038; --accent: #6ea0ff; }
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, sans-serif; }
+      main { max-width: 56rem; margin: 0 auto; padding: 3rem 1rem; }
+      h1 { margin: 0; font-size: 1.75rem; }
+      h2 { margin: 2.5rem 0 .75rem; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+      ul { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .75rem; margin: 0; padding: 0; list-style: none; }
+      a { display: block; height: 100%; padding: 1rem 1.1rem; background: var(--card); border: 1px solid var(--line); border-radius: .6rem; color: inherit; text-decoration: none; }
+      a:hover, a:focus-visible { border-color: var(--accent); }
+      strong { display: block; color: var(--accent); }
+      span { font-size: .9rem; }
+      code { font-size: .85em; }
+      small { display: block; margin-top: .5rem; color: var(--muted); font-size: .8rem; }
     </style>
-    <h1>nca ops</h1>
-    <a href="/argocd/">Argo CD: deployments, and another jjforge-dev image</a>
-    <a href="/grafana/">Grafana: metrics, and logs under Explore</a>
-    <a href="/headlamp/">Headlamp: everything in the cluster</a>
-    <a href="/logs/select/vmui/">VictoriaLogs: search the logs</a>
+    <main>
+      <h1>nca ops</h1>
+      <h2>Cluster</h2>
+      <ul>
+        <!-- Starts the Argo CD login, which GitHub completes without a click. -->
+        <li><a href="/argocd/auth/login?return_url=https%3A%2F%2Fops.nca-apprentices.dev%2Fargocd%2Fapplications"><strong>Argo CD</strong><span>Deploys the cluster from the <code>nca-apprentices/infra</code> repository on GitHub and shows whether each app matches it.</span><small>admins: everything. dev: syncs jjforge-dev and sets its image. Others: read.</small></a></li>
+        <li><a href="/grafana/"><strong>Grafana</strong><span>Dashboards of the metrics. Explore queries metrics and logs.</span><small>admins: edit. Others: view and Explore.</small></a></li>
+        <li><a href="/grafana/alerting/groups?alertmanager=Alertmanager"><strong>Alerts</strong><span>The firing alerts and silences from Alertmanager, in Grafana.</span><small>admins: silence. Others: view.</small></a></li>
+        <li><a href="/logs/select/vmui/"><strong>VictoriaLogs</strong><span>Searches the logs of every pod.</span><small>Everyone: search.</small></a></li>
+        <li><a href="/headlamp/"><strong>Headlamp</strong><span>Shows the Kubernetes objects in the cluster.</span><small>Everyone: read, except Secrets.</small></a></li>
+        <li><a href="/hubble/"><strong>Hubble</strong><span>Shows the network traffic between pods, and the traffic the network policies drop.</span><small>Everyone: read, every namespace.</small></a></li>
+      </ul>
+      <h2>jjforge-dev</h2>
+      <ul>
+        <li><a href="/jjforge-dev/redpanda/"><strong>Redpanda Console</strong><span>Topics, messages, and consumer groups of the dev Redpanda.</span><small>Everyone: read, write, and delete.</small></a></li>
+        <li><a href="/jjforge-dev/seaweedfs/"><strong>SeaweedFS</strong><span>Buckets, files, and S3 users of the dev SeaweedFS.</span><small>Everyone: read, write, and delete.</small></a></li>
+      </ul>
+    </main>
     </html>
 ---
 apiVersion: apps/v1

@@ -98,12 +98,20 @@ grant more:
 - `dev`: the apprentices. They also sync `jjforge-dev` and set its Helm
   parameters in Argo CD.
 
-| Path        | Tool          | Signs in with          | Everyone else in the organization         |
-| ----------- | ------------- | ---------------------- | ----------------------------------------- |
-| `/argocd`   | Argo CD       | Its own GitHub login   | Reads                                     |
-| `/grafana`  | Grafana       | Its own GitHub login   | Reads, and searches the logs in Explore   |
-| `/headlamp` | Headlamp      | `oauth2-proxy`         | Reads everything except Secrets           |
-| `/logs`     | VictoriaLogs  | `oauth2-proxy`         | Searches the logs                         |
+| Path                     | Tool             | Signs in with        | Everyone else in the organization                     |
+| ------------------------ | ---------------- | -------------------- | ----------------------------------------------------- |
+| `/argocd`                | Argo CD          | Its own GitHub login | Reads                                                 |
+| `/grafana`               | Grafana          | Its own GitHub login | Reads, searches the logs in Explore, and sees alerts  |
+| `/headlamp`              | Headlamp         | `oauth2-proxy`       | Reads everything except Secrets                       |
+| `/logs`                  | VictoriaLogs     | `oauth2-proxy`       | Searches the logs                                     |
+| `/hubble`                | Hubble UI        | `oauth2-proxy`       | Reads the network flows of every namespace            |
+| `/jjforge-dev/redpanda`  | Redpanda Console | `oauth2-proxy`       | Reads, writes, and deletes topics in `jjforge-dev`    |
+| `/jjforge-dev/seaweedfs` | SeaweedFS        | `oauth2-proxy`       | Changes buckets, files, and S3 users in `jjforge-dev` |
+
+The three logins share one GitHub OAuth app, so GitHub asks once. Grafana and
+the portal's Argo CD link then go to GitHub and back without a click. Only
+members of `admins` silence alerts, under Alerting in Grafana.
+The prod stores have no UI.
 
 Headlamp acts as its own account for everyone, bound to the `view` role. For
 more, use kubectl. Argo CD has no administrator password, so kubectl is also the way

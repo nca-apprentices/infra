@@ -10,3 +10,12 @@ resources:
 storage: { persistentVolume: { size: 5Gi } }
 # The external listener takes fixed NodePorts, which prod holds.
 external: { enabled: false }
+# Served at ops.nca-apprentices.dev/jjforge-dev/redpanda behind the GitHub
+# login. Everyone who passes it may read and delete topics. The schema
+# rejects the chart's empty className and targetPort.
+console:
+  enabled: true
+  console: { config: { server: { basePath: /jjforge-dev/redpanda } } }
+  service: { targetPort: 8080 }
+  ingress: { className: "" }
+  resources: { requests: { cpu: 10m, memory: 64Mi } }
