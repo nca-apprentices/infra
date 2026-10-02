@@ -18,6 +18,9 @@ spec:
       valuesObject:
         ingress:
           host: jjforge-dev.nca-apprentices.dev
+        # The server uses about 240 MiB in dev. The chart's 512 MiB left no
+        # room on the node for the new pod of a rolling update.
+        server: { resources: { requests: { memory: 256Mi } } }
   destination:
     server: https://kubernetes.default.svc
     namespace: jjforge-dev
