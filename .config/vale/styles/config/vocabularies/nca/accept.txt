@@ -9,6 +9,7 @@ jjforge
 kubeconfig
 kubectl
 [Nn]amespaces?
+ncaleague
 OAuth
 Porkbun
 Postgres

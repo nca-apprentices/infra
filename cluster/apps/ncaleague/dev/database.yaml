@@ -1,0 +1,20 @@
+# The Postgres cluster. Needs the CNPG operator and storage.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ncaleague-dev-database
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: ncaleague-dev
+  source:
+    repoURL: https://github.com/nca-apprentices/infra.git
+    targetRevision: main
+    path: cluster/apps/ncaleague/dev/manifests/database
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ncaleague-dev
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ServerSideApply=true]

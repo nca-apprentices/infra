@@ -75,7 +75,7 @@ data:
       <h2>Cluster</h2>
       <ul>
         <!-- Starts the Argo CD login, which GitHub completes without a click. -->
-        <li><a href="/argocd/auth/login?return_url=https%3A%2F%2Fops.nca-apprentices.dev%2Fargocd%2Fapplications"><strong>Argo CD</strong><span>Deploys the cluster from the <code>nca-apprentices/infra</code> repository on GitHub and shows whether each app matches it.</span><small>admins: everything. dev: syncs jjforge-dev and sets its image. Others: read.</small></a></li>
+        <li><a href="/argocd/auth/login?return_url=https%3A%2F%2Fops.nca-apprentices.dev%2Fargocd%2Fapplications"><strong>Argo CD</strong><span>Deploys the cluster from the <code>nca-apprentices/infra</code> repository on GitHub and shows whether each app matches it.</span><small>admins: everything. dev: syncs jjforge-dev and ncaleague-dev and sets their images. Others: read.</small></a></li>
         <li><a href="/grafana/"><strong>Grafana</strong><span>Dashboards of the metrics. Explore queries metrics and logs.</span><small>admins: edit. Others: view and Explore.</small></a></li>
         <li><a href="/grafana/alerting/groups?alertmanager=Alertmanager"><strong>Alerts</strong><span>The firing alerts and silences from Alertmanager, in Grafana.</span><small>admins: silence. Others: view.</small></a></li>
         <li><a href="/logs/select/vmui/"><strong>VictoriaLogs</strong><span>Searches the logs of every pod.</span><small>Everyone: search.</small></a></li>

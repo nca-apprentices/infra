@@ -42,6 +42,14 @@ needs both.
 5. Point a throwaway jjforge release in `jjforge-dev` at both, open one change
    with more than one round, and check that a round diff renders.
 
+## Postgres for ncaleague
+
+1. Copy `ncaleague-backup-s3` into `ncaleague-dev`.
+2. Create the `ObjectStore` and the `drill-db` `Cluster` there as for jjforge,
+   with `ncaleague-db` in place of `jjforge-db`.
+3. Wait for `Cluster in healthy state`, then run
+   `SELECT count(*) FROM goals;` and compare with production.
+
 ## Redpanda
 
 1. Copy `redpanda-backup-s3` into `jjforge-dev`, and create each topic in dev's
@@ -100,4 +108,4 @@ needs both.
 
 Wall-clock time per store, and anything that had to be done by hand. Delete
 `drill-db`, the `drill` bucket, the `drill.` topics, the copied secrets, and the
-scratch pods from `jjforge-dev` afterwards.
+scratch pods from `jjforge-dev` and `ncaleague-dev` afterwards.

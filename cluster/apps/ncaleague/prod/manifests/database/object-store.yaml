@@ -1,0 +1,26 @@
+# The Hetzner bucket that tofu/backup.tf creates for this database. Backups and
+# WAL that no restore to a point in the last 30 days needs are deleted.
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: ncaleague-db
+  namespace: ncaleague-prod
+spec:
+  retentionPolicy: 30d
+  configuration:
+    destinationPath: s3://nca-backup-ncaleague-prod-db/
+    endpointURL: https://fsn1.your-objectstorage.com
+    s3Credentials:
+      accessKeyId:
+        name: ncaleague-backup-s3
+        key: AWS_ACCESS_KEY_ID
+      secretAccessKey:
+        name: ncaleague-backup-s3
+        key: AWS_SECRET_ACCESS_KEY
+      region:
+        name: ncaleague-backup-s3
+        key: AWS_REGION
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
