@@ -19,6 +19,10 @@ spec:
         ingress:
           host: jjforge.nca-apprentices.dev
           middlewares: [github-login]
+        # The server uses about 240 MiB, as in dev. The chart's 512 MiB didn't
+        # fit on the node once ncaleague moved in, and the chart sets no
+        # priority class yet, so the pod couldn't take dev's room either.
+        server: { resources: { requests: { memory: 256Mi } } }
   destination:
     server: https://kubernetes.default.svc
     namespace: jjforge-prod
