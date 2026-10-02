@@ -1,0 +1,25 @@
+# The app from its released chart. Deploying is changing targetRevision.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ncaleague-prod
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: ncaleague-prod
+  source:
+    repoURL: oci://ghcr.io/nca-apprentices/charts/ncaleague
+    targetRevision: 1.0.0
+    path: .
+    helm:
+      valuesObject:
+        priorityClassName: prod
+        ingress:
+          host: ncaleague.nca-apprentices.dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ncaleague-prod
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ServerSideApply=true]

@@ -95,8 +95,8 @@ the `nca-apprentices` organization on GitHub get in, and two of its teams
 grant more:
 
 - `admins`: administrator in Argo CD and Grafana. Every operator belongs here.
-- `dev`: the apprentices. They also sync `jjforge-dev` and set its Helm
-  parameters in Argo CD.
+- `dev`: the apprentices. They also sync `jjforge-dev` and `ncaleague-dev` and
+  set their Helm parameters in Argo CD.
 
 | Path                     | Tool             | Signs in with        | Everyone else in the organization                     |
 | ------------------------ | ---------------- | -------------------- | ----------------------------------------------------- |
@@ -197,17 +197,18 @@ Everything else in the cluster comes from Git.
 
 ## Backups
 
-The cluster keeps state in five stores. Each backs itself up to its own
+The cluster keeps state in six stores. Each backs itself up to its own
 Hetzner bucket in `fsn1`, away from the node in `nbg1`. Everything else is
 rebuilt from this repository, so nothing else is backed up.
 
-| Store                  | Bucket                              | Method                                            | Loses at most                 | Secret                                  |
-| ---------------------- | ----------------------------------- | ------------------------------------------------- | ----------------------------- | --------------------------------------- |
-| jjforge-prod Postgres  | `nca-backup-jjforge-prod-db`        | WAL and nightly base backups through Barman Cloud | Seconds                       | `jjforge-backup-s3` in `jjforge-prod`   |
-| jjforge-prod SeaweedFS | `nca-backup-jjforge-prod-seaweedfs` | `weed filer.backup` mirrors every change          | Seconds                       | `seaweedfs-backup-s3` in `jjforge-prod` |
-| jjforge-prod Redpanda  | `nca-backup-jjforge-prod-redpanda`  | Redpanda Connect copies every record              | Seconds, and consumer offsets | `redpanda-backup-s3` in `jjforge-prod`  |
-| VictoriaMetrics        | `nca-backup-metrics`                | `vmbackup` nightly                                | A day                         | `metrics-backup-s3` in `observability`  |
-| VictoriaLogs           | `nca-backup-logs`                   | Partition snapshots and `rclone` nightly          | A day                         | `logs-backup-s3` in `observability`     |
+| Store                   | Bucket                              | Method                                            | Loses at most                 | Secret                                    |
+| ----------------------- | ----------------------------------- | ------------------------------------------------- | ----------------------------- | ----------------------------------------- |
+| jjforge-prod Postgres   | `nca-backup-jjforge-prod-db`        | WAL and nightly base backups through Barman Cloud | Seconds                       | `jjforge-backup-s3` in `jjforge-prod`     |
+| ncaleague-prod Postgres | `nca-backup-ncaleague-prod-db`      | WAL and nightly base backups through Barman Cloud | Seconds                       | `ncaleague-backup-s3` in `ncaleague-prod` |
+| jjforge-prod SeaweedFS  | `nca-backup-jjforge-prod-seaweedfs` | `weed filer.backup` mirrors every change          | Seconds                       | `seaweedfs-backup-s3` in `jjforge-prod`   |
+| jjforge-prod Redpanda   | `nca-backup-jjforge-prod-redpanda`  | Redpanda Connect copies every record              | Seconds, and consumer offsets | `redpanda-backup-s3` in `jjforge-prod`    |
+| VictoriaMetrics         | `nca-backup-metrics`                | `vmbackup` nightly                                | A day                         | `metrics-backup-s3` in `observability`    |
+| VictoriaLogs            | `nca-backup-logs`                   | Partition snapshots and `rclone` nightly          | A day                         | `logs-backup-s3` in `observability`       |
 
 `tofu/backup.tf` creates the buckets. Each bucket keeps replaced and deleted
 objects for 30 days, and its policy admits only its store's key and the tofu

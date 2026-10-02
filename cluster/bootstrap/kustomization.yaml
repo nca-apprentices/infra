@@ -75,9 +75,9 @@ patches:
                 orgs:
                   - name: nca-apprentices
                 teamNameField: slug
-  # The admins team runs Argo CD. The dev team also syncs jjforge-dev and sets
-  # its Helm parameters, which is how another image reaches dev. Every other
-  # member of the organization only reads.
+  # The admins team runs Argo CD. The dev team also syncs each app's dev
+  # environment and sets its Helm parameters, which is how another image
+  # reaches dev. Every other member of the organization only reads.
   - patch: |-
       apiVersion: v1
       kind: ConfigMap
@@ -91,3 +91,5 @@ patches:
           g, nca-apprentices:dev, role:dev
           p, role:dev, applications, sync, jjforge-dev/*, allow
           p, role:dev, applications, update, jjforge-dev/*, allow
+          p, role:dev, applications, sync, ncaleague-dev/*, allow
+          p, role:dev, applications, update, ncaleague-dev/*, allow

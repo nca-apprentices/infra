@@ -38,7 +38,7 @@ then delete the local copy.
 | Bucket `nca-tofu` in `nbg1`, and an S3 key pair    | Console, Object Storage                |
 | Porkbun API key and secret key                     | `porkbun.com`, Account, API Access     |
 | API access for the domain                          | `porkbun.com`, the domain's Details    |
-| One S3 key pair per backup bucket, five in all     | Console, Object Storage                |
+| One S3 key pair per backup bucket, six in all      | Console, Object Storage                |
 | The project's numeric ID                           | Console, the project's URL             |
 
 A new Porkbun domain comes with parking records: an ALIAS at the apex and a
@@ -63,7 +63,7 @@ TF_VAR_operator_cidrs=["203.0.113.7/32"]
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 TF_VAR_object_storage_project_id=...
-TF_VAR_backup_keys={"jjforge-prod-db"="...","jjforge-prod-seaweedfs"="...","jjforge-prod-redpanda"="...","metrics"="...","logs"="..."}
+TF_VAR_backup_keys={"jjforge-prod-db"="...","ncaleague-prod-db"="...","jjforge-prod-seaweedfs"="...","jjforge-prod-redpanda"="...","metrics"="...","logs"="..."}
 ```
 
 `TF_VAR_backup_keys` names each backup key by its access key only. The secret
@@ -80,7 +80,7 @@ sops --encrypt --in-place talos/talsecret.sops.yaml
 
 `mise run bootstrap` applies every `*.enc.yaml` under `secrets/` before
 Argo CD starts. Argo CD reads this repository as a GitHub App, since
-the organization allows no deploy keys. The jjforge chart and images on GHCR
+the organization allows no deploy keys. The apps' charts and images on GHCR
 are public, so pulling them takes no credentials.
 
 Create the app at
@@ -91,7 +91,8 @@ the `infra` repository only. The installation ID is the number at the end of the
 installation's settings URL.
 
 ```fish
-mkdir -p secrets/platform secrets/apps/jjforge/prod secrets/apps/jjforge/dev
+mkdir -p secrets/platform secrets/apps/jjforge/prod secrets/apps/jjforge/dev \
+    secrets/apps/ncaleague/prod
 set app_id 123456             # App ID
 set installation_id 12345678  # installation ID
 set app_key ~/Downloads/nca-argocd.*.private-key.pem
@@ -139,6 +140,7 @@ function backup-secret -a name namespace dir
 end
 
 backup-secret jjforge-backup-s3 jjforge-prod apps/jjforge/prod
+backup-secret ncaleague-backup-s3 ncaleague-prod apps/ncaleague/prod
 backup-secret seaweedfs-backup-s3 jjforge-prod apps/jjforge/prod
 backup-secret redpanda-backup-s3 jjforge-prod apps/jjforge/prod
 backup-secret metrics-backup-s3 observability platform
@@ -194,18 +196,20 @@ set -e secret
 Set `domain` in `tofu/terraform.tfvars`, and replace `example.com` in
 every `cluster/apps/*/*/application.yaml` with it.
 
-Argo CD deploys the chart version in `cluster/apps/jjforge/*/application.yaml`,
-so that version must exist before the first sync. If its release is missing,
-tag it in a clone of
-[nca-apprentices/jjforge](https://github.com/nca-apprentices/jjforge) next to
-this one. The release workflow publishes the images, the chart, and a GitHub
-release:
+Argo CD deploys the chart version in each `cluster/apps/<app>/*/application.yaml`,
+so that version must exist before the first sync. If a release is missing, tag
+it in a clone of the app's repository, such as
+[nca-apprentices/jjforge](https://github.com/nca-apprentices/jjforge), next to
+this one. Each app's release workflow publishes its images, its chart, and a
+GitHub release:
 
 ```fish
-set version v(yq .spec.source.targetRevision cluster/apps/jjforge/prod/application.yaml)
-git -C ../jjforge tag -s $version -m $version
-git -C ../jjforge push origin $version
-gh run watch -R nca-apprentices/jjforge
+for app in jjforge ncaleague
+    set version v(yq .spec.source.targetRevision cluster/apps/$app/prod/application.yaml)
+    git -C ../$app tag -s $version -m $version
+    git -C ../$app push origin $version
+    gh run watch -R nca-apprentices/$app
+end
 ```
 
 ## 7. Upload the Talos image

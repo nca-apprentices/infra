@@ -4,7 +4,7 @@
 # but its writer's and tofu's: a key leaked from one store can't read or delete
 # another store's backups.
 locals {
-  backups = toset(["jjforge-prod-db", "jjforge-prod-seaweedfs", "jjforge-prod-redpanda", "metrics", "logs"])
+  backups = toset(["jjforge-prod-db", "ncaleague-prod-db", "jjforge-prod-seaweedfs", "jjforge-prod-redpanda", "metrics", "logs"])
 }
 
 resource "minio_s3_bucket" "backup" {

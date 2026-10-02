@@ -1,0 +1,20 @@
+# What ncaleague-dev's Applications may deploy: its chart and its directory
+# here, into its own namespace only. The namespace comes from this directory
+# under the platform's project, so the app creates no cluster-scoped objects
+# itself.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: ncaleague-dev
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  description: ncaleague, development
+  sourceRepos:
+    - oci://ghcr.io/nca-apprentices/charts/ncaleague
+    - https://github.com/nca-apprentices/infra.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: ncaleague-dev
+  clusterResourceWhitelist: []
