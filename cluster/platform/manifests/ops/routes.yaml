@@ -138,13 +138,3 @@ spec:
       match: Host(`ops.nca-apprentices.dev`) && PathPrefix(`/jjforge-dev/seaweedfs`)
       middlewares: [{ name: github-login }]
       services: [{ name: seaweedfs-admin, port: 23646 }]
----
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: github-login
-  namespace: jjforge-dev
-spec:
-  forwardAuth:
-    address: http://oauth2-proxy.ops.svc.cluster.local/
-    trustForwardHeader: true

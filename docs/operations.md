@@ -52,6 +52,11 @@ the app's reach:
   outlast it when the node runs short of memory. The jjforge chart needs a value
   for it before its own pods do.
 
+Every environment except `ncaleague-prod` admits members of the GitHub
+organization only. Its `login.yaml` holds `github-login`, which asks
+`oauth2-proxy` about every request, and `application.yaml` names it in the
+chart's `ingress.middlewares`. One sign-in covers every host under the domain.
+
 Each environment runs its own Redpanda and SeaweedFS, so no environment
 reaches the topics and buckets of another. A file in the environment's
 `stores/` directory, such as `stores/redpanda.yaml`, opts it in. The
@@ -67,7 +72,7 @@ environment's file over them.
    `<app>.<domain>` in `prod` and `<app>-<env>.<domain>` elsewhere, which the
    wildcard DNS record already covers.
 3. Keep only the manifests and stores the environment needs, such as a
-   database.
+   database. Keep `login.yaml` unless the environment is for the public.
 4. Add the environment's secrets under `secrets/apps/<app>/<env>/`, then run
    `mise run bootstrap` to apply them.
 5. Merge. Argo CD picks the directory up without any other change.

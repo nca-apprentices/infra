@@ -10,12 +10,13 @@ spec:
   project: ncaleague-dev
   source:
     repoURL: oci://ghcr.io/nca-apprentices/charts/ncaleague
-    targetRevision: 1.0.0
+    targetRevision: 1.1.0
     path: .
     helm:
       valuesObject:
         ingress:
           host: ncaleague-dev.nca-apprentices.dev
+          middlewares: [github-login]
   destination:
     server: https://kubernetes.default.svc
     namespace: ncaleague-dev

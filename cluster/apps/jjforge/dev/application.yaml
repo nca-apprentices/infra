@@ -12,12 +12,13 @@ spec:
   project: jjforge-dev
   source:
     repoURL: oci://ghcr.io/nca-apprentices/charts/jjforge
-    targetRevision: 0.2.2
+    targetRevision: 0.2.3
     path: .
     helm:
       valuesObject:
         ingress:
           host: jjforge-dev.nca-apprentices.dev
+          middlewares: [github-login]
         # The server uses about 240 MiB in dev. The chart's 512 MiB left no
         # room on the node for the new pod of a rolling update.
         server: { resources: { requests: { memory: 256Mi } } }
