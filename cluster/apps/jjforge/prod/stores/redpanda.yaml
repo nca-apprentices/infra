@@ -1,6 +1,8 @@
 # Half a core is enough while traffic is low. Redpanda gets 80% of the
 # memory request, and production mode refuses to start below 1 GiB.
 statefulset: { priorityClassName: prod }
+# The Job reruns on every sync, and on a full node it waits behind dev.
+post_install_job: { podTemplate: { spec: { priorityClassName: prod } } }
 resources:
   cpu: { cores: 500m }
   memory: { container: { min: 1.3Gi, max: 1.5Gi } }
