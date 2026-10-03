@@ -92,7 +92,31 @@ can use it.
 - **An app release:** bump `targetRevision` in `dev/application.yaml`, then in
   `prod/application.yaml` once `dev` works. Renovate opens those PRs when a new
   chart is published.
-- **Cloud or Talos:** edit `tofu/` or `talos/`, then `mise run apply`.
+- **Cloud:** edit `tofu/`, then `mise run apply`.
+- **Talos configuration:** edit `talos/talconfig.yaml`, then `mise run talos`.
+  It shows how the node's running configuration would change and applies it
+  once you confirm. `mise run apply` doesn't reach the node: tofu ignores
+  changes to the user data, which only a new node boots from.
+- **Talos release:** set `talosVersion` in `talconfig.yaml`, then run
+  `mise run image` for the next rebuild, and upgrade the node. The upgrade
+  reboots it, and with one node every app is down until it returns. The
+  image's schematic is empty, so the stock installer matches it:
+
+  ```fish
+  set -x TALOSCONFIG talos/clusterconfig/talosconfig
+  set ip (sops exec-env secrets/tofu.enc.env "tofu -chdir=tofu output -raw node_ipv4")
+  talosctl -e $ip -n $ip upgrade --image ghcr.io/siderolabs/installer:(yq .talosVersion talos/talconfig.yaml)
+  ```
+
+- **Kubernetes release:** after the Talos release that supports it, set
+  `kubernetesVersion` in `talconfig.yaml`, then, with `TALOSCONFIG` and `ip`
+  set as in the Talos release step:
+
+  ```fish
+  talosctl -e $ip -n $ip upgrade-k8s --to (yq .kubernetesVersion talos/talconfig.yaml)
+  ```
+
+  It updates the control plane and the node agent one component at a time.
 
 `mise run check` validates all of it without credentials, and CI runs it on
 every PR.

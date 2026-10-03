@@ -1,11 +1,28 @@
 # Disk encryption
 
-`talos/talconfig.yaml` asks for LUKS2 on the data volume and on the system
-disk's `STATE` and `EPHEMERAL` partitions. Talos encrypts a volume only when
-it creates it, so the setting takes effect the next time a node is built, as
-in [bootstrap.md](bootstrap.md). The node running now predates it and keeps
-its volumes in plain text. Don't run `talosctl apply-config` with this
-configuration on it: its volumes would no longer mount.
+The node runs without disk encryption. Talos encrypts a volume only when it
+creates it, so encryption arrives with the next node built from scratch, as
+in [bootstrap.md](bootstrap.md). Before that build, add LUKS2 to the data
+volume in `talos/talconfig.yaml`, and to the system disk's `STATE` and
+`EPHEMERAL` partitions:
+
+```yaml
+    userVolumes:
+      - name: data
+        provisioning: ...
+        encryption: &luks
+          provider: luks2
+          keys:
+            - slot: 0
+              nodeID: {}
+    volumes:
+      - name: STATE
+        encryption: *luks
+      - name: EPHEMERAL
+        encryption: *luks
+```
+
+Never apply it to a node whose volumes exist: they would no longer mount.
 
 The key derives from the server's ID, since Hetzner Cloud has no TPM. It
 protects a disk or a volume read on another machine, such as a failed disk

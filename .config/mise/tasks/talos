@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#MISE description="Show how talconfig.yaml differs from the node, then apply it"
+set -euo pipefail
+
+ip=$(sops exec-env secrets/tofu.enc.env "tofu -chdir=tofu output -raw node_ipv4")
+export TALOSCONFIG=talos/clusterconfig/talosconfig
+
+# The node config only, in a scratch directory, so the talosconfig that
+# `mise run apply` generated stays as it is.
+scratch=$(mktemp -d)
+trap 'rm -rf "$scratch"' EXIT
+
+talhelper genconfig \
+  --config-file talos/talconfig.yaml \
+  --secret-file talos/talsecret.sops.yaml \
+  --out-dir "$scratch" >/dev/null
+
+# The dry run prints the difference to the running configuration and
+# changes nothing.
+talosctl -e "$ip" -n "$ip" apply-config --dry-run --file "$scratch/nca-nca-1.yaml"
+
+read -rp "Apply this? [y/N] " answer
+if [[ $answer != y ]]; then
+  exit 1
+fi
+talosctl -e "$ip" -n "$ip" apply-config --file "$scratch/nca-nca-1.yaml"
