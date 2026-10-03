@@ -53,10 +53,20 @@ spec:
       labels: { app: redpanda-backup }
     spec:
       priorityClassName: prod
+      # Pod Security restricted. Connect writes no files, so any non-root
+      # user does.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: { type: RuntimeDefault }
       containers:
         - name: connect
           image: docker.redpanda.com/redpandadata/connect:4.111.0
           args: [run, /etc/connect/connect.yaml]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
           # The aws_s3 output reads the AWS environment variables.
           envFrom:
             - secretRef: { name: redpanda-backup-s3 }

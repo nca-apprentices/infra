@@ -32,9 +32,19 @@ spec:
       labels: { app: seaweedfs-backup }
     spec:
       priorityClassName: prod
+      # Pod Security restricted, as the image's seaweed user. The mirror keeps
+      # its position in the filer, not on disk.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
       containers:
         - name: filer-backup
           image: chrislusf/seaweedfs:4.47
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
           args:
             - filer.backup
             - -filer=seaweedfs-filer:8888
