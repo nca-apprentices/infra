@@ -283,6 +283,11 @@ the `nca overview` dashboard in Grafana. Every alert except the info alerts
 opens an issue labeled `alert` in this repository, and the issue closes when
 the alert resolves. Watch the repository to get the notifications.
 
+<https://status.nca-apprentices.dev> shows the uptime of the production
+hosts. [nca-apprentices/status](https://github.com/nca-apprentices/status)
+checks them from GitHub Actions about every 5 minutes, so it keeps working
+when the node is down, and opens an issue there per outage.
+
 `github-alerts` holds a fine-grained token that expires. When it expires, alerts
 stop opening issues without any error in Grafana. To renew it:
 

@@ -26,6 +26,16 @@ resource "porkbun_dns_record" "jjforge_docs" {
   ttl     = "600"
 }
 
+# The status page runs on GitHub Pages too, from nca-apprentices/status, so
+# it stays up when the node is down.
+resource "porkbun_dns_record" "status" {
+  domain  = var.domain
+  name    = "status"
+  type    = "CNAME"
+  content = "nca-apprentices.github.io"
+  ttl     = "600"
+}
+
 # Proves to GitHub that the org owns the domain, so no other account can
 # serve a Pages site under it.
 resource "porkbun_dns_record" "github_pages_challenge" {
