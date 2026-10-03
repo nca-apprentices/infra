@@ -30,7 +30,8 @@ spec:
           reverse-proxy: "true"
           skip-provider-button: "true"
           # One sign-in for every host under the domain. The cookie covers them
-          # all, and the callback may return to any of them.
+          # all, and the callback may return to any of them. ncaleague-prod
+          # removes it, see apps/ncaleague/prod/cookies.yaml.
           cookie-domain: .nca-apprentices.dev
           whitelist-domain: .nca-apprentices.dev
   destination:

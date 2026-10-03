@@ -1,0 +1,13 @@
+# Removes the Cookie header, so the public app never sees the GitHub login's
+# cookie, which covers every host under the domain. A compromised backend
+# could otherwise take over the session of any member who opens the league.
+# The chart's Ingress names it in ingress.middlewares, see application.yaml.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: no-cookies
+  namespace: ncaleague-prod
+spec:
+  headers:
+    customRequestHeaders:
+      Cookie: ""

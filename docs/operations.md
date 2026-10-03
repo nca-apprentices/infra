@@ -68,6 +68,8 @@ Every environment except `ncaleague-prod` admits members of the GitHub
 organization only. Its `login.yaml` holds `github-login`, which asks
 `oauth2-proxy` about every request, and `application.yaml` names it in the
 chart's `ingress.middlewares`. One sign-in covers every host under the domain.
+The public `ncaleague-prod` gets `no-cookies` there instead, which removes the
+sign-in's cookie before a request reaches the app.
 
 Each environment runs its own Redpanda and SeaweedFS, so no environment
 reaches the topics and buckets of another. A file in the environment's
