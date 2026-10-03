@@ -6,5 +6,3 @@ backups: false
 # Dev: pods labeled restore-drill reach the backup buckets, see
 # docs/restore-drill.md.
 restoreDrill: false
-# Outbound limits. Off while each environment moves onto them.
-egress: true

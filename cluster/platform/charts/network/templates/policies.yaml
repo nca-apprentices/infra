@@ -99,7 +99,6 @@ spec:
         - matchLabels: { app: seaweedfs-backup }
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: observability
-{{- if .Values.egress }}
 ---
 # Outbound traffic stays in the namespace, apart from DNS and the API server,
 # so code running here can't send data out of the cluster. The backups reach
@@ -168,5 +167,4 @@ spec:
     - toFQDNs: [{ matchName: {{ $s3 }} }]
       toPorts:
         - ports: [{ port: "443", protocol: TCP }]
-{{- end }}
 {{- end }}

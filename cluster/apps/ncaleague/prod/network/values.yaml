@@ -1,5 +1,3 @@
 # The network policies of ncaleague-prod, from cluster/platform/charts/network.
 client: backend
 backups: true
-# Until dev has run with the outbound limits.
-egress: false
