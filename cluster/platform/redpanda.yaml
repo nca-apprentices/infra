@@ -14,6 +14,9 @@ metadata:
 spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
+  # A removed directory, or a generator that briefly finds none, deletes
+  # the Application but none of what it deployed.
+  syncPolicy: { preserveResourcesOnDeletion: true }
   generators:
     - git:
         repoURL: https://github.com/nca-apprentices/infra.git
