@@ -1,37 +1,7 @@
-# Pod Security restricted, tried in dev before prod. The chart starts weed
-# itself, past the image's entrypoint that drops root, so the pods run as the
-# image's seaweed user. The chown init containers hand it the data that root
-# wrote before, and go once every environment has synced.
-podSecurity: &pod
-  enabled: true
-  runAsNonRoot: true
-  runAsUser: 1000
-  runAsGroup: 1000
-  seccompProfile: { type: RuntimeDefault }
-containerSecurity: &container
-  enabled: true
-  allowPrivilegeEscalation: false
-  capabilities: { drop: [ALL] }
 # Dev data is disposable, so it gets less space and no backup. Every
 # collection, the filer's own included, claims 7 volumes up front, so dev
 # makes them small: 38 volumes of 128 MB on the 5 GB disk.
-master:
-  volumeSizeLimitMB: 128
-  podSecurityContext: *pod
-  containerSecurityContext: *container
-  initContainers: |
-    - name: chown
-      image: chrislusf/seaweedfs:4.47
-      command: [chown, -R, "1000:1000", /data]
-      securityContext:
-        runAsUser: 0
-        runAsNonRoot: false
-        allowPrivilegeEscalation: false
-        capabilities: { drop: [ALL], add: [CHOWN, DAC_OVERRIDE] }
-      # Without a request it takes the namespace default of 256 MiB, which
-      # becomes the pod's request and no longer fits on the node.
-      resources: { requests: { cpu: 10m, memory: 16Mi } }
-      volumeMounts: [{ name: "data-{{ .Release.Namespace }}", mountPath: /data }]
+master: { volumeSizeLimitMB: 128 }
 volume:
   dataDirs:
     - name: data
@@ -39,38 +9,8 @@ volume:
       size: 5Gi
       storageClass: local-data
       maxVolumes: 38
-  podSecurityContext: *pod
-  containerSecurityContext: *container
-  initContainers: |
-    - name: chown
-      image: chrislusf/seaweedfs:4.47
-      command: [chown, -R, "1000:1000", /data]
-      securityContext:
-        runAsUser: 0
-        runAsNonRoot: false
-        allowPrivilegeEscalation: false
-        capabilities: { drop: [ALL], add: [CHOWN, DAC_OVERRIDE] }
-      # Without a request it takes the namespace default of 256 MiB, which
-      # becomes the pod's request and no longer fits on the node.
-      resources: { requests: { cpu: 10m, memory: 16Mi } }
-      volumeMounts: [{ name: data, mountPath: /data }]
 filer:
   data: { size: 1Gi }
-  podSecurityContext: *pod
-  containerSecurityContext: *container
-  initContainers: |
-    - name: chown
-      image: chrislusf/seaweedfs:4.47
-      command: [chown, -R, "1000:1000", /data]
-      securityContext:
-        runAsUser: 0
-        runAsNonRoot: false
-        allowPrivilegeEscalation: false
-        capabilities: { drop: [ALL], add: [CHOWN, DAC_OVERRIDE] }
-      # Without a request it takes the namespace default of 256 MiB, which
-      # becomes the pod's request and no longer fits on the node.
-      resources: { requests: { cpu: 10m, memory: 16Mi } }
-      volumeMounts: [{ name: data-filer, mountPath: /data }]
 # The admin UI, served at ops.nca-apprentices.dev/jjforge-dev/seaweedfs behind
 # the GitHub login. Everyone who passes it may change buckets and S3 users.
 # It has no password of its own, which the chart refuses on a non-loopback
@@ -81,5 +21,3 @@ admin:
   extraArgs: [-ip=0.0.0.0, -allowInsecureBind]
   urlPrefix: /jjforge-dev/seaweedfs
   resources: { requests: { cpu: 10m, memory: 64Mi } }
-  podSecurityContext: *pod
-  containerSecurityContext: *container

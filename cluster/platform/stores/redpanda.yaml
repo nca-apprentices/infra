@@ -3,13 +3,40 @@
 # cores it does not have here. Each environment sets its cores and memory.
 resources:
   cpu: { overprovisioned: true }
+# Pod Security restricted. Every container runs as Redpanda's user 101, the
+# sidecar and init containers included.
+container: &container
+  allowPrivilegeEscalation: false
+  capabilities: { drop: [ALL] }
+podSecurity: &pod
+  runAsNonRoot: true
+  runAsUser: 101
+  runAsGroup: 101
+  seccompProfile: { type: RuntimeDefault }
 # The sidecar requests near the 43 MiB it uses. The namespace default of
 # 256 MiB doesn't fit the node twice over.
 statefulset:
   replicas: 1
   sideCars: { resources: { requests: { cpu: 10m, memory: 64Mi } } }
+  podTemplate:
+    spec:
+      securityContext: *pod
+      initContainers:
+        - { name: redpanda-configurator, securityContext: *container }
+        - { name: bootstrap-yaml-envsubst, securityContext: *container }
+      containers:
+        - { name: redpanda, securityContext: *container }
+        - { name: sidecar, securityContext: *container }
 # The Argo CD sync waits for this one-off Job, which must fit beside the rest.
-post_install_job: { resources: { requests: { cpu: 10m, memory: 64Mi } } }
+post_install_job:
+  resources: { requests: { cpu: 10m, memory: 64Mi } }
+  podTemplate:
+    spec:
+      securityContext: *pod
+      initContainers:
+        - { name: bootstrap-yaml-envsubst, securityContext: *container }
+      containers:
+        - { name: post-install, securityContext: *container }
 # Clients run in the cluster. The external listener would open NodePorts on
 # the node, the unauthenticated admin API among them.
 external: { enabled: false }
