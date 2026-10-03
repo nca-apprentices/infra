@@ -13,6 +13,14 @@ resource "hcloud_firewall" "node" {
     source_ips = ["0.0.0.0/0", "::/0"]
   }
 
+  # HTTP/3, which Traefik serves on the same port over QUIC.
+  rule {
+    direction  = "in"
+    protocol   = "udp"
+    port       = "443"
+    source_ips = ["0.0.0.0/0", "::/0"]
+  }
+
   # Open to everyone for Let's Encrypt's HTTP-01 challenges. Traefik serves
   # nothing else on port 80; see cluster/platform/traefik.yaml.
   rule {
