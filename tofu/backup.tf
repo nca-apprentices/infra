@@ -46,17 +46,36 @@ resource "minio_s3_bucket_policy" "backup" {
   bucket   = minio_s3_bucket.backup[each.key].bucket
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Sid      = "WriterAndTofuOnly"
-      Effect   = "Deny"
-      Action   = "s3:*"
-      Resource = [minio_s3_bucket.backup[each.key].arn, "${minio_s3_bucket.backup[each.key].arn}/*"]
-      NotPrincipal = {
-        AWS = [
-          for key in [var.backup_keys[each.key], var.s3_access_key] :
-          "arn:aws:iam:::user/p${var.object_storage_project_id}:${key}"
+    Statement = [
+      {
+        Sid      = "WriterAndTofuOnly"
+        Effect   = "Deny"
+        Action   = "s3:*"
+        Resource = [minio_s3_bucket.backup[each.key].arn, "${minio_s3_bucket.backup[each.key].arn}/*"]
+        NotPrincipal = {
+          AWS = [
+            for key in [var.backup_keys[each.key], var.s3_access_key] :
+            "arn:aws:iam:::user/p${var.object_storage_project_id}:${key}"
+          ]
+        }
+      },
+      # The writer deletes objects, which versioning keeps. It can't delete a
+      # version or lift the versioning, retention, or policy, so a leaked key
+      # can't erase the 30 days of history.
+      {
+        Sid    = "WriterKeepsHistory"
+        Effect = "Deny"
+        Action = [
+          "s3:DeleteObjectVersion",
+          "s3:DeleteBucket",
+          "s3:PutBucketVersioning",
+          "s3:PutLifecycleConfiguration",
+          "s3:PutBucketPolicy",
+          "s3:DeleteBucketPolicy",
         ]
-      }
-    }]
+        Resource  = [minio_s3_bucket.backup[each.key].arn, "${minio_s3_bucket.backup[each.key].arn}/*"]
+        Principal = { AWS = ["arn:aws:iam:::user/p${var.object_storage_project_id}:${var.backup_keys[each.key]}"] }
+      },
+    ]
   })
 }
