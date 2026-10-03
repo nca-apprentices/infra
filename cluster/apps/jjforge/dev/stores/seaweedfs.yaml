@@ -28,6 +28,9 @@ master:
         runAsNonRoot: false
         allowPrivilegeEscalation: false
         capabilities: { drop: [ALL], add: [CHOWN, DAC_OVERRIDE] }
+      # Without a request it takes the namespace default of 256 MiB, which
+      # becomes the pod's request and no longer fits on the node.
+      resources: { requests: { cpu: 10m, memory: 16Mi } }
       volumeMounts: [{ name: "data-{{ .Release.Namespace }}", mountPath: /data }]
 volume:
   dataDirs:
@@ -47,6 +50,9 @@ volume:
         runAsNonRoot: false
         allowPrivilegeEscalation: false
         capabilities: { drop: [ALL], add: [CHOWN, DAC_OVERRIDE] }
+      # Without a request it takes the namespace default of 256 MiB, which
+      # becomes the pod's request and no longer fits on the node.
+      resources: { requests: { cpu: 10m, memory: 16Mi } }
       volumeMounts: [{ name: data, mountPath: /data }]
 filer:
   data: { size: 1Gi }
@@ -61,6 +67,9 @@ filer:
         runAsNonRoot: false
         allowPrivilegeEscalation: false
         capabilities: { drop: [ALL], add: [CHOWN, DAC_OVERRIDE] }
+      # Without a request it takes the namespace default of 256 MiB, which
+      # becomes the pod's request and no longer fits on the node.
+      resources: { requests: { cpu: 10m, memory: 16Mi } }
       volumeMounts: [{ name: data-filer, mountPath: /data }]
 # The admin UI, served at ops.nca-apprentices.dev/jjforge-dev/seaweedfs behind
 # the GitHub login. Everyone who passes it may change buckets and S3 users.
