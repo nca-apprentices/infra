@@ -12,7 +12,7 @@ spec:
   project: jjforge-prod
   source:
     repoURL: oci://ghcr.io/nca-apprentices/charts/jjforge
-    targetRevision: 0.2.3
+    targetRevision: 0.2.4
     path: .
     helm:
       valuesObject:
