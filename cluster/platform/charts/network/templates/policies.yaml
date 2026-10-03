@@ -1,0 +1,172 @@
+{{- $client := required "client is required" .Values.client }}
+{{- $s3 := "fsn1.your-objectstorage.com" }}
+# Ingress comes from this namespace and the platform only, never from another
+# app or environment: a pod in one environment can't reach another's database.
+# The database and the stores admit less, in the policies below. A pod no
+# policy selects admits everyone, so the selectors must cover each pod.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ingress
+spec:
+  endpointSelector:
+    matchExpressions:
+      - { key: cnpg.io/cluster, operator: DoesNotExist }
+      - key: app.kubernetes.io/name
+        operator: NotIn
+        values: [redpanda, seaweedfs]
+  ingress:
+    - fromEndpoints:
+        - {}
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: traefik
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cnpg-system
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: observability
+---
+# The database admits the client on the Postgres port only. The operator, the
+# metrics scrape, and the database's own instances keep full access.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: database-ingress
+spec:
+  endpointSelector:
+    matchExpressions:
+      - { key: cnpg.io/cluster, operator: Exists }
+  ingress:
+    - fromEndpoints:
+        - matchLabels: { app.kubernetes.io/component: {{ $client }} }
+      toPorts:
+        - ports: [{ port: "5432", protocol: TCP }]
+    - fromEndpoints:
+        - matchExpressions:
+            - { key: cnpg.io/cluster, operator: Exists }
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cnpg-system
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: observability
+---
+# Redpanda checks no credentials, so whoever reaches it may delete topics.
+# The client and the backup get the client ports. The admin API and the
+# internal RPC stay with Redpanda's own pods, the console, and the platform.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: redpanda-ingress
+spec:
+  endpointSelector:
+    matchLabels: { app.kubernetes.io/name: redpanda }
+  ingress:
+    - fromEndpoints:
+        - matchLabels: { app.kubernetes.io/component: {{ $client }} }
+        - matchLabels: { app: redpanda-backup }
+      toPorts:
+        - ports:
+            - { port: "9093", protocol: TCP }
+            - { port: "8081", protocol: TCP }
+            - { port: "8082", protocol: TCP }
+    - fromEndpoints:
+        - matchLabels: { app.kubernetes.io/name: redpanda }
+        - matchLabels: { app.kubernetes.io/name: console }
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: observability
+---
+# SeaweedFS checks a key on S3 requests only, so the namespace gets the S3
+# port. The master, the volume server, and the filer's own API stay with
+# SeaweedFS, its backup, and the platform. Traefik reaches the admin UI, which
+# has the GitHub login in front.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: seaweedfs-ingress
+spec:
+  endpointSelector:
+    matchLabels: { app.kubernetes.io/name: seaweedfs }
+  ingress:
+    - fromEndpoints:
+        - {}
+      toPorts:
+        - ports: [{ port: "8333", protocol: TCP }]
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: traefik
+      toPorts:
+        - ports: [{ port: "23646", protocol: TCP }]
+    - fromEndpoints:
+        - matchLabels: { app.kubernetes.io/name: seaweedfs }
+        - matchLabels: { app: seaweedfs-backup }
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: observability
+{{- if .Values.egress }}
+---
+# Outbound traffic stays in the namespace, apart from DNS and the API server,
+# so code running here can't send data out of the cluster. The backups reach
+# their bucket through the policies below.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: egress
+spec:
+  endpointSelector: {}
+  egress:
+    - toEndpoints: [{}]
+    # The DNS rule routes lookups through Cilium's proxy, which toFQDNs rules
+    # need to learn the bucket host's addresses.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s:k8s-app: kube-dns
+      toPorts:
+        - ports: [{ port: "53", protocol: ANY }]
+          rules: { dns: [{ matchPattern: "*" }] }
+    - toEntities: [kube-apiserver]
+{{- if .Values.backups }}
+---
+# The database's WAL archive and base backups.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: database-backup
+spec:
+  endpointSelector:
+    matchExpressions:
+      - { key: cnpg.io/cluster, operator: Exists }
+  egress:
+    - toFQDNs: [{ matchName: {{ $s3 }} }]
+      toPorts:
+        - ports: [{ port: "443", protocol: TCP }]
+---
+# The Redpanda and SeaweedFS mirrors.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: store-backup
+spec:
+  endpointSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: [redpanda-backup, seaweedfs-backup]
+  egress:
+    - toFQDNs: [{ matchName: {{ $s3 }} }]
+      toPorts:
+        - ports: [{ port: "443", protocol: TCP }]
+{{- end }}
+{{- if .Values.restoreDrill }}
+---
+# The restore drill reads the production backups from here.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: restore-drill
+spec:
+  endpointSelector:
+    matchLabels: { restore-drill: "true" }
+  egress:
+    - toFQDNs: [{ matchName: {{ $s3 }} }]
+      toPorts:
+        - ports: [{ port: "443", protocol: TCP }]
+{{- end }}
+{{- end }}

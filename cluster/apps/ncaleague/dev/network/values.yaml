@@ -1,0 +1,3 @@
+# The network policies of ncaleague-dev, from cluster/platform/charts/network.
+client: backend
+restoreDrill: true

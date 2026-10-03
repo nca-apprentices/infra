@@ -1,0 +1,50 @@
+{{- $name := required "name is required" .Values.name }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ $name }}-db
+  annotations:
+    # The cluster owns its volumes, so deleting it deletes the data. Argo CD
+    # leaves it in place when the chart or the Application drops it.
+    argocd.argoproj.io/sync-options: Delete=false,Prune=false
+spec:
+  # One instance: a second on the same node buys no availability, only memory.
+  instances: 1
+  {{- with .Values.priorityClassName }}
+  priorityClassName: {{ . }}
+  {{- end }}
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.6
+
+  postgresql:
+    {{- with .Values.parameters }}
+    parameters:
+      {{- range $key, $value := . }}
+      {{ $key }}: {{ $value | quote }}
+      {{- end }}
+    {{- end }}
+    pg_hba:
+      # Password auth over TLS only; no trust, no local shortcuts.
+      - hostssl all all all scram-sha-256
+
+  bootstrap:
+    initdb:
+      database: {{ $name }}
+      owner: {{ $name }}
+  {{- with .Values.resources }}
+
+  resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  storage:
+    storageClass: local-data
+    size: {{ .Values.size }}
+  {{- if .Values.backup }}
+
+  # Continuous WAL archiving to the ObjectStore, for point-in-time restore.
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: {{ $name }}-db
+  {{- end }}

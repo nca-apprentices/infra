@@ -17,9 +17,12 @@ are namespaces in it, named `<app>-<env>`.
 | `cluster/bootstrap/`                     | Argo CD and the root Application                   | `mise run bootstrap`                   |
 | `cluster/platform/`                      | One Argo CD Application per platform component     | Argo CD                                |
 | `cluster/platform/manifests/`            | Plain manifests a platform Application points at   | Argo CD                                |
+| `cluster/platform/charts/`               | Helm charts every environment renders              | Argo CD                                |
 | `cluster/apps/<app>/<env>/`              | The namespace, AppProject, and Applications        | Argo CD                                |
 | `cluster/apps/<app>/<env>/manifests/`    | Plain manifests an app Application points at       | Argo CD                                |
 | `cluster/apps/<app>/<env>/stores/`       | Helm values of the environment's stores            | Argo CD                                |
+| `cluster/apps/<app>/<env>/network/`      | Helm values of its network policies                | Argo CD                                |
+| `cluster/apps/<app>/<env>/database/`     | Helm values of its Postgres cluster                | Argo CD                                |
 | `secrets/platform/`                      | SOPS-encrypted platform credentials                | `mise run bootstrap`                   |
 | `secrets/apps/<app>/<env>/`              | SOPS-encrypted app credentials                     | `mise run bootstrap`                   |
 | `secrets/tofu.enc.env`                   | SOPS-encrypted cloud credentials                   | `mise run apply`, `mise run bootstrap` |
@@ -44,11 +47,16 @@ it under the platform's project.
 The platform also sets three limits in each environment's directory, outside
 the app's reach:
 
-- `network-policy.yaml` admits ingress from the namespace itself and from the
+- `network/values.yaml` sets the environment's network policies, which the
+  `network` ApplicationSet renders from `platform/charts/network` under the
+  platform's project. They admit ingress from the namespace itself and from the
   platform only. `jjforge-dev` can't reach `jjforge-prod`. Within the
   namespace, only the app's client, such as ncaleague's `backend`, reaches
   the database and Redpanda. Every pod reaches SeaweedFS's S3 port, which
   checks a key, and nothing else of it.
+  Outbound, pods reach only their namespace, DNS, and the API server. In
+  `prod` the backups also reach their bucket, and no pod reaches anything
+  else outside the cluster.
 - `limits.yaml` holds a ResourceQuota and default requests. Dev also gets a
   default memory limit.
 - `namespace.yaml` enforces the restricted Pod Security level, so every pod
@@ -68,6 +76,15 @@ ApplicationSet of the same name in `platform/` installs the store in the
 environment's namespace, with the values in `platform/stores/` first and the
 environment's file over them.
 
+`database/values.yaml` gives an environment its Postgres cluster. The
+`database` ApplicationSet renders it from `platform/charts/database` under
+the environment's project, with WAL archiving and a nightly backup where
+`backup` is on. Argo CD never deletes a database cluster: the volumes go with
+it.
+
+Every ApplicationSet keeps what it deployed when one of its Applications
+disappears, such as after a renamed directory.
+
 ### Add an app or an environment
 
 1. Copy `cluster/apps/jjforge/prod/` to `cluster/apps/<app>/<env>/`.
@@ -75,8 +92,10 @@ environment's file over them.
    `application.yaml` at the app's chart and version. The host is
    `<app>.<domain>` in `prod` and `<app>-<env>.<domain>` elsewhere, which the
    wildcard DNS record already covers.
-3. Keep only the manifests and stores the environment needs, such as a
-   database. Keep `login.yaml` unless the environment is for the public.
+3. Keep only the stores the environment needs, and `database/` if it needs
+   Postgres. In `network/values.yaml`, set `client` to the component label of
+   the pods that use the database and Redpanda. Keep `login.yaml` unless the
+   environment is for the public.
 4. Add the environment's secrets under `secrets/apps/<app>/<env>/`, then run
    `mise run bootstrap` to apply them.
 5. Merge. Argo CD picks the directory up without any other change.

@@ -15,6 +15,7 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: jjforge-dev
+  # The database ApplicationSet takes these resources over. Without automated
+  # sync, this Application can't prune them meanwhile.
   syncPolicy:
-    automated: { prune: true, selfHeal: true }
     syncOptions: [ServerSideApply=true]

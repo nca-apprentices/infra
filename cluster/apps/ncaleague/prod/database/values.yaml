@@ -1,0 +1,7 @@
+# The Postgres cluster of ncaleague-prod, from cluster/platform/charts/database.
+name: ncaleague
+size: 2Gi
+resources:
+  requests: { cpu: 50m, memory: 192Mi }
+priorityClassName: prod
+backup: true

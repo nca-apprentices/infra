@@ -1,0 +1,10 @@
+# The pods that use the database and Redpanda, by their
+# app.kubernetes.io/component label, such as backend.
+client: ""
+# Production: the database and the store mirrors reach their bucket.
+backups: false
+# Dev: pods labeled restore-drill reach the backup buckets, see
+# docs/restore-drill.md.
+restoreDrill: false
+# Outbound limits. Off while each environment moves onto them.
+egress: true

@@ -1,0 +1,6 @@
+# The Postgres cluster of jjforge-prod, from cluster/platform/charts/database.
+name: jjforge
+size: 20Gi
+parameters: { max_connections: 200 }
+priorityClassName: prod
+backup: true

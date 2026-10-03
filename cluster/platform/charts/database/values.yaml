@@ -1,0 +1,12 @@
+# The app, which names the database, its owner role, and the cluster,
+# <name>-db.
+name: ""
+# The volume on the data disk.
+size: 1Gi
+# Postgres settings beyond the defaults, such as max_connections.
+parameters: {}
+resources: {}
+priorityClassName: ""
+# Production: continuous WAL archiving and a nightly base backup to the
+# bucket nca-backup-<namespace>-db, with the key in <name>-backup-s3.
+backup: false

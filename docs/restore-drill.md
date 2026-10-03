@@ -15,13 +15,16 @@ Blobs and rows are backed up separately, so the only real test is a page that
 needs both.
 
 1. Copy `jjforge-backup-s3` and `seaweedfs-backup-s3` into `jjforge-dev`. The
-   drill runs there, next to dev's own stores.
-2. Create an `ObjectStore` like
-   `cluster/apps/jjforge/prod/manifests/database/object-store.yaml` in
-   `jjforge-dev`, and a CNPG `Cluster` named `drill-db` that bootstraps from
+   drill runs there, next to dev's own stores. Dev pods reach the backup
+   buckets only with the label `restore-drill: "true"`, so every drill pod
+   below carries it.
+2. Create an `ObjectStore` like the one `cluster/platform/charts/database`
+   renders for `jjforge-prod`, in `jjforge-dev`, and a CNPG `Cluster` named `drill-db` that bootstraps from
    it:
 
    ```yaml
+   inheritedMetadata:
+     labels: { restore-drill: "true" }
    bootstrap:
      recovery:
        source: jjforge-db
@@ -54,9 +57,9 @@ needs both.
 
 1. Copy `redpanda-backup-s3` into `jjforge-dev`, and create each topic in dev's
    Redpanda as `drill.<topic>` with the partition count it has in production.
-2. Run Redpanda Connect once in `jjforge-dev` with the label
+2. Run Redpanda Connect once in `jjforge-dev` with the labels
    `app: redpanda-backup`, which the `redpanda` network policy admits, and
-   this pipeline. It reads the
+   `restore-drill: "true"`, and this pipeline. It reads the
    objects in key order, so each partition's records arrive in offset order.
    Record headers travel as metadata, and the control values start with an
    underscore, so a header whose name does too is lost:

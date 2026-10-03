@@ -31,8 +31,14 @@ kubeconform=(
   -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
 )
 kustomize build cluster/bootstrap | "${kubeconform[@]}"
-# The stores directories hold Helm values, not manifests.
-"${kubeconform[@]}" -ignore-filename-pattern '/stores/' cluster/platform cluster/apps
+# The stores, network, and database directories hold Helm values, and charts
+# holds templates, not manifests.
+"${kubeconform[@]}" \
+  -ignore-filename-pattern '/stores/' \
+  -ignore-filename-pattern '/network/' \
+  -ignore-filename-pattern '/database/values' \
+  -ignore-filename-pattern '/charts/' \
+  cluster/platform cluster/apps
 
 # Every third-party chart renders with the values its Application passes. The
 # jjforge chart is checked by the app CI before it is released.
@@ -65,5 +71,22 @@ for values in cluster/apps/*/*/stores/*.yaml; do
     --namespace "$app-$env" \
     --values "cluster/platform/stores/$store.yaml" \
     --values "$values" |
+    "${kubeconform[@]}"
+done
+
+# Every environment's network policies render from the chart with its values,
+# as the network ApplicationSet passes them.
+for values in cluster/apps/*/*/network/values.yaml; do
+  IFS=/ read -r _ _ app env _ <<<"$values"
+  helm template network cluster/platform/charts/network \
+    --namespace "$app-$env" --values "$values" |
+    "${kubeconform[@]}"
+done
+
+# Every environment's database renders from the chart with its values.
+for values in cluster/apps/*/*/database/values.yaml; do
+  IFS=/ read -r _ _ app env _ <<<"$values"
+  helm template database cluster/platform/charts/database \
+    --namespace "$app-$env" --values "$values" |
     "${kubeconform[@]}"
 done

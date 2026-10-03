@@ -1,0 +1,3 @@
+# The network policies of jjforge-dev, from cluster/platform/charts/network.
+client: server
+restoreDrill: true

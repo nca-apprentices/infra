@@ -1,0 +1,46 @@
+# The Postgres cluster of every environment that has database/values.yaml, such
+# as ../apps/ncaleague/prod/database/values.yaml, from the chart in
+# charts/database. Needs the CNPG operator, the Barman Cloud plugin, and
+# storage. It runs under the environment's AppProject.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: database
+  namespace: argocd
+  annotations:
+    # With the apps: each needs its environment's namespace and AppProject.
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  # A removed values file, or a generator that briefly finds none, deletes
+  # the Application but none of what it deployed.
+  syncPolicy: { preserveResourcesOnDeletion: true }
+  generators:
+    - git:
+        repoURL: https://github.com/nca-apprentices/infra.git
+        revision: main
+        files:
+          - path: cluster/apps/*/*/database/values.yaml
+  template:
+    metadata:
+      name: "{{ index .path.segments 2 }}-{{ index .path.segments 3 }}-postgres"
+    spec:
+      project: "{{ index .path.segments 2 }}-{{ index .path.segments 3 }}"
+      sources:
+        - repoURL: https://github.com/nca-apprentices/infra.git
+          targetRevision: main
+          path: cluster/platform/charts/database
+          helm:
+            releaseName: database
+            valueFiles:
+              - "$values/{{ .path.path }}/values.yaml"
+        - repoURL: https://github.com/nca-apprentices/infra.git
+          targetRevision: main
+          ref: values
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{ index .path.segments 2 }}-{{ index .path.segments 3 }}"
+      syncPolicy:
+        automated: { prune: true, selfHeal: true }
+        syncOptions: [ServerSideApply=true]

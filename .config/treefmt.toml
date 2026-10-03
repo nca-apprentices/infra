@@ -6,6 +6,8 @@ excludes = [
   "talos/talsecret.sops.yaml",
   # Vendored unchanged, so an update replaces the whole file.
   "cluster/platform/manifests/storage/local-path-provisioner.yaml",
+  # Go templates, which no YAML formatter parses.
+  "cluster/platform/charts/*/templates/**",
 ]
 
 [formatter.tofu]

@@ -1,0 +1,7 @@
+# The Postgres cluster of ncaleague-dev, from cluster/platform/charts/database.
+name: ncaleague
+# Dev data is disposable, so it gets less space and no backup.
+size: 1Gi
+resources:
+  requests: { cpu: 50m, memory: 192Mi }
+  limits: { memory: 512Mi }

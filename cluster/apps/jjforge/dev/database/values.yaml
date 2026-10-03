@@ -1,0 +1,5 @@
+# The Postgres cluster of jjforge-dev, from cluster/platform/charts/database.
+name: jjforge
+# Dev data is disposable, so it gets less space and no backup.
+size: 5Gi
+parameters: { max_connections: 200 }
