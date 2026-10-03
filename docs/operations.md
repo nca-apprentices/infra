@@ -51,9 +51,10 @@ the app's reach:
   checks a key, and nothing else of it.
 - `limits.yaml` holds a ResourceQuota and default requests. Dev also gets a
   default memory limit.
+- `namespace.yaml` enforces the restricted Pod Security level, so every pod
+  runs as non-root, without capabilities, and with seccomp.
 - Prod pods set `priorityClassName: prod`, so they schedule ahead of dev and
-  outlast it when the node runs short of memory. The jjforge chart needs a value
-  for it before its own pods do.
+  outlast it when the node runs short of memory.
 
 Every environment except `ncaleague-prod` admits members of the GitHub
 organization only. Its `login.yaml` holds `github-login`, which asks

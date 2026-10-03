@@ -2,5 +2,9 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: ncaleague-prod
+  # The API server rejects any pod that could run as root, escalate its
+  # privileges, keep a capability, or run without seccomp.
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
   annotations:
     argocd.argoproj.io/sync-wave: "0"

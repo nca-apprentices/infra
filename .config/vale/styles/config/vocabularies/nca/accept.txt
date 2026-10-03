@@ -16,6 +16,7 @@ Postgres
 Redpanda
 restic
 SeaweedFS
+seccomp
 subnet
 talhelper
 talosctl
