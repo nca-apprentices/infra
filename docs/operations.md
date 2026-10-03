@@ -45,7 +45,10 @@ The platform also sets three limits in each environment's directory, outside
 the app's reach:
 
 - `network-policy.yaml` admits ingress from the namespace itself and from the
-  platform only. `jjforge-dev` can't reach `jjforge-prod`.
+  platform only. `jjforge-dev` can't reach `jjforge-prod`. Within the
+  namespace, only the app's client, such as ncaleague's `backend`, reaches
+  the database and Redpanda. Every pod reaches SeaweedFS's S3 port, which
+  checks a key, and nothing else of it.
 - `limits.yaml` holds a ResourceQuota and default requests. Dev also gets a
   default memory limit.
 - Prod pods set `priorityClassName: prod`, so they schedule ahead of dev and

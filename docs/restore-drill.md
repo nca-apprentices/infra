@@ -54,7 +54,9 @@ needs both.
 
 1. Copy `redpanda-backup-s3` into `jjforge-dev`, and create each topic in dev's
    Redpanda as `drill.<topic>` with the partition count it has in production.
-2. Run Redpanda Connect once in `jjforge-dev` with this pipeline. It reads the
+2. Run Redpanda Connect once in `jjforge-dev` with the label
+   `app: redpanda-backup`, which the `redpanda` network policy admits, and
+   this pipeline. It reads the
    objects in key order, so each partition's records arrive in offset order.
    Record headers travel as metadata, and the control values start with an
    underscore, so a header whose name does too is lost:

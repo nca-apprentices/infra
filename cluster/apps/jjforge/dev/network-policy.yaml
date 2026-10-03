@@ -8,7 +8,15 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
-  endpointSelector: {}
+  # Every pod but the database's and the stores', which the policies below
+  # admit. A pod no policy selects admits everyone, so the selectors here and
+  # below must cover each pod.
+  endpointSelector:
+    matchExpressions:
+      - { key: cnpg.io/cluster, operator: DoesNotExist }
+      - key: app.kubernetes.io/name
+        operator: NotIn
+        values: [redpanda, seaweedfs]
   ingress:
     - fromEndpoints:
         - {}
@@ -16,5 +24,90 @@ spec:
             k8s:io.kubernetes.pod.namespace: traefik
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: cnpg-system
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: observability
+---
+# The database admits the server on the Postgres port only, so the other pods
+# in the namespace can't reach it. The operator, the metrics scrape, and the
+# database's own instances keep full access.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: database
+  namespace: jjforge-dev
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  endpointSelector:
+    matchExpressions:
+      - { key: cnpg.io/cluster, operator: Exists }
+  ingress:
+    - fromEndpoints:
+        - matchLabels: { app.kubernetes.io/component: server }
+      toPorts:
+        - ports: [{ port: "5432", protocol: TCP }]
+    - fromEndpoints:
+        - matchExpressions:
+            - { key: cnpg.io/cluster, operator: Exists }
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: cnpg-system
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: observability
+---
+# Redpanda checks no credentials, so whoever reaches it may delete topics.
+# The server and the backup get the client ports. The admin API and the
+# internal RPC stay with Redpanda's own pods, the console, and the platform.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: redpanda
+  namespace: jjforge-dev
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  endpointSelector:
+    matchLabels: { app.kubernetes.io/name: redpanda }
+  ingress:
+    - fromEndpoints:
+        - matchLabels: { app.kubernetes.io/component: server }
+        - matchLabels: { app: redpanda-backup }
+      toPorts:
+        - ports:
+            - { port: "9093", protocol: TCP }
+            - { port: "8081", protocol: TCP }
+            - { port: "8082", protocol: TCP }
+    - fromEndpoints:
+        - matchLabels: { app.kubernetes.io/name: redpanda }
+        - matchLabels: { app.kubernetes.io/name: console }
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: observability
+---
+# SeaweedFS checks a key on S3 requests only, so the namespace gets the S3 port.
+# The master, the volume server, and the filer's own API stay with SeaweedFS,
+# its backup, and the platform. Traefik reaches the admin UI, which has the
+# GitHub login in front.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: seaweedfs
+  namespace: jjforge-dev
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  endpointSelector:
+    matchLabels: { app.kubernetes.io/name: seaweedfs }
+  ingress:
+    - fromEndpoints:
+        - {}
+      toPorts:
+        - ports: [{ port: "8333", protocol: TCP }]
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: traefik
+      toPorts:
+        - ports: [{ port: "23646", protocol: TCP }]
+    - fromEndpoints:
+        - matchLabels: { app.kubernetes.io/name: seaweedfs }
+        - matchLabels: { app: seaweedfs-backup }
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: observability
