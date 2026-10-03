@@ -229,6 +229,9 @@ see [Alerts](#alerts).
 
 The quarterly [restore drill](restore-drill.md) restores each store.
 
+[encrypt-disks.md](encrypt-disks.md) rebuilds the node onto encrypted
+volumes and restores each store, once, for a node built before encryption.
+
 ## Alerts
 
 The rules live in `cluster/platform/manifests/alerts/`, next to the scrapes and

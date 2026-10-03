@@ -25,6 +25,22 @@ nodes:
           diskSelector:
             match: disk.model == "Volume" && !system_disk
           minSize: 10GiB
+        # LUKS2 keyed to the server's ID, so a copy of the disk is unreadable
+        # elsewhere. Talos encrypts a volume only when it creates it. Applying
+        # this to a node whose volumes exist breaks their mounts, so
+        # docs/encrypt-disks.md rebuilds the node instead.
+        encryption: &luks
+          provider: luks2
+          keys:
+            - slot: 0
+              nodeID: {}
+    # The system disk: STATE holds the machine config with the cluster's CA
+    # keys, and EPHEMERAL holds etcd and the container images.
+    volumes:
+      - name: STATE
+        encryption: *luks
+      - name: EPHEMERAL
+        encryption: *luks
 
 controlPlane:
   patches:
