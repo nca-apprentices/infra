@@ -18,3 +18,10 @@ spec:
     - server: https://kubernetes.default.svc
       namespace: ncaleague-dev
   clusterResourceWhitelist: []
+  # The platform's limits on the namespace, which its own Application applies.
+  # A chart that shipped one could lift them.
+  namespaceResourceBlacklist:
+    - { group: cilium.io, kind: "*" }
+    - { group: networking.k8s.io, kind: NetworkPolicy }
+    - { group: "", kind: ResourceQuota }
+    - { group: "", kind: LimitRange }
