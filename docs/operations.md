@@ -223,8 +223,9 @@ objects for 30 days, and its policy admits only its store's key and the tofu
 key. Each secret holds `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and
 `AWS_REGION`.
 
-Dev stores have no backup. The `BackupJobStale`, `BackupMirrorDown`, and
-`WalArchivingFailing` alerts fire when a backup stops, see [Alerts](#alerts).
+Dev stores have no backup. The `BackupJobStale`, `BackupMirrorDown`,
+`WalArchivingFailing`, and `BaseBackupStale` alerts fire when a backup stops,
+see [Alerts](#alerts).
 
 The quarterly [restore drill](restore-drill.md) restores each store.
 

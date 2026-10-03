@@ -23,6 +23,12 @@ spec:
           for: 15m
           annotations:
             summary: "{{ $labels.namespace }}/{{ $labels.pod }} can't archive WAL."
+        # WAL replays from the last base backup, so a stalled ScheduledBackup
+        # makes every restore slower and, after the retention, impossible.
+        - alert: BaseBackupStale
+          expr: time() - barman_cloud_cloudnative_pg_io_last_available_backup_timestamp > 26 * 3600
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.pod }} has no base backup from the last day."
     - name: argocd
       rules:
         - alert: ArgoAppOutOfSync
