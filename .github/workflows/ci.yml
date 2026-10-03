@@ -24,3 +24,25 @@ jobs:
       - uses: jdx/mise-action@v4
       - name: Check
         run: mise run check
+
+  # A release triggers one Renovate run, which opens the dev PR before its
+  # checks finish, and Renovate merges only in a later run. Ticking the
+  # "run again" box on the Dependency Dashboard starts that run now instead
+  # of hours later.
+  rerun-renovate:
+    name: Rerun Renovate
+    needs: [check]
+    if: startsWith(github.head_ref, 'renovate/dev-')
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Tick the Dependency Dashboard
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          dashboard=$(gh issue list --author app/renovate --search 'Dependency Dashboard in:title' --json number --jq '.[0].number')
+          gh issue view "$dashboard" --json body --jq .body |
+            sed 's/^- \[ \] <!-- manual job -->/- [x] <!-- manual job -->/' |
+            gh issue edit "$dashboard" --body-file -
