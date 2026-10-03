@@ -5,8 +5,6 @@
 global: { seaweedfs: { createClusterRole: false } }
 # Pod Security restricted. The chart starts weed itself, past the image's
 # entrypoint that drops root, so the pods run as the image's seaweed user.
-# The chown init containers hand it the data that root wrote before, and go
-# once every environment has synced.
 podSecurity: &pod
   enabled: true
   runAsNonRoot: true
@@ -29,55 +27,16 @@ master:
   logs: { type: emptyDir }
   podSecurityContext: *pod
   containerSecurityContext: *container
-  initContainers: |
-    - name: chown
-      image: chrislusf/seaweedfs:4.47
-      command: [chown, -R, "1000:1000", /data]
-      securityContext:
-        runAsUser: 0
-        runAsNonRoot: false
-        allowPrivilegeEscalation: false
-        capabilities: { drop: [ALL], add: [CHOWN, DAC_OVERRIDE] }
-      # Without a request it takes the namespace default of 256 MiB, which
-      # becomes the pod's request and no longer fits on the node.
-      resources: { requests: { cpu: 10m, memory: 16Mi } }
-      volumeMounts: [{ name: "data-{{ .Release.Namespace }}", mountPath: /data }]
 volume:
   replicas: 1
   resources: { requests: { cpu: 50m, memory: 64Mi } }
   podSecurityContext: *pod
   containerSecurityContext: *container
-  initContainers: |
-    - name: chown
-      image: chrislusf/seaweedfs:4.47
-      command: [chown, -R, "1000:1000", /data]
-      securityContext:
-        runAsUser: 0
-        runAsNonRoot: false
-        allowPrivilegeEscalation: false
-        capabilities: { drop: [ALL], add: [CHOWN, DAC_OVERRIDE] }
-      # Without a request it takes the namespace default of 256 MiB, which
-      # becomes the pod's request and no longer fits on the node.
-      resources: { requests: { cpu: 10m, memory: 16Mi } }
-      volumeMounts: [{ name: data, mountPath: /data }]
 filer:
   replicas: 1
   resources: { requests: { cpu: 50m, memory: 128Mi } }
   podSecurityContext: *pod
   containerSecurityContext: *container
-  initContainers: |
-    - name: chown
-      image: chrislusf/seaweedfs:4.47
-      command: [chown, -R, "1000:1000", /data]
-      securityContext:
-        runAsUser: 0
-        runAsNonRoot: false
-        allowPrivilegeEscalation: false
-        capabilities: { drop: [ALL], add: [CHOWN, DAC_OVERRIDE] }
-      # Without a request it takes the namespace default of 256 MiB, which
-      # becomes the pod's request and no longer fits on the node.
-      resources: { requests: { cpu: 10m, memory: 16Mi } }
-      volumeMounts: [{ name: data-filer, mountPath: /data }]
   # Every S3 request needs a key from the identities in the environment's
   # seaweedfs-s3-config secret, which also limit each identity to its own
   # bucket.
