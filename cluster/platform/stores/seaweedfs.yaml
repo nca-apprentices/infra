@@ -15,11 +15,10 @@ containerSecurity: &container
   enabled: true
   allowPrivilegeEscalation: false
   capabilities: { drop: [ALL] }
-# Data on the encrypted data disk, logs in the pod. The chart's default host
-# paths are forbidden by Pod Security baseline and would bypass the
-# encryption. Requests sit near use without traffic: 25 MiB for the master
-# and the volume server, 92 MiB for the filer. Each environment sets the
-# volume server's disk.
+# Data on the data disk, logs in the pod. Pod Security forbids the chart's
+# default host paths. Requests sit near use without traffic: 25 MiB for the
+# master and the volume server, 92 MiB for the filer. Each environment sets
+# the volume server's disk.
 master:
   replicas: 1
   resources: { requests: { cpu: 50m, memory: 64Mi } }

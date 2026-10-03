@@ -230,8 +230,8 @@ see [Alerts](#alerts).
 
 The quarterly [restore drill](restore-drill.md) restores each store.
 
-[encrypt-disks.md](encrypt-disks.md) rebuilds the node onto encrypted
-volumes and restores each store, once, for a node built before encryption.
+[encrypt-disks.md](encrypt-disks.md) explains what the disk encryption
+covers and when it applies.
 
 ## Alerts
 

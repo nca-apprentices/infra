@@ -82,7 +82,7 @@ spec:
         vmsingle:
           spec:
             retentionPeriod: "90d"
-            # On the encrypted data disk. The cluster has no default class.
+            # On the data disk. The cluster has no default class.
             storage: { storageClassName: local-data }
   destination:
     server: https://kubernetes.default.svc

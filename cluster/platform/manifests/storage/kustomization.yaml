@@ -15,7 +15,7 @@ patches:
         name: local-path-storage
         labels:
           pod-security.kubernetes.io/enforce: privileged
-  # Talos keeps the encrypted data disk at /var/mnt/data, and /opt is
+  # Talos keeps the data disk at /var/mnt/data, and /opt is
   # read-only there.
   - patch: |-
       apiVersion: v1

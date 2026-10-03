@@ -25,10 +25,9 @@ nodes:
           diskSelector:
             match: disk.model == "Volume" && !system_disk
           minSize: 10GiB
-        # LUKS2 keyed to the server's ID, so a copy of the disk is unreadable
-        # elsewhere. Talos encrypts a volume only when it creates it. Applying
-        # this to a node whose volumes exist breaks their mounts, so
-        # docs/encrypt-disks.md rebuilds the node instead.
+        # LUKS2 keyed to the server's ID, see docs/encrypt-disks.md. Talos
+        # encrypts a volume only when it creates it, and applying this to a
+        # node whose volumes exist breaks their mounts.
         encryption: &luks
           provider: luks2
           keys:
