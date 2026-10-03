@@ -10,6 +10,9 @@ statefulset:
   sideCars: { resources: { requests: { cpu: 10m, memory: 64Mi } } }
 # The Argo CD sync waits for this one-off Job, which must fit beside the rest.
 post_install_job: { resources: { requests: { cpu: 10m, memory: 64Mi } } }
+# Clients run in the cluster. The external listener would open NodePorts on
+# the node, the unauthenticated admin API among them.
+external: { enabled: false }
 # No route leads to the console, and rpk in the broker pod does its job.
 console: { enabled: false }
 storage: { persistentVolume: { storageClass: local-data } }

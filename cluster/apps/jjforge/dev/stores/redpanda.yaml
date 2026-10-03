@@ -8,8 +8,6 @@ resources:
     container: { min: 512Mi, max: 1Gi }
     redpanda: { memory: 448Mi, reserveMemory: 0Mi }
 storage: { persistentVolume: { size: 5Gi } }
-# The external listener takes fixed NodePorts, which prod holds.
-external: { enabled: false }
 # Served at ops.nca-apprentices.dev/jjforge-dev/redpanda behind the GitHub
 # login. Everyone who passes it may read and delete topics. The schema
 # rejects the chart's empty className and targetPort.
