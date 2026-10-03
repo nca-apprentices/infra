@@ -110,6 +110,33 @@ spec:
       middlewares: [{ name: github-login }]
       services: [{ name: hubble-ui, port: 80 }]
 ---
+# Hubble shows every flow in the cluster. Only Traefik, behind the GitHub
+# login, reaches the UI, and only the UI reaches Relay.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: hubble-ui
+  namespace: kube-system
+spec:
+  endpointSelector:
+    matchLabels: { k8s-app: hubble-ui }
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: traefik
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: hubble-relay
+  namespace: kube-system
+spec:
+  endpointSelector:
+    matchLabels: { k8s-app: hubble-relay }
+  ingress:
+    - fromEndpoints:
+        - matchLabels: { k8s-app: hubble-ui }
+---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
