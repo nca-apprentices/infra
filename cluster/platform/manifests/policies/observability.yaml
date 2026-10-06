@@ -1,7 +1,7 @@
-# VictoriaMetrics and VictoriaLogs take writes and deletes, Alertmanager takes
-# silences, and github-alerts opens GitHub issues, all without a login. Only
-# the namespace itself, Traefik with the GitHub login in front, and the API
-# server's webhook calls reach them.
+# VictoriaMetrics, VictoriaLogs, and VictoriaTraces take writes and deletes,
+# Alertmanager takes silences, and github-alerts opens GitHub issues, all
+# without a login. Only the namespace itself, Traefik with the GitHub login in
+# front, and the API server's webhook calls reach them.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -15,3 +15,22 @@ spec:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: traefik
     - fromEntities: [kube-apiserver]
+---
+# The OpenTelemetry Collector only receives, so every pod in the cluster may
+# send it OTLP. It writes to the stores, which stay isolated above.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: telemetry
+  namespace: observability
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: opentelemetry-collector
+      app.kubernetes.io/instance: telemetry
+  ingress:
+    - fromEntities: [cluster]
+      toPorts:
+        - ports:
+            - { port: "4317", protocol: TCP }
+            - { port: "4318", protocol: TCP }

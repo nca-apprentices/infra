@@ -1,0 +1,37 @@
+# VictoriaTraces. telemetry.yaml writes every app's spans to it. A trace is
+# expendable and lives 7 days, so nothing backs it up.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: traces
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://victoriametrics.github.io/helm-charts
+    chart: victoria-traces-single
+    targetRevision: "0.1.11"
+    helm:
+      releaseName: traces
+      valuesObject:
+        server:
+          # The Service is traces:10428, which telemetry.yaml and Grafana name.
+          fullnameOverride: traces
+          retentionPeriod: 7d
+          persistentVolume: { storageClassName: local-data }
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 512Mi }
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]
+    # Shares the observability namespace with the node exporter and the
+    # log collector, so it sets the same level.
+    managedNamespaceMetadata:
+      labels:
+        pod-security.kubernetes.io/enforce: privileged

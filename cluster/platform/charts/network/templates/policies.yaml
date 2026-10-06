@@ -100,9 +100,9 @@ spec:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: observability
 ---
-# Outbound traffic stays in the namespace, apart from DNS and the API server,
-# so code running here can't send data out of the cluster. The backups reach
-# their bucket through the policies below.
+# Outbound traffic stays in the namespace, apart from DNS, the API server, and
+# the OpenTelemetry Collector, so code running here can't send data out of the
+# cluster. The backups reach their bucket through the policies below.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -111,6 +111,16 @@ spec:
   endpointSelector: {}
   egress:
     - toEndpoints: [{}]
+    # Traces, metrics, and logs over OTLP, see platform/telemetry.yaml.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: observability
+            app.kubernetes.io/name: opentelemetry-collector
+            app.kubernetes.io/instance: telemetry
+      toPorts:
+        - ports:
+            - { port: "4317", protocol: TCP }
+            - { port: "4318", protocol: TCP }
     # The DNS rule routes lookups through Cilium's proxy, which toFQDNs rules
     # need to learn the bucket host's addresses.
     - toEndpoints:

@@ -44,12 +44,29 @@ spec:
               role_attribute_path: contains(groups[*], '@nca-apprentices/admins') && 'Admin' || 'Viewer'
             users:
               viewers_can_edit: true
+        # A log line's trace_id links to its trace. The $$ escapes Grafana's
+        # environment variables in provisioning.
         defaultDatasources:
           extra:
             - name: VictoriaLogs
+              uid: victorialogs
               type: victoriametrics-logs-datasource
               access: proxy
               url: http://logs-victoria-logs-single-server.observability.svc:9428
+              jsonData:
+                derivedFields:
+                  - name: trace_id
+                    matcherType: label
+                    matcherRegex: trace_id
+                    url: "$${__value.raw}"
+                    urlDisplayLabel: View trace
+                    datasourceUid: victoriatraces
+            # VictoriaTraces through its Jaeger API, see traces.yaml.
+            - name: VictoriaTraces
+              uid: victoriatraces
+              type: jaeger
+              access: proxy
+              url: http://traces.observability.svc:10428/select/jaeger
         # The default prefix, observability-victoria-metrics-k8s-stack, made
         # names and labels longer than the 63 characters Kubernetes allows.
         fullnameOverride: metrics
@@ -82,6 +99,10 @@ spec:
         vmsingle:
           spec:
             retentionPeriod: "90d"
+            # Metrics that arrive over OTLP get the names a scrape gives them,
+            # such as http_server_request_duration_seconds.
+            extraArgs:
+              opentelemetry.usePrometheusNaming: "true"
             # On the data disk. The cluster has no default class.
             storage: { storageClassName: local-data }
   destination:
