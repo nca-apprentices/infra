@@ -50,7 +50,7 @@ spec:
               image: { tag: "{{ .head_sha }}" }
             ingress:
               host: "jjforge-pr-{{ .number }}.nca-apprentices.dev"
-              middlewares: [github-login]
+              middlewares: [github-login, no-cookies]
               # cert-manager issues the certificate from the Ingress and
               # deletes it, with its secret, along with the Ingress.
               tls:
