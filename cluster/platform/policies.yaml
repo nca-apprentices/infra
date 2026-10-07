@@ -1,5 +1,5 @@
-# Cilium network policies and priority classes shared by every app. Needs the
-# Cilium CRDs.
+# Cilium network policies, priority classes, and admission policies shared by
+# every app. Needs the Cilium CRDs.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
