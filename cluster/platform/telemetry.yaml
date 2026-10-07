@@ -18,7 +18,7 @@ spec:
     targetRevision: "0.175.1"
     helm:
       releaseName: telemetry
-      valuesObject:
+      values: |
         mode: deployment
         fullnameOverride: telemetry
         # The Kubernetes distribution, which has the components below.
