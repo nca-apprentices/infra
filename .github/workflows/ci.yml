@@ -1,6 +1,7 @@
 name: CI
 
-# Argo CD applies what merges here. Tofu and Talos changes are applied by hand.
+# Argo CD applies what merges here, and diff.yml shows how on each PR. Tofu
+# and Talos changes are applied by hand.
 on:
   push:
     branches: [main]

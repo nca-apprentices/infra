@@ -12,6 +12,9 @@ kind: ApplicationSet
 metadata:
   name: jjforge-preview
   namespace: argocd
+  annotations:
+    # The Argo CD diff on infra PRs lacks the App's key to list PRs.
+    argocd-diff-preview/render: never
 spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]

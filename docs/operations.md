@@ -187,7 +187,8 @@ can use it.
   It updates the control plane and the node agent one component at a time.
 
 `mise run check` validates all of it without credentials, and CI runs it on
-every PR.
+every PR. CI also comments on every PR how each Argo CD Application's rendered
+manifests change.
 
 ## Ops portal
 
