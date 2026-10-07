@@ -18,7 +18,7 @@ spec:
       valuesObject:
         ingress:
           host: jjforge.nca-apprentices.dev
-          middlewares: [github-login]
+          middlewares: [no-cookies]
         priorityClassName: prod
         # The server uses about 240 MiB, as in dev. The chart's 512 MiB didn't
         # fit on the node once ncaleague moved in.

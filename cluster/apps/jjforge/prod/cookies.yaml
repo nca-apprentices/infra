@@ -1,0 +1,14 @@
+# Removes the Cookie header, so the public jjforge never sees the GitHub
+# login's cookie, which covers every host under the domain. A compromised
+# server could otherwise take over the session of any member who opens it.
+# The chart's Ingress names it in ingress.middlewares, see application.yaml.
+# A sign-in cookie of jjforge's own needs a middleware that keeps it.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: no-cookies
+  namespace: jjforge-prod
+spec:
+  headers:
+    customRequestHeaders:
+      Cookie: ""
