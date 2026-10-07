@@ -41,11 +41,14 @@ fi
 
 # The secrets that must exist before the first sync, for the platform and for
 # every app, each into the namespace it names. See docs/operations.md.
+# Server-side, as a field manager of its own: Argo CD owns the namespaces, and
+# the Argo CD manifests below must not take over a secret's data.
+apply=(kubectl apply --server-side --force-conflicts --field-manager=bootstrap-secrets -f -)
 while IFS= read -r secret; do
   manifest=$(sops --decrypt "$secret")
   namespace=$(yq .metadata.namespace <<<"$manifest")
-  kubectl create namespace "$namespace" --dry-run=client -o yaml | kubectl apply -f -
-  kubectl apply -f - <<<"$manifest"
+  kubectl create namespace "$namespace" --dry-run=client -o yaml | "${apply[@]}"
+  "${apply[@]}" <<<"$manifest"
 done < <(find secrets -name '*.enc.yaml' | sort)
 
 # The root Application needs its CRD established, which the first apply of
