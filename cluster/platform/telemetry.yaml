@@ -24,7 +24,7 @@ spec:
         # The Kubernetes distribution, which has the components below.
         image: { repository: otel/opentelemetry-collector-k8s }
         resources:
-          requests: { cpu: 50m, memory: 128Mi }
+          requests: { cpu: 50m, memory: 64Mi }
           limits: { memory: 256Mi }
         # Adds the sender's namespace, pod, and workload to everything it
         # sends, so an app sets only its service name.

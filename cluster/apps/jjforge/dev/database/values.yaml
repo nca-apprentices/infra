@@ -3,3 +3,8 @@ name: jjforge
 # Dev data is disposable, so it gets less space and no backup.
 size: 5Gi
 parameters: { max_connections: 200 }
+# It uses about 70Mi. The namespace's default of 256Mi held memory the node
+# lacks, see #5.
+resources:
+  requests: { cpu: 50m, memory: 128Mi }
+  limits: { memory: 512Mi }

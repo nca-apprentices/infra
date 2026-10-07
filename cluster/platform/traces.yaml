@@ -22,7 +22,7 @@ spec:
           retentionPeriod: 7d
           persistentVolume: { storageClassName: local-data }
           resources:
-            requests: { cpu: 50m, memory: 128Mi }
+            requests: { cpu: 50m, memory: 64Mi }
             limits: { memory: 512Mi }
   destination:
     server: https://kubernetes.default.svc

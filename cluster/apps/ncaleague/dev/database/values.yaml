@@ -3,5 +3,5 @@ name: ncaleague
 # Dev data is disposable, so it gets less space and no backup.
 size: 1Gi
 resources:
-  requests: { cpu: 50m, memory: 192Mi }
+  requests: { cpu: 50m, memory: 128Mi }
   limits: { memory: 512Mi }
