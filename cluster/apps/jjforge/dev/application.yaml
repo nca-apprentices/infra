@@ -22,6 +22,11 @@ spec:
         # The server uses about 240 MiB in dev. The chart's 512 MiB left no
         # room on the node for the new pod of a rolling update.
         server: { resources: { requests: { memory: 256Mi } } }
+        # Traces to the OpenTelemetry Collector of platform/telemetry.yaml,
+        # as jjforge's ADR 0005 decides. A chart without them ignores them.
+        telemetry:
+          tracesEndpoint: http://telemetry.observability.svc:4318/v1/traces
+          environment: dev
   destination:
     server: https://kubernetes.default.svc
     namespace: jjforge-dev
