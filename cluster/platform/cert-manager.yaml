@@ -15,6 +15,9 @@ spec:
       releaseName: cert-manager
       valuesObject:
         crds: { enabled: true }
+        # A deleted Certificate takes its secret along, so a closed preview
+        # leaves no TLS secret behind.
+        enableCertificateOwnerRef: true
   destination:
     server: https://kubernetes.default.svc
     namespace: cert-manager

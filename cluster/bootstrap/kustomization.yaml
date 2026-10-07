@@ -75,6 +75,60 @@ patches:
                 orgs:
                   - name: nca-apprentices
                 teamNameField: slug
+  # Each synced revision of an Application becomes a GitHub deployment in the
+  # repository it comes from, in an environment named after the Application
+  # without the app- prefix, such as jjforge-prod or jjforge-pr-12:
+  #
+  #   jjforge-prod      chart 0.2.4      jjforge, tag v0.2.4
+  #   jjforge-pr-12     chart from git   jjforge, the PR's head commit
+  #   app-jjforge-prod  infra directory  infra, the synced commit
+  #
+  # A chart from GHCR names its repository by its name. The deployment turns
+  # inactive when the Application is deleted. An Application opts in with the
+  # annotation notifications.argoproj.io/subscribe.deployment.github: "".
+  # The infra-repo GitHub App writes them, with argocd-notifications-secret.
+  - patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: argocd-notifications-cm
+      data:
+        context: |
+          argocdUrl: https://ops.nca-apprentices.dev/argocd
+        service.github: |
+          appID: $github-appID
+          installationID: $github-installationID
+          privateKey: $github-privateKey
+        trigger.deployment: |
+          - description: The synced revision runs and is healthy
+            when: app.status.operationState != nil and app.status.operationState.phase == 'Succeeded' and app.status.health.status == 'Healthy'
+            oncePer: app.status.operationState.syncResult.revision
+            send: [deployment]
+          - description: The sync failed, or the revision doesn't become healthy
+            when: app.status.operationState != nil and (app.status.operationState.phase in ['Error', 'Failed'] or app.status.health.status == 'Degraded')
+            oncePer: app.status.operationState.syncResult.revision
+            send: [deployment]
+          - description: The Application is being deleted
+            when: app.metadata.deletionTimestamp != nil
+            send: [deployment]
+        template.deployment: |
+          message: >-
+            {{ if .app.metadata.deletionTimestamp }}Removed{{ else }}Sync
+            {{ .app.status.operationState.phase }}, health
+            {{ .app.status.health.status }}{{ end }}
+          github:
+            repoURLPath: https://github.com/nca-apprentices/{{ base .app.spec.source.repoURL | trimSuffix ".git" }}
+            revisionPath: >-
+              {{ if hasPrefix "oci://" .app.spec.source.repoURL }}v{{ .app.spec.source.targetRevision }}{{ else }}{{ .app.status.operationState.syncResult.revision }}{{ end }}
+            deployment:
+              state: >-
+                {{ if .app.metadata.deletionTimestamp }}inactive{{ else if and (eq .app.status.operationState.phase "Succeeded") (eq .app.status.health.status "Healthy") }}success{{ else }}failure{{ end }}
+              environment: '{{ trimPrefix "app-" .app.metadata.name }}'
+              environmentURL: >-
+                {{ with dig "spec" "source" "helm" "valuesObject" "ingress" "host" "" .app }}https://{{ . }}{{ else }}{{ $.context.argocdUrl }}/applications/argocd/{{ $.app.metadata.name }}{{ end }}
+              logURL: "{{ .context.argocdUrl }}/applications/argocd/{{ .app.metadata.name }}"
+              requiredContexts: []
+              autoMerge: false
   # The admins team runs Argo CD. The dev team also syncs each app's dev
   # environment and sets its Helm parameters, which is how another image
   # reaches dev. Every other member of the organization only reads.

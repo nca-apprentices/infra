@@ -1,7 +1,7 @@
 # What jjforge-dev's Applications may deploy: its chart, its stores' charts,
-# and its directory here, into its own namespace only. The namespace comes
-# from this directory under the platform's project, so the app creates no
-# cluster-scoped objects itself.
+# its directory here, and the chart of a PR's head commit for a preview, into
+# its own namespace only. The namespace comes from this directory under the
+# platform's project, so the app creates no cluster-scoped objects itself.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -13,6 +13,7 @@ spec:
   description: jjforge, development
   sourceRepos:
     - oci://ghcr.io/nca-apprentices/charts/jjforge
+    - https://github.com/nca-apprentices/jjforge.git
     - https://github.com/nca-apprentices/infra.git
     - https://charts.redpanda.com
     - https://seaweedfs.github.io/seaweedfs/helm

@@ -85,10 +85,12 @@ are public, so pulling them takes no credentials.
 
 Create the app at
 <https://github.com/organizations/nca-apprentices/settings/apps/new>: no
-webhook, the Contents repository permission set to read-only, and installable
-only on this account. Note its App ID, generate a private key, and install it on
-the `infra` repository only. The installation ID is the number at the end of the
-installation's settings URL.
+webhook, and installable only on this account. Set the Contents and Pull
+requests repository permissions to read-only, and Deployments to read and
+write. Note its App ID, generate a private key, and install it on the `infra`
+and `jjforge` repositories only. The installation ID is the number at the end
+of the installation's settings URL. Argo CD reads `infra` with it, lists
+jjforge's PRs for previews, and records each deployment in `jjforge`.
 
 ```fish
 mkdir -p secrets/platform secrets/apps/jjforge/prod secrets/apps/jjforge/dev \
@@ -108,6 +110,11 @@ kubectl create secret generic infra-repo --namespace argocd \
     --dry-run=client -o yaml |
     kubectl label --local -f - argocd.argoproj.io/secret-type=repository -o yaml \
     >secrets/platform/infra-repo.enc.yaml
+kubectl create secret generic argocd-notifications-secret --namespace argocd \
+    --from-literal github-appID=$app_id \
+    --from-literal github-installationID=$installation_id \
+    --from-file github-privateKey=$app_key \
+    --dry-run=client -o yaml >secrets/platform/argocd-notifications-secret.enc.yaml
 ```
 
 The SeaweedFS S3 identities, one set per environment. Every S3 request needs a
