@@ -1,0 +1,36 @@
+# Every pod needs an owner, such as a ReplicaSet, a Job, or an operator's
+# resource, so it goes away with what made it. A bare pod from `kubectl run`
+# outlives its purpose and holds its requests on the full node, even one
+# that never starts. Debug with `kubectl debug` on a running pod, or a Job.
+# kube-system runs the node's own pods, and local-path-storage the
+# provisioner's helper pods, which it deletes itself.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: pods-have-owners
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE]
+        resources: [pods]
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values: [kube-system, local-path-storage]
+  validations:
+    - expression: size(object.metadata.?ownerReferences.orValue([])) > 0
+      message: >-
+        A pod needs an owner. Use kubectl debug on a running pod, or create a
+        Job.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: pods-have-owners
+spec:
+  policyName: pods-have-owners
+  validationActions: [Deny]
