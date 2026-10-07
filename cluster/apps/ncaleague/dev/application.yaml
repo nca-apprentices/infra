@@ -16,7 +16,7 @@ spec:
       valuesObject:
         ingress:
           host: ncaleague-dev.nca-apprentices.dev
-          middlewares: [github-login]
+          middlewares: [github-login, no-cookies]
   destination:
     server: https://kubernetes.default.svc
     namespace: ncaleague-dev
