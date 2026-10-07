@@ -64,12 +64,12 @@ the app's reach:
 - Prod pods set `priorityClassName: prod`, so they schedule ahead of dev and
   outlast it when the node runs short of memory.
 
-Every environment except `ncaleague-prod` admits members of the GitHub
-organization only. Its `login.yaml` holds `github-login`, which asks
-`oauth2-proxy` about every request, and `application.yaml` names it in the
-chart's `ingress.middlewares`. One sign-in covers every host under the domain.
-The public `ncaleague-prod` gets `no-cookies` there instead, which removes the
-sign-in's cookie before a request reaches the app.
+Every dev environment admits members of the GitHub organization only. Its
+`login.yaml` holds `github-login`, which asks `oauth2-proxy` about every
+request, and `application.yaml` names it in the chart's `ingress.middlewares`.
+One sign-in covers every host under the domain. The public `jjforge-prod` and
+`ncaleague-prod` get `no-cookies` there instead, which removes the sign-in's
+cookie before a request reaches the app.
 
 Each environment runs its own Redpanda and SeaweedFS, so no environment
 reaches the topics and buckets of another. A file in the environment's
@@ -96,8 +96,10 @@ disappears, such as after a renamed directory.
    wildcard DNS record already covers.
 3. Keep only the stores the environment needs, and `database/` if it needs
    Postgres. In `network/values.yaml`, set `client` to the component label of
-   the pods that use the database and Redpanda. Keep `login.yaml` unless the
-   environment is for the public.
+   the pods that use the database and Redpanda. An environment for the
+   public keeps `cookies.yaml`. Any other takes `login.yaml` from
+   `cluster/apps/jjforge/dev/` instead, and names `github-login` in
+   `application.yaml`.
 4. Add the environment's secrets under `secrets/apps/<app>/<env>/`, then run
    `mise run bootstrap` to apply them.
 5. Merge. Argo CD picks the directory up without any other change.
