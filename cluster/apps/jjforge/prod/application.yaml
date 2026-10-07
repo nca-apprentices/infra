@@ -24,7 +24,7 @@ spec:
         priorityClassName: prod
         # The server uses about 240 MiB, as in dev. The chart's 512 MiB didn't
         # fit on the node once ncaleague moved in.
-        server: { resources: { requests: { memory: 256Mi } } }
+        server: {resources: {requests: {memory: 288Mi}}}
         # Traces to the OpenTelemetry Collector of platform/telemetry.yaml,
         # as jjforge's ADR 0005 decides. A chart without them ignores them.
         telemetry:
@@ -34,5 +34,5 @@ spec:
     server: https://kubernetes.default.svc
     namespace: jjforge-prod
   syncPolicy:
-    automated: { prune: true, selfHeal: true }
+    automated: {prune: true, selfHeal: true}
     syncOptions: [ServerSideApply=true]
