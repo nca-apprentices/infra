@@ -129,6 +129,15 @@ patches:
               logURL: "{{ .context.argocdUrl }}/applications/argocd/{{ .app.metadata.name }}"
               requiredContexts: []
               autoMerge: false
+  # argocd-notifications-secret comes from secrets/platform/, which the
+  # bootstrap applies first. Argo CD's manifests ship it empty, and applying
+  # them server-side would remove the App's key from it.
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: argocd-notifications-secret
   # The admins team runs Argo CD. The dev team also syncs each app's dev
   # environment and sets its Helm parameters, which is how another image
   # reaches dev. Every other member of the organization only reads.
