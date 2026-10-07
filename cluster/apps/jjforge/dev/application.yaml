@@ -8,6 +8,8 @@ metadata:
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "2"
+    # A GitHub deployment in jjforge per release, see cluster/bootstrap/.
+    notifications.argoproj.io/subscribe.deployment.github: ""
 spec:
   project: jjforge-dev
   source:

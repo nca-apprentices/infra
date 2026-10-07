@@ -26,6 +26,10 @@ spec:
   template:
     metadata:
       name: "app-{{ index .path.segments 2 }}-{{ .path.basename }}"
+      annotations:
+        # A GitHub deployment in infra per synced commit, see
+        # cluster/bootstrap/.
+        notifications.argoproj.io/subscribe.deployment.github: ""
     spec:
       project: default
       source:

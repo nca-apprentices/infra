@@ -1,0 +1,67 @@
+# One Application per open jjforge PR with the preview label, named
+# jjforge-pr-<number> and served at jjforge-pr-<number>.nca-apprentices.dev
+# behind the GitHub login. It runs the chart and images of the PR's head commit
+# in jjforge-dev, next to dev, with dev's database, stores, and network
+# policies. jjforge's CI pushes the images, tagged with the commit.
+#
+# Once the PR merges, closes, or loses the label, the generator drops the
+# Application, and Argo CD deletes everything it deployed. Unlike the apps
+# ApplicationSet, this one preserves nothing.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: jjforge-preview
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - pullRequest:
+        github:
+          owner: nca-apprentices
+          repo: jjforge
+          labels: [preview]
+          # The GitHub App Argo CD reads this repository with. Anonymous
+          # requests get 60 per hour.
+          appSecretName: infra-repo
+        # No webhook reaches Argo CD behind the GitHub login, so it polls.
+        requeueAfterSeconds: 60
+  template:
+    metadata:
+      name: "jjforge-pr-{{ .number }}"
+      annotations:
+        # A GitHub deployment per head commit, see cluster/bootstrap/.
+        notifications.argoproj.io/subscribe.deployment.github: ""
+    spec:
+      project: jjforge-dev
+      source:
+        repoURL: https://github.com/nca-apprentices/jjforge.git
+        targetRevision: "{{ .head_sha }}"
+        path: shared/deploy/chart
+        helm:
+          valuesObject:
+            # The node has almost no memory left to request, see infra#5.
+            # A preview requests little and uses more, so the node evicts
+            # it first when memory runs short.
+            server:
+              image: { tag: "{{ .head_sha }}" }
+              resources: { requests: { cpu: 50m, memory: 64Mi } }
+            vcs:
+              image: { tag: "{{ .head_sha }}" }
+            ingress:
+              host: "jjforge-pr-{{ .number }}.nca-apprentices.dev"
+              middlewares: [github-login]
+              # cert-manager issues the certificate from the Ingress and
+              # deletes it, with its secret, along with the Ingress.
+              tls:
+                secretName: "jjforge-pr-{{ .number }}-tls"
+                issuer: letsencrypt
+            telemetry:
+              tracesEndpoint: http://telemetry.observability.svc:4318/v1/traces
+              environment: "pr-{{ .number }}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: jjforge-dev
+      syncPolicy:
+        automated: { prune: true, selfHeal: true }
+        syncOptions: [ServerSideApply=true]

@@ -3,7 +3,8 @@
 This repository is the shared cluster on Hetzner, Talos, and Argo CD. The
 platform, such as networking, ingress, storage, databases, and observability,
 serves every app. Each app is an installation of released artifacts only,
-never of paths in the app's own repository.
+never of paths in the app's own repository. A [preview](#previews) of a
+jjforge PR is the one exception.
 
 ## Layout
 
@@ -23,6 +24,7 @@ are namespaces in it, named `<app>-<env>`.
 | `cluster/apps/<app>/<env>/stores/`       | Helm values of the environment's stores            | Argo CD                                |
 | `cluster/apps/<app>/<env>/network/`      | Helm values of its network policies                | Argo CD                                |
 | `cluster/apps/<app>/<env>/database/`     | Helm values of its Postgres cluster                | Argo CD                                |
+| `cluster/apps/jjforge/preview/`          | The ApplicationSet of jjforge's PR previews        | Argo CD                                |
 | `secrets/platform/`                      | SOPS-encrypted platform credentials                | `mise run bootstrap`                   |
 | `secrets/apps/<app>/<env>/`              | SOPS-encrypted app credentials                     | `mise run bootstrap`                   |
 | `secrets/tofu.enc.env`                   | SOPS-encrypted cloud credentials                   | `mise run apply`, `mise run bootstrap` |
@@ -85,8 +87,47 @@ the environment's project, with WAL archiving and a nightly backup where
 `backup` is on. Argo CD never deletes a database cluster: the volumes go with
 it.
 
-Every ApplicationSet keeps what it deployed when one of its Applications
-disappears, such as after a renamed directory.
+Every ApplicationSet but `jjforge-preview` keeps what it deployed when one of
+its Applications disappears, such as after a renamed directory.
+
+### Previews
+
+A jjforge PR with the `preview` label runs next to dev at
+`https://jjforge-pr-<number>.nca-apprentices.dev`, behind the GitHub login.
+jjforge's CI pushes the images of the head commit of the PR, tagged with
+the commit. The `jjforge-preview` ApplicationSet in `apps/jjforge/preview/` asks
+GitHub for labeled PRs every minute and creates `jjforge-pr-<number>` from the
+chart at that commit. Each new commit on the PR replaces the images in place.
+
+A preview runs in `jjforge-dev` under its project, so it shares dev's
+database, stores, network policies, quota, and `github-login`. Its pods
+request little, since the node has almost none left to give, and the node
+evicts them first when memory runs short. cert-manager issues its certificate
+from the Ingress. The certificate authority allows 50 per week for the whole
+domain.
+
+When the PR merges, closes, or loses the label, the ApplicationSet deletes the
+Application, and Argo CD deletes its pods, Service, Ingress, and certificate.
+cert-manager then deletes the TLS secret. Fork PRs get no preview, since their
+CI can't push images.
+
+### Deployments
+
+Argo CD records each sync as a GitHub deployment, through the `deployment`
+trigger in `cluster/bootstrap/kustomization.yaml`:
+
+| Application           | Repository | Environment           | Reference                  |
+| --------------------- | ---------- | --------------------- | -------------------------- |
+| `jjforge-<env>`       | `jjforge`  | `jjforge-<env>`       | The tag `v<chart version>` |
+| `jjforge-pr-<number>` | `jjforge`  | `jjforge-pr-<number>` | The head commit of the PR  |
+| `app-<app>-<env>`     | `infra`    | `<app>-<env>`         | The infra commit synced    |
+
+A deployment succeeds once its revision is synced and healthy, and fails when
+the sync fails or the app degrades. A deleted preview turns its deployment
+inactive. An Application opts in with the annotation
+`notifications.argoproj.io/subscribe.deployment.github: ""`. The `infra-repo`
+GitHub App writes them, so it needs Deployments write access and an
+installation on each repository.
 
 ### Add an app or an environment
 
@@ -240,15 +281,16 @@ writing it down here rather than discovering it during an outage.
 `mise run bootstrap` applies every `*.enc.yaml` under `secrets/`, each
 into the namespace it names, and creates that namespace first.
 
-| Secret                | Namespace       | Directory               | What it is                                               |
-| --------------------- | --------------- | ----------------------- | -------------------------------------------------------- |
-| `infra-repo`          | `argocd`        | `platform/`             | GitHub App key Argo CD reads this repository with        |
-| `<store>-backup-s3`   | The store's     | See [Backups](#backups) | The store's key for its backup bucket                    |
-| `seaweedfs-s3-config` | `<app>-<env>`   | `apps/<app>/<env>/`     | The S3 identities and the buckets each may use           |
-| `argocd-github`       | `argocd`        | `platform/`             | The GitHub OAuth 2.0 app of the ops portal               |
-| `grafana-github`      | `observability` | `platform/`             | The same OAuth 2.0 app                                   |
-| `oauth2-proxy`        | `ops`           | `platform/`             | The same OAuth 2.0 app, and a cookie secret              |
-| `github-alerts`       | `observability` | `platform/`             | The token that opens alert issues, see [Alerts](#alerts) |
+| Secret                        | Namespace       | Directory               | What it is                                               |
+| ----------------------------- | --------------- | ----------------------- | -------------------------------------------------------- |
+| `infra-repo`                  | `argocd`        | `platform/`             | GitHub App key Argo CD reads this repository with        |
+| `argocd-notifications-secret` | `argocd`        | `platform/`             | The same GitHub App key, which records deployments       |
+| `<store>-backup-s3`           | The store's     | See [Backups](#backups) | The store's key for its backup bucket                    |
+| `seaweedfs-s3-config`         | `<app>-<env>`   | `apps/<app>/<env>/`     | The S3 identities and the buckets each may use           |
+| `argocd-github`               | `argocd`        | `platform/`             | The GitHub OAuth 2.0 app of the ops portal               |
+| `grafana-github`              | `observability` | `platform/`             | The same OAuth 2.0 app                                   |
+| `oauth2-proxy`                | `ops`           | `platform/`             | The same OAuth 2.0 app, and a cookie secret              |
+| `github-alerts`               | `observability` | `platform/`             | The token that opens alert issues, see [Alerts](#alerts) |
 
 Everything else in the cluster comes from Git.
 
