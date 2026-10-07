@@ -50,6 +50,13 @@ spec:
           for: 10m
           annotations:
             summary: "More than 5% of the requests to {{ $labels.namespace }} fail with a server error."
+        # A store that refuses what the Collector sends loses it, since the
+        # app has already moved on.
+        - alert: TelemetryExportFailing
+          expr: sum by (exporter) (rate({__name__=~"otelcol_exporter_send_failed_.+", job="observability/telemetry"}[5m])) > 0
+          for: 15m
+          annotations:
+            summary: "The OpenTelemetry Collector fails to send through {{ $labels.exporter }}."
         - alert: TraefikServerErrors
           expr: sum by (service) (rate(traefik_service_requests_total{code=~"5.."}[5m])) / sum by (service) (rate(traefik_service_requests_total[5m])) > 0.05
           for: 10m

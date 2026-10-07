@@ -54,9 +54,10 @@ the app's reach:
   namespace, only the app's client, such as ncaleague's `backend`, reaches
   the database and Redpanda. Every pod reaches SeaweedFS's S3 port, which
   checks a key, and nothing else of it.
-  Outbound, pods reach only their namespace, DNS, and the API server. In
-  `prod` the backups also reach their bucket, and no pod reaches anything
-  else outside the cluster.
+  Outbound, pods reach only their namespace, DNS, the API server, and the
+  OpenTelemetry Collector, see [Telemetry](#telemetry). In `prod` the backups
+  also reach their bucket, and no pod reaches anything else outside the
+  cluster.
 - `limits.yaml` holds a ResourceQuota and default requests. Dev also gets a
   default memory limit.
 - `namespace.yaml` enforces the restricted Pod Security level, so every pod
@@ -154,15 +155,15 @@ grant more:
 - `dev`: the apprentices. They also sync `jjforge-dev` and `ncaleague-dev` and
   set their Helm parameters in Argo CD.
 
-| Path                     | Tool             | Signs in with        | Everyone else in the organization                     |
-| ------------------------ | ---------------- | -------------------- | ----------------------------------------------------- |
-| `/argocd`                | Argo CD          | Its own GitHub login | Reads                                                 |
-| `/grafana`               | Grafana          | Its own GitHub login | Reads, searches the logs in Explore, and sees alerts  |
-| `/headlamp`              | Headlamp         | `oauth2-proxy`       | Reads everything except Secrets                       |
-| `/logs`                  | VictoriaLogs     | `oauth2-proxy`       | Searches the logs                                     |
-| `/hubble`                | Hubble UI        | `oauth2-proxy`       | Reads the network flows of every namespace            |
-| `/jjforge-dev/redpanda`  | Redpanda Console | `oauth2-proxy`       | Reads, writes, and deletes topics in `jjforge-dev`    |
-| `/jjforge-dev/seaweedfs` | SeaweedFS        | `oauth2-proxy`       | Changes buckets, files, and S3 users in `jjforge-dev` |
+| Path                     | Tool             | Signs in with        | Everyone else in the organization                           |
+| ------------------------ | ---------------- | -------------------- | ----------------------------------------------------------- |
+| `/argocd`                | Argo CD          | Its own GitHub login | Reads                                                       |
+| `/grafana`               | Grafana          | Its own GitHub login | Reads, searches logs and traces in Explore, and sees alerts |
+| `/headlamp`              | Headlamp         | `oauth2-proxy`       | Reads everything except Secrets                             |
+| `/logs`                  | VictoriaLogs     | `oauth2-proxy`       | Searches the logs                                           |
+| `/hubble`                | Hubble UI        | `oauth2-proxy`       | Reads the network flows of every namespace                  |
+| `/jjforge-dev/redpanda`  | Redpanda Console | `oauth2-proxy`       | Reads, writes, and deletes topics in `jjforge-dev`          |
+| `/jjforge-dev/seaweedfs` | SeaweedFS        | `oauth2-proxy`       | Changes buckets, files, and S3 users in `jjforge-dev`       |
 
 The three logins share one GitHub OAuth app, so GitHub asks once. Grafana and
 the portal's Argo CD link then go to GitHub and back without a click. Only
@@ -279,6 +280,28 @@ The quarterly [restore drill](restore-drill.md) restores each store.
 
 [encrypt-disks.md](encrypt-disks.md) explains what the disk encryption
 covers and when it applies.
+
+## Telemetry
+
+An app sends traces, metrics, and logs over OTLP to the OpenTelemetry
+Collector in `platform/telemetry.yaml`. It sets two environment variables,
+and the Collector adds the pod, namespace, and workload:
+
+```text
+OTEL_EXPORTER_OTLP_ENDPOINT=http://telemetry.observability.svc:4318
+OTEL_SERVICE_NAME=<app>-<component>
+```
+
+| Signal  | Also arrives through                        | Store           | Kept    | Backup  |
+| ------- | ------------------------------------------- | --------------- | ------- | ------- |
+| Traces  |                                             | VictoriaTraces  | 7 days  | None    |
+| Metrics | A `VMPodScrape` in `scrapes.yaml`           | VictoriaMetrics | 90 days | Nightly |
+| Logs    | Container output, read by the log collector | VictoriaLogs    | 30 days | Nightly |
+
+The Collector only receives, so every pod in the cluster reaches it on ports
+4317 and 4318. The stores stay out of reach. In Grafana, a log line with a
+`trace_id` field links to its trace. `TelemetryExportFailing` fires when a
+store refuses what the Collector sends.
 
 ## Alerts
 

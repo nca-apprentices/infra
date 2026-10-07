@@ -1,0 +1,69 @@
+# The OpenTelemetry Collector, where every app sends its traces, metrics, and
+# logs over OTLP, to telemetry.observability.svc on port 4317 for gRPC or 4318
+# for HTTP. It writes each signal to its store and serves no reads, so every
+# app's namespace may reach it, as the network chart and
+# manifests/policies/observability.yaml allow.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: telemetry
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
+    chart: opentelemetry-collector
+    targetRevision: "0.175.1"
+    helm:
+      releaseName: telemetry
+      valuesObject:
+        mode: deployment
+        fullnameOverride: telemetry
+        # The Kubernetes distribution, which has the components below.
+        image: { repository: otel/opentelemetry-collector-k8s }
+        resources:
+          requests: { cpu: 50m, memory: 128Mi }
+          limits: { memory: 256Mi }
+        # Adds the sender's namespace, pod, and workload to everything it
+        # sends, so an app sets only its service name.
+        presets:
+          kubernetesAttributes: { enabled: true }
+        # OTLP only, and the Collector's own metrics for the scrape in
+        # manifests/alerts/scrapes.yaml.
+        ports:
+          jaeger-compact: { enabled: false }
+          jaeger-thrift: { enabled: false }
+          jaeger-grpc: { enabled: false }
+          zipkin: { enabled: false }
+          metrics: { enabled: true }
+        config:
+          receivers:
+            jaeger: null
+            zipkin: null
+            prometheus: null
+          exporters:
+            debug: null
+            otlp_http/traces:
+              traces_endpoint: http://traces:10428/insert/opentelemetry/v1/traces
+            otlp_http/metrics:
+              metrics_endpoint: http://vmsingle-metrics:8428/opentelemetry/v1/metrics
+            otlp_http/logs:
+              logs_endpoint: http://logs-victoria-logs-single-server:9428/insert/opentelemetry/v1/logs
+          service:
+            pipelines:
+              traces: { receivers: [otlp], exporters: [otlp_http/traces] }
+              metrics: { receivers: [otlp], exporters: [otlp_http/metrics] }
+              logs: { receivers: [otlp], exporters: [otlp_http/logs] }
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]
+    # Shares the observability namespace with the node exporter and the
+    # log collector, so it sets the same level.
+    managedNamespaceMetadata:
+      labels:
+        pod-security.kubernetes.io/enforce: privileged

@@ -96,3 +96,17 @@ spec:
     - port: management
       path: /actuator/prometheus
     - port: metrics
+---
+# The OpenTelemetry Collector's own metrics, such as what it failed to send.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: telemetry
+  namespace: observability
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: opentelemetry-collector
+      app.kubernetes.io/instance: telemetry
+  podMetricsEndpoints:
+    - port: metrics
