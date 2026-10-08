@@ -2,6 +2,7 @@
 name: ncaleague
 # Dev data is disposable, so it gets less space and no backup.
 size: 1Gi
+# Half of prod's request, with prod's limit.
 resources:
-  requests: { cpu: 50m, memory: 128Mi }
-  limits: { memory: 512Mi }
+  requests: { cpu: 50m, memory: 192Mi }
+  limits: { memory: 384Mi }

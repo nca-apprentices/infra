@@ -96,21 +96,14 @@ spec:
                 webhook_configs:
                   - url: http://github-alerts.observability.svc/v1/receiver
                     send_resolved: true
-        # The operator requests 200Mi for each, and each uses under 90Mi.
-        # The node has no memory to spare, see #5.
-        vmagent:
-          spec:
-            resources:
-              requests: { cpu: 50m, memory: 96Mi }
-              limits: { cpu: 200m, memory: 500Mi }
-        vmalert:
-          spec:
-            resources:
-              requests: { cpu: 50m, memory: 96Mi }
-              limits: { cpu: 200m, memory: 500Mi }
         vmsingle:
           spec:
             retentionPeriod: "90d"
+            # Memory requested and limited alike, so only its own limit can
+            # end the store.
+            resources:
+              requests: { cpu: 200m, memory: 1Gi }
+              limits: { memory: 1Gi }
             # Metrics that arrive over OTLP get the names a scrape gives them,
             # such as http_server_request_duration_seconds.
             extraArgs:

@@ -23,5 +23,4 @@ spec:
   namespaceResourceBlacklist:
     - { group: cilium.io, kind: "*" }
     - { group: networking.k8s.io, kind: NetworkPolicy }
-    - { group: "", kind: ResourceQuota }
     - { group: "", kind: LimitRange }

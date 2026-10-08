@@ -44,12 +44,14 @@ spec:
         path: shared/deploy/chart
         helm:
           valuesObject:
-            # The node has almost no memory left to request, see infra#5.
-            # A preview requests little and uses more, so the node evicts
-            # it first when memory runs short.
+            # A preview requests little, may use what prod does, and goes
+            # first when memory runs short.
+            priorityClassName: preview
             server:
               image: { tag: "{{ .head_sha }}" }
-              resources: { requests: { cpu: 50m, memory: 64Mi } }
+              resources:
+                requests: { cpu: 100m, memory: 256Mi }
+                limits: { memory: 768Mi }
               database: { secretName: "jjforge-pr-{{ .number }}-db-app" }
             vcs:
               image: { tag: "{{ .head_sha }}" }

@@ -22,15 +22,21 @@ spec:
           host: jjforge.nca-apprentices.dev
           middlewares: [no-cookies]
         priorityClassName: prod
-        # The server uses about 240 MiB, as in dev. The chart's 512 MiB didn't
-        # fit on the node once ncaleague moved in.
+        # Memory requested and limited alike, so only its own limit can end a
+        # pod. The JVM sizes its heap from the limit.
         server:
-          resources: { requests: { memory: 256Mi } }
+          resources:
+            requests: { cpu: 250m, memory: 768Mi }
+            limits: { memory: 768Mi }
           # The app secret of database/values.yaml's cluster. A chart without
           # it ignores it.
           database: { secretName: jjforge-db-app }
         # Traces to the OpenTelemetry Collector of platform/telemetry.yaml,
         # as jjforge's ADR 0005 decides. A chart without them ignores them.
+        vcs:
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 128Mi }
         telemetry:
           tracesEndpoint: http://telemetry.observability.svc:4318/v1/traces
           environment: prod

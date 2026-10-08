@@ -14,6 +14,11 @@ spec:
     path: .
     helm:
       valuesObject:
+        # Half of prod's request, with prod's limit.
+        backend:
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 256Mi }
         ingress:
           host: ncaleague-dev.nca-apprentices.dev
           middlewares: [github-login, no-cookies]

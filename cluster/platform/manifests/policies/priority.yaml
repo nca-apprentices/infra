@@ -1,8 +1,15 @@
 # Prod pods schedule ahead of everything without a class, dev included, and
-# preempt it when the node is full.
+# preempt it when the node is full. Previews go before dev.
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
 metadata:
   name: prod
 value: 1000
 description: Production app environments.
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: preview
+value: -100
+description: Preview environments of pull requests.

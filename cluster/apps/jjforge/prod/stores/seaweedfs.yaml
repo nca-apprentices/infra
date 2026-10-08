@@ -1,6 +1,12 @@
-master: { priorityClassName: prod }
+# Memory requested and limited alike, above the shared requests.
+master:
+  priorityClassName: prod
+  resources:
+    { requests: { cpu: 50m, memory: 128Mi }, limits: { memory: 128Mi } }
 volume:
   priorityClassName: prod
+  resources:
+    { requests: { cpu: 50m, memory: 128Mi }, limits: { memory: 128Mi } }
   dataDirs:
     - name: data
       type: persistentVolumeClaim
@@ -9,4 +15,7 @@ volume:
       # 1 GB volumes (master volumeSizeLimitMB) on a 40 GB disk. The chart's
       # fallback of 7 left no room for a second bucket.
       maxVolumes: 38
-filer: { priorityClassName: prod }
+filer:
+  priorityClassName: prod
+  resources:
+    { requests: { cpu: 50m, memory: 256Mi }, limits: { memory: 256Mi } }

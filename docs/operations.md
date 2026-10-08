@@ -103,7 +103,7 @@ GitHub for labeled PRs every minute and creates `jjforge-pr-<number>` from the
 chart at that commit. Each new commit on the PR replaces the images in place.
 
 A preview runs in `jjforge-dev` under its project, so it shares dev's
-stores, network policies, quota, `github-login`, and `no-cookies`. The
+stores, network policies, `github-login`, and `no-cookies`. The
 `jjforge-preview-database` ApplicationSet gives it a Postgres cluster of its
 own, `jjforge-pr-<number>-db`, because the chart migrates its database
 before it deploys, and the migrations of a PR must never reach dev's

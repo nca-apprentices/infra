@@ -2,6 +2,9 @@
 name: jjforge
 size: 20Gi
 parameters: { max_connections: 200 }
+resources:
+  requests: { cpu: 100m, memory: 512Mi }
+  limits: { memory: 512Mi }
 priorityClassName: prod
 backup: true
 # Restored after the node move of 2026-10, under a new archive name.

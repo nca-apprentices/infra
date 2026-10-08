@@ -1,5 +1,6 @@
-# Requests every container gets unless it sets its own, so the quota can count
-# them. The default limit stops a leak in dev from taking memory prod needs.
+# What a container gets when it sets nothing. Dev may use twice what it
+# requests, and goes first when memory runs short, as it has no priority
+# class. CPU has no limit: a busy pod slows down instead of dying.
 apiVersion: v1
 kind: LimitRange
 metadata:
@@ -10,19 +11,5 @@ metadata:
 spec:
   limits:
     - type: Container
-      default: { cpu: "1", memory: 1Gi }
+      default: { memory: 512Mi }
       defaultRequest: { cpu: 100m, memory: 256Mi }
----
-apiVersion: v1
-kind: ResourceQuota
-metadata:
-  name: jjforge-dev
-  namespace: jjforge-dev
-  annotations:
-    argocd.argoproj.io/sync-wave: "0"
-spec:
-  # Prod and dev together may request more than the node, 4 CPUs and 8 GB,
-  # which also carries the platform. Prod then preempts dev.
-  hard:
-    requests.cpu: "1.5"
-    requests.memory: 3.5Gi

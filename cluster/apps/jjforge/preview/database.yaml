@@ -35,10 +35,10 @@ spec:
           valuesObject:
             name: "jjforge-pr-{{ .number }}"
             keep: false
-            # A preview holds test data only. It requests as little as dev's
-            # database uses, see infra#5.
+            # A preview holds test data only.
+            priorityClassName: preview
             resources:
-              requests: { cpu: 10m, memory: 64Mi }
+              requests: { cpu: 10m, memory: 128Mi }
               limits: { memory: 256Mi }
       destination:
         server: https://kubernetes.default.svc
