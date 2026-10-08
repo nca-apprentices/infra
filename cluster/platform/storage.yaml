@@ -1,4 +1,4 @@
-# The StorageClass every stateful component below binds to.
+# The StorageClasses every stateful component binds to.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
