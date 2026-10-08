@@ -2,7 +2,7 @@
 # closes it when the alert resolves. Everyone who watches the repository gets
 # the notification. Alertmanager groups by alert name, so one alert name is
 # one issue. The token is a fine-grained one, see docs/operations.md. The
-# image is built in images/, as upstream ships amd64 only.
+# image is built in ../../images/, as upstream ships amd64 only.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

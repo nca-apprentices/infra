@@ -1,14 +1,15 @@
 name: Images
 
-# Builds the images in images/, which upstream ships for amd64 only, for both
-# architectures. A PR only checks that the build works. Main pushes the image,
-# and a PR then pins its digest in the manifest that runs it.
+# Builds the images in cluster/platform/images/, which upstream ships for
+# amd64 only, for both architectures. A PR only checks that the build works.
+# Main pushes the image, and a PR then pins its digest in the manifest that
+# runs it.
 on:
   push:
     branches: [main]
-    paths: [images/**, .github/workflows/images.yml]
+    paths: [cluster/platform/images/**, .github/workflows/images.yml]
   pull_request:
-    paths: [images/**, .github/workflows/images.yml]
+    paths: [cluster/platform/images/**, .github/workflows/images.yml]
 
 permissions:
   contents: read
@@ -29,7 +30,7 @@ jobs:
           password: ${{ github.token }}
       - uses: docker/build-push-action@v7
         with:
-          context: images/alertmanager-github-receiver
+          context: cluster/platform/images/alertmanager-github-receiver
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name == 'push' }}
           tags: ghcr.io/${{ github.repository_owner }}/alertmanager-github-receiver:v0.11
