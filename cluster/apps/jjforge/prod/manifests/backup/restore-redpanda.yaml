@@ -1,0 +1,162 @@
+# Fills an empty Redpanda from the bucket, as on a new node. The bucket names
+# every topic and its partitions, so the topics are created as they were, and
+# Redpanda Connect replays the objects in key order, so each partition's
+# records arrive in offset order. Record headers travel as metadata, and the
+# control values start with an underscore, so a header whose name does too is
+# lost. Consumer offsets are lost as well. Argo CD creates the Job once per
+# cluster, and it does nothing when any topic holds a record.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redpanda-restore
+  namespace: jjforge-prod
+data:
+  # What the bucket holds: one line per topic with its partition count.
+  topics.sh: |
+    set -eu
+    bucket=hetzner:nca-backup-jjforge-prod-redpanda
+    : >/work/topics
+    for topic in $(rclone lsd "$bucket" | awk '{print $NF}'); do
+      echo "$topic $(rclone lsd "$bucket/$topic" | wc -l)" >>/work/topics
+    done
+    cat /work/topics
+  # The topics as they were, and the pipeline to run: the replay when every
+  # topic is empty, otherwise one that ends at once.
+  prepare.sh: |
+    set -eu
+    export HOME=/tmp
+    rpk() {
+      command rpk -X brokers=redpanda.jjforge-prod.svc.cluster.local:9093 \
+        -X tls.enabled=true -X tls.ca=/etc/redpanda-tls/ca.crt "$@"
+    }
+    until rpk cluster info >/dev/null 2>&1; do sleep 5; done
+
+    cp /etc/connect/noop.yaml /work/connect.yaml
+    if [ ! -s /work/topics ]; then
+      echo "nothing in the bucket"
+      exit 0
+    fi
+    while read -r topic partitions; do
+      if ! rpk topic describe "$topic" >/dev/null 2>&1; then
+        rpk topic create "$topic" -p "$partitions"
+      fi
+      # The high watermark is the last column of each partition's line.
+      if rpk topic describe "$topic" -p | awk '$1 ~ /^[0-9]+$/ && $NF > 0 { found = 1 } END { exit !found }'; then
+        echo "$topic holds records, nothing to restore"
+        exit 0
+      fi
+    done </work/topics
+    cp /etc/connect/replay.yaml /work/connect.yaml
+  noop.yaml: |
+    input:
+      generate: { count: 1, mapping: 'root = "nothing to restore"' }
+    output:
+      stdout: {}
+  replay.yaml: |
+    input:
+      aws_s3:
+        bucket: nca-backup-jjforge-prod-redpanda
+        endpoint: https://fsn1.your-objectstorage.com
+        region: fsn1
+        force_path_style_urls: true
+    pipeline:
+      processors:
+        - mapping: |
+            let path = @s3_key.split("/")
+            meta = this.headers.or({})
+            meta _topic = $path.index(0)
+            meta _partition = $path.index(1)
+            meta _key = this.key
+            root = this.value.decode("base64")
+    output:
+      kafka_franz:
+        seed_brokers: [redpanda.jjforge-prod.svc.cluster.local:9093]
+        tls: { enabled: true, root_cas_file: /etc/redpanda-tls/ca.crt }
+        topic: ${! @_topic }
+        partitioner: manual
+        partition: ${! @_partition }
+        key: ${! @_key }
+        metadata: { include_patterns: ["^[^_]"] }
+        max_in_flight: 1
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: redpanda-restore
+  namespace: jjforge-prod
+spec:
+  backoffLimit: 20
+  template:
+    metadata:
+      # The label the network policies admit to the brokers and the bucket.
+      labels: { app: redpanda-backup }
+    spec:
+      restartPolicy: OnFailure
+      priorityClassName: prod
+      # Pod Security restricted. Nothing here needs a particular user.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: { type: RuntimeDefault }
+      initContainers:
+        - name: topics
+          image: rclone/rclone:1.75.1
+          command: [sh, /etc/connect/topics.sh]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          env:
+            - { name: RCLONE_CONFIG_HETZNER_TYPE, value: s3 }
+            - { name: RCLONE_CONFIG_HETZNER_PROVIDER, value: Other }
+            - name: RCLONE_CONFIG_HETZNER_ENDPOINT
+              value: https://fsn1.your-objectstorage.com
+            - { name: RCLONE_CONFIG_HETZNER_ENV_AUTH, value: "true" }
+          envFrom:
+            - secretRef: { name: redpanda-backup-s3 }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          volumeMounts:
+            - { name: config, mountPath: /etc/connect, readOnly: true }
+            - { name: work, mountPath: /work }
+        - name: prepare
+          # The broker's own image, for rpk.
+          image: docker.redpanda.com/redpandadata/redpanda:v25.1.12
+          command: [sh, /etc/connect/prepare.sh]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          volumeMounts:
+            - { name: config, mountPath: /etc/connect, readOnly: true }
+            - { name: tls, mountPath: /etc/redpanda-tls, readOnly: true }
+            - { name: work, mountPath: /work }
+      containers:
+        - name: connect
+          image: docker.redpanda.com/redpandadata/connect:4.111.0
+          args: [run, /work/connect.yaml]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          # The aws_s3 input reads the AWS environment variables.
+          envFrom:
+            - secretRef: { name: redpanda-backup-s3 }
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 512Mi }
+          volumeMounts:
+            - { name: tls, mountPath: /etc/redpanda-tls, readOnly: true }
+            - { name: work, mountPath: /work }
+      volumes:
+        - name: config
+          configMap: { name: redpanda-restore }
+        - name: work
+          emptyDir: {}
+        # The CA the chart's cert-manager issuer signs the brokers with.
+        - name: tls
+          secret:
+            secretName: redpanda-default-cert
+            items: [{ key: ca.crt, path: ca.crt }]

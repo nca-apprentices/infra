@@ -6,6 +6,5 @@ resources:
   limits: { memory: 384Mi }
 priorityClassName: prod
 backup: true
-# Restored after the node move of 2026-10, under a new archive name.
-recoverFrom: ncaleague-db
-serverName: ncaleague-db-1
+# Restored after the node move of 2026-10, see the chart's values.
+generation: 1

@@ -1,4 +1,10 @@
 {{- $name := required "name is required" .Values.name }}
+{{- $generation := int .Values.generation }}
+{{- $archive := printf "%s-db" $name }}
+{{- if gt $generation 0 }}{{ $archive = printf "%s-db-%d" $name $generation }}{{ end }}
+{{- $source := "" }}
+{{- if eq $generation 1 }}{{ $source = printf "%s-db" $name }}{{ end }}
+{{- if gt $generation 1 }}{{ $source = printf "%s-db-%d" $name (sub $generation 1) }}{{ end }}
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
@@ -28,7 +34,7 @@ spec:
       # Password auth over TLS only; no trust, no local shortcuts.
       - hostssl all all all scram-sha-256
 
-  {{- if .Values.recoverFrom }}
+  {{- if $source }}
 
   # A copy of a lost cluster, from its last base backup and the WAL after it.
   bootstrap:
@@ -42,7 +48,7 @@ spec:
         name: barman-cloud.cloudnative-pg.io
         parameters:
           barmanObjectName: {{ $name }}-db
-          serverName: {{ .Values.recoverFrom }}
+          serverName: {{ $source }}
   {{- else }}
 
   bootstrap:
@@ -67,7 +73,7 @@ spec:
       isWALArchiver: true
       parameters:
         barmanObjectName: {{ $name }}-db
-        {{- with .Values.serverName }}
-        serverName: {{ . }}
+        {{- if gt $generation 0 }}
+        serverName: {{ $archive }}
         {{- end }}
   {{- end }}

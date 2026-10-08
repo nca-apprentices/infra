@@ -7,6 +7,5 @@ resources:
   limits: { memory: 512Mi }
 priorityClassName: prod
 backup: true
-# Restored after the node move of 2026-10, under a new archive name.
-recoverFrom: jjforge-db
-serverName: jjforge-db-1
+# Restored after the node move of 2026-10, see the chart's values.
+generation: 1

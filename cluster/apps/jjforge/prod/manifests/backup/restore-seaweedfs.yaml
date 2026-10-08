@@ -1,0 +1,78 @@
+# Fills an empty SeaweedFS from its mirror, as on a new node: every bucket in
+# the Hetzner bucket is copied back through the S3 API with the admin key.
+# Argo CD creates the Job once per cluster, and it does nothing when any
+# object is there, so it never writes over what the store holds.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: seaweedfs-restore
+  namespace: jjforge-prod
+data:
+  restore.sh: |
+    set -eu
+    # The admin identity is the first in the S3 config.
+    config=/etc/seaweedfs/seaweedfs_s3_config
+    RCLONE_CONFIG_SEAWEED_ACCESS_KEY_ID=$(tr ',{}' '\n' <"$config" | sed -n 's/.*"accessKey": *"\([^"]*\)".*/\1/p' | head -1)
+    RCLONE_CONFIG_SEAWEED_SECRET_ACCESS_KEY=$(tr ',{}' '\n' <"$config" | sed -n 's/.*"secretKey": *"\([^"]*\)".*/\1/p' | head -1)
+    export RCLONE_CONFIG_SEAWEED_ACCESS_KEY_ID RCLONE_CONFIG_SEAWEED_SECRET_ACCESS_KEY
+
+    if [ -n "$(rclone lsf -R --files-only seaweed: | head -1)" ]; then
+      echo "data present, nothing to restore"
+      exit 0
+    fi
+    rclone copy hetzner:nca-backup-jjforge-prod-seaweedfs seaweed:
+    rclone size seaweed:
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: seaweedfs-restore
+  namespace: jjforge-prod
+spec:
+  # The store may still be starting when the Job first runs.
+  backoffLimit: 20
+  template:
+    metadata:
+      # The label the store-backup network policy admits to the bucket.
+      labels: { app: seaweedfs-backup }
+    spec:
+      restartPolicy: OnFailure
+      priorityClassName: prod
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: rclone
+          image: rclone/rclone:1.75.1
+          command: [sh, /scripts/restore.sh]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          env:
+            - { name: RCLONE_CONFIG_HETZNER_TYPE, value: s3 }
+            - { name: RCLONE_CONFIG_HETZNER_PROVIDER, value: Other }
+            - name: RCLONE_CONFIG_HETZNER_ENDPOINT
+              value: https://fsn1.your-objectstorage.com
+            # Credentials and region from the AWS variables of the secret.
+            - { name: RCLONE_CONFIG_HETZNER_ENV_AUTH, value: "true" }
+            - { name: RCLONE_CONFIG_SEAWEED_TYPE, value: s3 }
+            - { name: RCLONE_CONFIG_SEAWEED_PROVIDER, value: SeaweedFS }
+            - {
+                name: RCLONE_CONFIG_SEAWEED_ENDPOINT,
+                value: http://seaweedfs-s3:8333,
+              }
+          envFrom:
+            - secretRef: { name: seaweedfs-backup-s3 }
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { memory: 512Mi }
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts, readOnly: true }
+            - { name: s3-config, mountPath: /etc/seaweedfs, readOnly: true }
+      volumes:
+        - name: scripts
+          configMap: { name: seaweedfs-restore }
+        - name: s3-config
+          secret: { secretName: seaweedfs-s3-config }

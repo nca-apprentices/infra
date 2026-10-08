@@ -1,5 +1,5 @@
 {{- $name := .Values.name }}
-{{- if or .Values.backup .Values.recoverFrom }}
+{{- if or .Values.backup (gt (int .Values.generation) 0) }}
 # The Hetzner bucket that tofu/backup.tf creates for this database. Backups and
 # WAL that no restore to a point in the last 30 days needs are deleted.
 apiVersion: barmancloud.cnpg.io/v1
