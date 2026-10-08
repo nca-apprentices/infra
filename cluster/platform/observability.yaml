@@ -100,10 +100,11 @@ spec:
           spec:
             retentionPeriod: "90d"
             # Memory requested and limited alike, so only its own limit can
-            # end the store.
+            # end the store. Taking in a day of history at once, as a merge
+            # does, ran it out of 1Gi.
             resources:
-              requests: { cpu: 200m, memory: 1Gi }
-              limits: { memory: 1Gi }
+              requests: { cpu: 200m, memory: 2Gi }
+              limits: { memory: 2Gi }
             # Metrics that arrive over OTLP get the names a scrape gives them,
             # such as http_server_request_duration_seconds.
             extraArgs:
