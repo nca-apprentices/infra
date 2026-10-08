@@ -57,3 +57,25 @@ kubectl apply --server-side -k cluster/bootstrap || {
   kubectl wait --for condition=established crd/applications.argoproj.io
   kubectl apply --server-side -k cluster/bootstrap
 }
+
+# The server reads its settings once at start, and on a first install it can
+# start before the dex settings reach its cache, which leaves it without a
+# login. A restart reads them.
+kubectl -n argocd rollout status deployment argocd-server
+if ! kubectl -n argocd logs deployment/argocd-server | grep -q 'sso: true'; then
+  kubectl -n argocd rollout restart deployment argocd-server
+  kubectl -n argocd rollout status deployment argocd-server
+fi
+
+# Root's first sync can fail while a child's webhook is still starting, and
+# Argo CD never retries a failed sync of the same commit on its own. Start it
+# again until it is through.
+root() { kubectl -n argocd get application root -o jsonpath="$1"; }
+until [[ $(root '{.status.sync.status}') == Synced ]]; do
+  phase=$(root '{.status.operationState.phase}')
+  if [[ $phase == Failed || $phase == Error ]] && [[ -z $(root '{.operation}') ]]; then
+    kubectl -n argocd patch application root --type merge \
+      -p '{"operation":{"initiatedBy":{"username":"bootstrap"},"sync":{}}}'
+  fi
+  sleep 30
+done
