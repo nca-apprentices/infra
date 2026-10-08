@@ -31,8 +31,8 @@ variable "location" {
 
 variable "server_type" {
   type        = string
-  default     = "cx33"
-  description = "Shared x86 instance. Phase A is one node with 8 GB, which fits the trimmed platform; phase B adds a second."
+  default     = "cax31"
+  description = "Shared arm64 instance. Phase A is one node with 16 GB; phase B adds a second."
 }
 
 variable "node_count" {

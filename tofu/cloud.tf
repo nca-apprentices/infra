@@ -16,7 +16,7 @@ resource "hcloud_network_subnet" "nodes" {
 # The Talos snapshot that `mise run image` uploads, newest first.
 data "hcloud_image" "talos" {
   with_selector     = "os=talos"
-  with_architecture = "x86"
+  with_architecture = "arm"
   most_recent       = true
 }
 

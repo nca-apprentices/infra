@@ -8,8 +8,8 @@ version=$(yq .talosVersion talos/talconfig.yaml)
 
 sops exec-env secrets/tofu.enc.env "
   HCLOUD_TOKEN=\$TF_VAR_hcloud_token hcloud-upload-image upload \
-    --image-url https://factory.talos.dev/image/$schematic/$version/hcloud-amd64.raw.xz \
-    --architecture x86 \
+    --image-url https://factory.talos.dev/image/$schematic/$version/hcloud-arm64.raw.xz \
+    --architecture arm \
     --compression xz \
     --location nbg1 \
     --labels os=talos,talos-version=$version
