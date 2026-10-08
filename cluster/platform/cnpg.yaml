@@ -15,6 +15,9 @@ spec:
       releaseName: cnpg
       valuesObject:
         crds: { create: true }
+        # Fails over and backs up every app's database, so no app may evict
+        # it.
+        priorityClassName: system-cluster-critical
   destination:
     server: https://kubernetes.default.svc
     namespace: cnpg-system

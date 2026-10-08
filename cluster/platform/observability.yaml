@@ -99,6 +99,8 @@ spec:
         vmsingle:
           spec:
             retentionPeriod: "90d"
+            # The alerts read from it, so no app may evict it.
+            priorityClassName: system-cluster-critical
             # Memory requested and limited alike, so only its own limit can
             # end the store. Taking in a day of history at once, as a merge
             # does, ran it out of 1Gi.

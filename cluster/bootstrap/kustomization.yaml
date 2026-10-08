@@ -156,3 +156,10 @@ patches:
           p, role:dev, applications, update, jjforge-dev/*, allow
           p, role:dev, applications, sync, ncaleague-dev/*, allow
           p, role:dev, applications, update, ncaleague-dev/*, allow
+  # Argo CD deploys every app, so no app may evict it. The class is built in,
+  # so it exists before Argo CD creates any of its own.
+  - target: { kind: (Deployment|StatefulSet) }
+    patch: |-
+      - op: add
+        path: /spec/template/spec/priorityClassName
+        value: system-cluster-critical
