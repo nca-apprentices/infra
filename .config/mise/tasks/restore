@@ -88,7 +88,7 @@ spec:
             - --vm-native-dst-addr=http://vmsingle-metrics:8428
             - --vm-native-filter-time-start=2000-01-01T00:00:00Z
             - --vm-native-filter-time-end=$until
-            - --vm-native-step-interval=month
+            - --vm-native-step-interval=day
             - --vm-native-disable-per-metric-migration
             - --vm-native-disable-http-keep-alive
           resources: { requests: { cpu: 100m, memory: 256Mi }, limits: { memory: 1Gi } }

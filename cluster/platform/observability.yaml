@@ -112,6 +112,9 @@ spec:
               # that merges a backup in, see docs/operations.md, may be run
               # again without doubling what it already copied.
               dedup.minScrapeInterval: 1ms
+              # A merge sends a day of samples in one request, above the
+              # default of 32 MB.
+              maxInsertRequestSize: 256MB
             # On the data disk. The cluster has no default class.
             storage: { storageClassName: local-data }
             # An empty volume, as on a new node, takes the last nightly backup
