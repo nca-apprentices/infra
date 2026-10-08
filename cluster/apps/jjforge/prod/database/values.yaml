@@ -4,3 +4,6 @@ size: 20Gi
 parameters: { max_connections: 200 }
 priorityClassName: prod
 backup: true
+# Restored after the node move of 2026-10, under a new archive name.
+recoverFrom: jjforge-db
+serverName: jjforge-db-1
