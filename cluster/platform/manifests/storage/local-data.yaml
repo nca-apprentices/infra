@@ -10,3 +10,15 @@ reclaimPolicy: Retain
 volumeBindingMode: WaitForFirstConsumer
 parameters:
   nodePath: /var/mnt/data
+---
+# The same disk for data that goes with its claim, such as a preview's
+# database. Under Retain, each closed preview left its volume on the disk.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-scratch
+provisioner: rancher.io/local-path
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  nodePath: /var/mnt/data

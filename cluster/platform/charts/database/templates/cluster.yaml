@@ -63,7 +63,7 @@ spec:
   {{- end }}
 
   storage:
-    storageClass: local-data
+    storageClass: {{ .Values.keep | ternary "local-data" "local-scratch" }}
     size: {{ .Values.size }}
   {{- if .Values.backup }}
 

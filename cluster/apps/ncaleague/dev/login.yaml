@@ -7,5 +7,5 @@ metadata:
   namespace: ncaleague-dev
 spec:
   forwardAuth:
-    address: http://oauth2-proxy.ops.svc.cluster.local/
+    address: http://oauth2-proxy-apps.ops.svc.cluster.local/
     trustForwardHeader: true

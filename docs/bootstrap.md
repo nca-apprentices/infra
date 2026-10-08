@@ -187,6 +187,22 @@ kubectl create secret generic oauth2-proxy --namespace ops \
     --dry-run=client -o yaml >secrets/platform/oauth2-proxy.enc.yaml
 ```
 
+The GitHub login of the app environments has an OAuth 2.0 app of its own, so
+its cookie, which every app host receives, never opens the ops portal. Create
+a second app the same way, with the homepage `https://ops.nca-apprentices.dev`
+and the callback URL `https://ops.nca-apprentices.dev/apps-oauth2/callback`:
+
+```fish
+read -P 'OAuth client ID: ' id
+read -s -P 'OAuth client secret: ' secret
+
+kubectl create secret generic oauth2-proxy-apps --namespace ops \
+    --from-literal client-id=$id \
+    --from-literal client-secret=$secret \
+    --from-literal cookie-secret=(openssl rand -hex 16) \
+    --dry-run=client -o yaml >secrets/platform/oauth2-proxy-apps.enc.yaml
+```
+
 Encrypt them all, remove the plain-text key, and commit `.sops.yaml`,
 `secrets/`, and `talos/talsecret.sops.yaml`:
 

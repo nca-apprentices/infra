@@ -68,9 +68,11 @@ the app's reach:
   outlast it when the node runs short of memory.
 
 Every dev environment admits members of the GitHub organization only. Its
-`login.yaml` holds `github-login`, which asks `oauth2-proxy` about every
+`login.yaml` holds `github-login`, which asks `oauth2-proxy-apps` about every
 request, and `application.yaml` names it in the chart's `ingress.middlewares`.
-One sign-in covers every host under the domain. Every jjforge environment's
+One sign-in covers every host under the domain. The ops portal has its own
+sign-in, `oauth2-proxy`, with its own cookie on the ops host alone, so an app
+that reads its cookie can't open the portal. Every jjforge environment's
 `cookies.yaml` holds `no-cookies`, which removes the sign-in's cookie before a
 request reaches the app, so code from a branch never reads a member's
 session. Dev names it after `github-login`, and the public `jjforge-prod`
@@ -300,6 +302,7 @@ into the namespace it names, and creates that namespace first.
 | `argocd-github`               | `argocd`        | `platform/`             | The GitHub OAuth 2.0 app of the ops portal               |
 | `grafana-github`              | `observability` | `platform/`             | The same OAuth 2.0 app                                   |
 | `oauth2-proxy`                | `ops`           | `platform/`             | The same OAuth 2.0 app, and a cookie secret              |
+| `oauth2-proxy-apps`           | `ops`           | `platform/`             | The apps' OAuth 2.0 app, and a cookie secret             |
 | `github-alerts`               | `observability` | `platform/`             | The token that opens alert issues, see [Alerts](#alerts) |
 
 Everything else in the cluster comes from Git.

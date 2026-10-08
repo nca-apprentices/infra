@@ -24,3 +24,6 @@ spec:
     - { group: cilium.io, kind: "*" }
     - { group: networking.k8s.io, kind: NetworkPolicy }
     - { group: "", kind: LimitRange }
+    # An IngressRoute's host is a string in its rule, which the ingress-hosts
+    # admission policy can't check. Apps serve through an Ingress instead.
+    - { group: traefik.io, kind: "IngressRoute*" }
