@@ -1,5 +1,5 @@
-{{- if .Values.backup }}
 {{- $name := .Values.name }}
+{{- if or .Values.backup .Values.recoverFrom }}
 # The Hetzner bucket that tofu/backup.tf creates for this database. Backups and
 # WAL that no restore to a point in the last 30 days needs are deleted.
 apiVersion: barmancloud.cnpg.io/v1
@@ -25,6 +25,8 @@ spec:
       compression: gzip
     data:
       compression: gzip
+{{- end }}
+{{- if .Values.backup }}
 ---
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup

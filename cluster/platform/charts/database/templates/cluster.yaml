@@ -28,10 +28,28 @@ spec:
       # Password auth over TLS only; no trust, no local shortcuts.
       - hostssl all all all scram-sha-256
 
+  {{- if .Values.recoverFrom }}
+
+  # A copy of a lost cluster, from its last base backup and the WAL after it.
+  bootstrap:
+    recovery:
+      source: lost
+      database: {{ $name }}
+      owner: {{ $name }}
+  externalClusters:
+    - name: lost
+      plugin:
+        name: barman-cloud.cloudnative-pg.io
+        parameters:
+          barmanObjectName: {{ $name }}-db
+          serverName: {{ .Values.recoverFrom }}
+  {{- else }}
+
   bootstrap:
     initdb:
       database: {{ $name }}
       owner: {{ $name }}
+  {{- end }}
   {{- with .Values.resources }}
 
   resources:
@@ -49,4 +67,7 @@ spec:
       isWALArchiver: true
       parameters:
         barmanObjectName: {{ $name }}-db
+        {{- with .Values.serverName }}
+        serverName: {{ . }}
+        {{- end }}
   {{- end }}

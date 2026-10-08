@@ -13,3 +13,11 @@ keep: true
 # Production: continuous WAL archiving and a nightly base backup to the
 # bucket nca-backup-<namespace>-db, with the key in <name>-backup-s3.
 backup: false
+# Restore instead of starting empty: the server name under which the lost
+# cluster's backups lie in the bucket, such as jjforge-db. The restore takes
+# the last base backup and every WAL segment after it.
+recoverFrom: ""
+# The server name this cluster's own backups carry in the bucket. Defaults to
+# <name>-db. A restored cluster needs a new one, because Barman refuses to
+# archive into another cluster's history.
+serverName: ""
