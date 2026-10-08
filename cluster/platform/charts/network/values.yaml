@@ -5,6 +5,6 @@ client: ""
 databaseClients: []
 # Production: the database and the store mirrors reach their bucket.
 backups: false
-# Dev: pods labeled restore-drill reach the backup buckets, see
-# docs/restore-drill.md.
+# Dev: pods labeled restore-drill reach the backup buckets, to try a restore
+# next to dev's stores.
 restoreDrill: false

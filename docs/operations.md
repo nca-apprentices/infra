@@ -327,7 +327,61 @@ Dev stores have no backup. The `BackupJobStale`, `BackupMirrorDown`,
 `WalArchivingFailing`, and `BaseBackupStale` alerts fire when a backup stops,
 see [Alerts](#alerts).
 
-The quarterly [restore drill](restore-drill.md) restores each store.
+### Restore
+
+Postgres, metrics, and logs restore themselves. A cluster whose volume is
+empty, as every one is on a new node, takes its last backup before it serves
+anything. Postgres bootstraps from its base backup and the WAL after it, with
+`recoverFrom` and a new `serverName` in the environment's
+`database/values.yaml`, as the chart's values describe. The metrics and logs
+stores run an init container that copies the backup in when the volume is
+empty, see `cluster/platform/observability.yaml` and `logs.yaml`. The node
+move of 2026-10-08 proved the Postgres path. To prove the other two, scale a
+store down right after its nightly backup, delete its volume, and let it come
+back.
+
+A store that collected since the loss can't take the copy, as it would replace
+what the store holds. `mise run restore metrics <until>` and
+`mise run restore logs` merge the backup into the running store through its
+API instead, which takes hours per gigabyte. `until` is when the store started
+collecting, so nothing arrives twice.
+
+SeaweedFS and Redpanda restore by hand. Blobs: `rclone copy` from
+`nca-backup-jjforge-prod-seaweedfs/<bucket>` into the bucket, with the
+`seaweedfs-backup-s3` key. Records: one Redpanda Connect run in `jjforge-prod`
+with the label `app: redpanda-backup`, which the `redpanda` network policy
+admits, and this pipeline. It reads the objects in key order, so each
+partition's records arrive in offset order. Record headers travel as metadata,
+and the control values start with an underscore, so a header whose name does
+too is lost. Consumer offsets are lost as well.
+
+```yaml
+input:
+  aws_s3:
+    bucket: nca-backup-jjforge-prod-redpanda
+    endpoint: https://fsn1.your-objectstorage.com
+    region: fsn1
+    force_path_style_urls: true
+pipeline:
+  processors:
+    - mapping: |
+        let path = @s3_key.split("/")
+        meta = this.headers.or({})
+        meta _topic = $path.index(0)
+        meta _partition = $path.index(1)
+        meta _key = this.key
+        root = this.value.decode("base64")
+output:
+  kafka_franz:
+    seed_brokers: [redpanda:9093]
+    tls: { enabled: true, root_cas_file: /etc/redpanda-tls/ca.crt }
+    topic: ${! @_topic }
+    partitioner: manual
+    partition: ${! @_partition }
+    key: ${! @_key }
+    metadata: { include_patterns: ["^[^_]"] }
+    max_in_flight: 1
+```
 
 [encrypt-disks.md](encrypt-disks.md) explains what the disk encryption
 covers and when it applies.

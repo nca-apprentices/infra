@@ -18,6 +18,33 @@ spec:
         server:
           retentionPeriod: 30d
           persistentVolume: { storageClassName: local-data }
+          # An empty volume, as on a new node, takes every day's partition
+          # from the backup first, so the store serves its history before it
+          # collects anything. The store picks the directories up on start.
+          initContainers:
+            - name: restore
+              image: rclone/rclone:1.75.1
+              command: [sh, -c]
+              args:
+                - |
+                  if [ -e /storage/partitions ]; then
+                    echo "data present, nothing to restore"
+                    exit 0
+                  fi
+                  rclone copy hetzner:nca-backup-logs /storage/partitions
+              env:
+                - { name: RCLONE_CONFIG_HETZNER_TYPE, value: s3 }
+                - { name: RCLONE_CONFIG_HETZNER_PROVIDER, value: Other }
+                - name: RCLONE_CONFIG_HETZNER_ENDPOINT
+                  value: https://fsn1.your-objectstorage.com
+                - { name: RCLONE_CONFIG_HETZNER_ENV_AUTH, value: "true" }
+              envFrom: [{ secretRef: { name: logs-backup-s3 } }]
+              resources:
+                {
+                  requests: { cpu: 100m, memory: 128Mi },
+                  limits: { memory: 512Mi },
+                }
+              volumeMounts: [{ name: server-volume, mountPath: /storage }]
   destination:
     server: https://kubernetes.default.svc
     namespace: observability

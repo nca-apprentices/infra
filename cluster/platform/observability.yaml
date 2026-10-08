@@ -108,8 +108,37 @@ spec:
             # such as http_server_request_duration_seconds.
             extraArgs:
               opentelemetry.usePrometheusNaming: "true"
+              # Samples with the same timestamp merge into one, so a restore
+              # that merges a backup in, see docs/operations.md, may be run
+              # again without doubling what it already copied.
+              dedup.minScrapeInterval: 1ms
             # On the data disk. The cluster has no default class.
             storage: { storageClassName: local-data }
+            # An empty volume, as on a new node, takes the last nightly backup
+            # first, at disk speed, so the store serves its history before it
+            # collects anything. vmrestore syncs the directory to the backup,
+            # which is why it runs only when nothing is there.
+            initContainers:
+              - name: restore
+                image: victoriametrics/vmrestore:v1.128.0
+                command: [sh, -c]
+                args:
+                  - |
+                    if [ -n "$(ls -A /victoria-metrics-data)" ]; then
+                      echo "data present, nothing to restore"
+                      exit 0
+                    fi
+                    vmrestore -src=s3://nca-backup-metrics/latest \
+                      -customS3Endpoint=https://fsn1.your-objectstorage.com \
+                      -storageDataPath=/victoria-metrics-data
+                envFrom: [{ secretRef: { name: metrics-backup-s3 } }]
+                resources:
+                  {
+                    requests: { cpu: 100m, memory: 128Mi },
+                    limits: { memory: 512Mi },
+                  }
+                volumeMounts:
+                  [{ name: data, mountPath: /victoria-metrics-data }]
   destination:
     server: https://kubernetes.default.svc
     namespace: observability

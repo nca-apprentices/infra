@@ -1,0 +1,164 @@
+#!/usr/bin/env bash
+#MISE description="Merge the nightly backup of metrics or logs into a store that already collects"
+#MISE arg "<store>" help="metrics or logs"
+#MISE arg "[until]" help="metrics: copy the samples before this RFC 3339 time, such as when the store started collecting"
+set -euo pipefail
+
+# A store on an empty volume restores itself, see docs/operations.md. This is
+# for a store that collected since the loss and so can't take the copy: it
+# merges the backup in through the store's API, which is slow but keeps what
+# the store holds.
+store=$1
+until=${2:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}
+export KUBECONFIG=talos/clusterconfig/kubeconfig
+version=$(yq '.spec.source.helm.valuesObject.vmsingle.spec.initContainers[0].image' cluster/platform/observability.yaml | cut -d: -f2)
+s3=https://fsn1.your-objectstorage.com
+k() { kubectl -n observability "$@"; }
+cleanup() { k delete deploy,service,job,configmap -l restore=merge --ignore-not-found; }
+trap cleanup EXIT
+
+case $store in
+metrics)
+  # vmrestore only fills a directory, so the backup comes up in a scratch
+  # store, and vmctl streams every series from there into the live one.
+  k apply -f - <<YAML
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: restore-metrics
+  labels: { restore: merge }
+spec:
+  selector: { matchLabels: { app: restore-metrics } }
+  template:
+    metadata:
+      labels: { app: restore-metrics }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, seccompProfile: { type: RuntimeDefault } }
+      initContainers:
+        - name: vmrestore
+          image: victoriametrics/vmrestore:$version
+          args: [-src=s3://nca-backup-metrics/latest, -customS3Endpoint=$s3, -storageDataPath=/data]
+          envFrom: [{ secretRef: { name: metrics-backup-s3 } }]
+          securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }
+          volumeMounts: [{ name: data, mountPath: /data }]
+      containers:
+        - name: victoria-metrics
+          image: victoriametrics/victoria-metrics:$version
+          # Long retention, so the start doesn't drop what the backup holds.
+          args: [-storageDataPath=/data, -retentionPeriod=10y, -httpListenAddr=:8428]
+          ports: [{ containerPort: 8428 }]
+          readinessProbe: { httpGet: { path: /health, port: 8428 } }
+          resources: { requests: { cpu: 200m, memory: 1Gi }, limits: { memory: 2Gi } }
+          securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }
+          volumeMounts: [{ name: data, mountPath: /data }]
+      volumes: [{ name: data, emptyDir: {} }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: restore-metrics
+  labels: { restore: merge }
+spec:
+  selector: { app: restore-metrics }
+  ports: [{ port: 8428 }]
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: restore-metrics-copy
+  labels: { restore: merge }
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext: { runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, seccompProfile: { type: RuntimeDefault } }
+      initContainers:
+        - name: wait
+          image: victoriametrics/vmctl:$version
+          command: [sh, -c, "until wget -qO- http://restore-metrics:8428/health; do sleep 5; done"]
+          securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }
+      containers:
+        - name: vmctl
+          image: victoriametrics/vmctl:$version
+          args:
+            - vm-native
+            - -s
+            - --vm-native-src-addr=http://restore-metrics:8428
+            - --vm-native-dst-addr=http://vmsingle-metrics:8428
+            - --vm-native-filter-time-start=2000-01-01T00:00:00Z
+            - --vm-native-filter-time-end=$until
+            - --vm-native-step-interval=month
+            - --vm-native-disable-per-metric-migration
+            - --vm-native-disable-http-keep-alive
+          resources: { requests: { cpu: 100m, memory: 256Mi }, limits: { memory: 1Gi } }
+          securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }
+YAML
+  k wait --for condition=complete job/restore-metrics-copy --timeout=12h
+  k logs job/restore-metrics-copy | tail -3
+  ;;
+logs)
+  # Every day's partition the store lacks is copied into its volume and
+  # attached. A day the store already holds, such as today, can't be merged
+  # and stays in the bucket.
+  k apply -f - <<YAML
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: restore-logs
+  labels: { restore: merge }
+data:
+  restore.sh: |
+    set -eu
+    api=http://logs-victoria-logs-single-server:9428/internal/partition
+    for day in \$(rclone lsd hetzner:nca-backup-logs | awk '{print \$NF}'); do
+      if [ -e "/storage/partitions/\$day" ]; then
+        echo "\$day present, skipped"
+        continue
+      fi
+      rclone copy "hetzner:nca-backup-logs/\$day" "/storage/partitions/\$day"
+      wget -qO- --post-data= "\$api/attach?name=\$day"
+      echo "\$day attached"
+    done
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: restore-logs
+  labels: { restore: merge }
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      # The store's own user, so it owns what the copy writes.
+      securityContext: { runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, fsGroup: 2000, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: rclone
+          image: rclone/rclone:1.75.1
+          command: [sh, /scripts/restore.sh]
+          env:
+            - { name: RCLONE_CONFIG_HETZNER_TYPE, value: s3 }
+            - { name: RCLONE_CONFIG_HETZNER_PROVIDER, value: Other }
+            - { name: RCLONE_CONFIG_HETZNER_ENDPOINT, value: $s3 }
+            - { name: RCLONE_CONFIG_HETZNER_ENV_AUTH, value: "true" }
+          envFrom: [{ secretRef: { name: logs-backup-s3 } }]
+          resources: { requests: { cpu: 100m, memory: 128Mi }, limits: { memory: 512Mi } }
+          securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts }
+            - { name: data, mountPath: /storage }
+      volumes:
+        - name: scripts
+          configMap: { name: restore-logs }
+        - name: data
+          persistentVolumeClaim: { claimName: server-volume-logs-victoria-logs-single-server-0 }
+YAML
+  k wait --for condition=complete job/restore-logs --timeout=2h
+  k logs job/restore-logs | tail -5
+  ;;
+*)
+  echo "usage: mise run restore metrics [until] | logs" >&2
+  exit 1
+  ;;
+esac

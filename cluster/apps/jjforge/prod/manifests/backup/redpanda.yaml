@@ -2,7 +2,7 @@
 # per record at <topic>/<partition>/<offset>.json. Topic retention can then
 # drop what the bucket holds. Tiered Storage would do this inside Redpanda, but
 # it needs an Enterprise license. A restore replays the objects in key order,
-# which docs/restore-drill.md describes. Consumer offsets aren't kept.
+# see Restore in docs/operations.md. Consumer offsets aren't kept.
 apiVersion: v1
 kind: ConfigMap
 metadata:
