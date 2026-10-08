@@ -1,3 +1,5 @@
 # The network policies of jjforge-prod, from cluster/platform/charts/network.
 client: server
+# The Job that migrates the database before a rollout.
+databaseClients: [migrate]
 backups: true

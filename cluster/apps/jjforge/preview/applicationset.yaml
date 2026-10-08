@@ -1,8 +1,9 @@
 # One Application per open jjforge PR with the preview label, named
 # jjforge-pr-<number> and served at jjforge-pr-<number>.nca-apprentices.dev
 # behind the GitHub login. It runs the chart and images of the PR's head commit
-# in jjforge-dev, next to dev, with dev's database, stores, and network
-# policies. jjforge's CI pushes the images, tagged with the commit.
+# in jjforge-dev, next to dev, with dev's stores and network policies.
+# jjforge's CI pushes the images, tagged with the commit. Its database comes
+# from database.yaml, so its migrations never touch dev's.
 #
 # Once the PR merges, closes, or loses the label, the generator drops the
 # Application, and Argo CD deletes everything it deployed. Unlike the apps
@@ -49,6 +50,7 @@ spec:
             server:
               image: { tag: "{{ .head_sha }}" }
               resources: { requests: { cpu: 50m, memory: 64Mi } }
+              database: { secretName: "jjforge-pr-{{ .number }}-db-app" }
             vcs:
               image: { tag: "{{ .head_sha }}" }
             ingress:
@@ -68,3 +70,8 @@ spec:
       syncPolicy:
         automated: { prune: true, selfHeal: true }
         syncOptions: [ServerSideApply=true]
+        # The migration Job fails until the preview's database accepts
+        # connections, which takes a minute after the PR is labeled.
+        retry:
+          limit: 10
+          backoff: { duration: 30s, factor: 2, maxDuration: 5m }

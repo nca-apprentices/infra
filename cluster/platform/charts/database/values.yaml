@@ -7,6 +7,9 @@ size: 1Gi
 parameters: {}
 resources: {}
 priorityClassName: ""
+# False lets Argo CD delete the cluster, with its data, when the Application
+# drops it, as a preview's does.
+keep: true
 # Production: continuous WAL archiving and a nightly base backup to the
 # bucket nca-backup-<namespace>-db, with the key in <name>-backup-s3.
 backup: false
