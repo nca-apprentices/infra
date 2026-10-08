@@ -105,8 +105,9 @@ chart at that commit. Each new commit on the PR replaces the images in place.
 A preview runs in `jjforge-dev` under its project, so it shares dev's
 stores, network policies, quota, `github-login`, and `no-cookies`. The
 `jjforge-preview-database` ApplicationSet gives it a Postgres cluster of its
-own, `jjforge-pr-<number>-db`, because the chart migrates the database
-before each rollout, and a PR's migrations must never reach dev's. Its pods
+own, `jjforge-pr-<number>-db`, because the chart migrates its database
+before it deploys, and the migrations of a PR must never reach dev's
+database. Its pods
 request little, since the node has almost none left to give, and the node
 evicts them first when memory runs short. cert-manager issues its certificate
 from the Ingress. The certificate authority allows 50 per week for the whole
