@@ -1,0 +1,9 @@
+# The agents that read the host: the node exporter and the log collector.
+# Host paths and host namespaces need the privileged level, so they get a
+# namespace of their own, and the stores in observability stay at baseline.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: node-agents
+  labels:
+    pod-security.kubernetes.io/enforce: privileged

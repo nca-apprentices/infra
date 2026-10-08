@@ -75,6 +75,12 @@ spec:
         kubeControllerManager: { enabled: false }
         kubeScheduler: { enabled: false }
         kubeEtcd: { enabled: false }
+        # The node exporter reads the host's network, processes, and files, so
+        # it runs in node-agents, see manifests/policies/node-agents.yaml.
+        prometheus-node-exporter:
+          namespaceOverride: node-agents
+          vmScrape:
+            spec: { namespaceSelector: { matchNames: [node-agents] } }
         # The chart generates a new webhook CA on every render, and the running
         # operator keeps serving the old certificate, so every VictoriaMetrics
         # object fails to apply. cert-manager issues it once instead.
@@ -151,7 +157,7 @@ spec:
   syncPolicy:
     automated: { prune: true, selfHeal: true }
     syncOptions: [CreateNamespace=true, ServerSideApply=true]
-    # The node exporter reads the host's network, processes, and files.
+    # Nothing here touches the host. The node exporter runs in node-agents.
     managedNamespaceMetadata:
       labels:
-        pod-security.kubernetes.io/enforce: privileged
+        pod-security.kubernetes.io/enforce: baseline

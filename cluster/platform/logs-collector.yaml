@@ -16,14 +16,12 @@ spec:
       releaseName: logs-collector
       valuesObject:
         remoteWrite:
-          - url: http://logs-victoria-logs-single-server:9428
+          - url: http://logs-victoria-logs-single-server.observability:9428
+  # The collector reads container logs from host paths, so it runs in
+  # node-agents, see manifests/policies/node-agents.yaml.
   destination:
     server: https://kubernetes.default.svc
-    namespace: observability
+    namespace: node-agents
   syncPolicy:
     automated: { prune: true, selfHeal: true }
-    syncOptions: [CreateNamespace=true, ServerSideApply=true]
-    # The collector reads container logs from host paths.
-    managedNamespaceMetadata:
-      labels:
-        pod-security.kubernetes.io/enforce: privileged
+    syncOptions: [ServerSideApply=true]

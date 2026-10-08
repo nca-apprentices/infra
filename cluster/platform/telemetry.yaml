@@ -62,8 +62,8 @@ spec:
   syncPolicy:
     automated: { prune: true, selfHeal: true }
     syncOptions: [CreateNamespace=true, ServerSideApply=true]
-    # Shares the observability namespace with the node exporter and the
-    # log collector, so it sets the same level.
+    # Shares the observability namespace with the other stores, so it sets
+    # the same level.
     managedNamespaceMetadata:
       labels:
-        pod-security.kubernetes.io/enforce: privileged
+        pod-security.kubernetes.io/enforce: baseline
