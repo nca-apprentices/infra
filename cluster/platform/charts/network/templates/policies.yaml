@@ -25,7 +25,8 @@ spec:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: observability
 ---
-# The database admits the client on the Postgres port only. The operator, the
+# The database admits the client and the database clients on the Postgres
+# port only. The operator, the
 # metrics scrape, and the database's own instances keep full access.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -37,7 +38,10 @@ spec:
       - { key: cnpg.io/cluster, operator: Exists }
   ingress:
     - fromEndpoints:
-        - matchLabels: { app.kubernetes.io/component: {{ $client }} }
+        - matchExpressions:
+            - key: app.kubernetes.io/component
+              operator: In
+              values: {{ prepend .Values.databaseClients $client | toJson }}
       toPorts:
         - ports: [{ port: "5432", protocol: TCP }]
     - fromEndpoints:

@@ -86,10 +86,11 @@ environment's file over them.
 `database/values.yaml` gives an environment its Postgres cluster. The
 `database` ApplicationSet renders it from `platform/charts/database` under
 the environment's project, with WAL archiving and a nightly backup where
-`backup` is on. Argo CD never deletes a database cluster: the volumes go with
-it.
+`backup` is on. Argo CD never deletes an environment's database cluster: the
+volumes go with it. A preview's cluster sets `keep: false`, so it goes with
+the preview.
 
-Every ApplicationSet but `jjforge-preview` keeps what it deployed when one of
+Every ApplicationSet but the two of jjforge's previews keeps what it deployed when one of
 its Applications disappears, such as after a renamed directory.
 
 ### Previews
@@ -102,15 +103,19 @@ GitHub for labeled PRs every minute and creates `jjforge-pr-<number>` from the
 chart at that commit. Each new commit on the PR replaces the images in place.
 
 A preview runs in `jjforge-dev` under its project, so it shares dev's
-database, stores, network policies, quota, `github-login`, and
-`no-cookies`. Its pods
+stores, network policies, quota, `github-login`, and `no-cookies`. The
+`jjforge-preview-database` ApplicationSet gives it a Postgres cluster of its
+own, `jjforge-pr-<number>-db`, because the chart migrates its database
+before it deploys, and the migrations of a PR must never reach dev's
+database. Its pods
 request little, since the node has almost none left to give, and the node
 evicts them first when memory runs short. cert-manager issues its certificate
 from the Ingress. The certificate authority allows 50 per week for the whole
 domain.
 
-When the PR merges, closes, or loses the label, the ApplicationSet deletes the
-Application, and Argo CD deletes its pods, Service, Ingress, and certificate.
+When the PR merges, closes, or loses the label, the ApplicationSets delete the
+Applications, and Argo CD deletes their pods, Service, Ingress, certificate,
+and database cluster with its data.
 cert-manager then deletes the TLS secret. Fork PRs get no preview, since their
 CI can't push images.
 

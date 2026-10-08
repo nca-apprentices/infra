@@ -3,10 +3,12 @@ apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
   name: {{ $name }}-db
+  {{- if .Values.keep }}
   annotations:
     # The cluster owns its volumes, so deleting it deletes the data. Argo CD
     # leaves it in place when the chart or the Application drops it.
     argocd.argoproj.io/sync-options: Delete=false,Prune=false
+  {{- end }}
 spec:
   # One instance: a second on the same node buys no availability, only memory.
   instances: 1

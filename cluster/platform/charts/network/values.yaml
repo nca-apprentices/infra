@@ -1,6 +1,8 @@
 # The pods that use the database and Redpanda, by their
 # app.kubernetes.io/component label, such as backend.
 client: ""
+# The components that reach the database only, such as migrate.
+databaseClients: []
 # Production: the database and the store mirrors reach their bucket.
 backups: false
 # Dev: pods labeled restore-drill reach the backup buckets, see
