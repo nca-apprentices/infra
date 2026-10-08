@@ -344,7 +344,9 @@ holds data is left alone:
 - SeaweedFS and Redpanda run a Job once per cluster, next to their backups in
   `apps/jjforge/prod/manifests/backup/`, which copies the mirror back when the
   store is empty. Redpanda's recreates the topics as they were and replays
-  every record. Consumer offsets are lost.
+  every record. Consumer offsets are lost. A Job runs once, so a store lost
+  on a running cluster needs its Job deleted. Argo CD creates it again, and
+  the guard decides.
 
 The node move of 2026-10-08 proved the Postgres path. To prove another store's,
 scale it down right after its nightly backup, delete its volume, and let it

@@ -1,7 +1,8 @@
 # Fills an empty SeaweedFS from its mirror, as on a new node: every bucket in
 # the Hetzner bucket is copied back through the S3 API with the admin key.
-# Argo CD creates the Job once per cluster, and it does nothing when any
-# object is there, so it never writes over what the store holds.
+# Argo CD creates the Job once per cluster. The copy adds what the store
+# lacks and changes nothing else, so a store that holds at least what the
+# mirror holds is left alone, and a copy that stopped halfway carries on.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -16,12 +17,16 @@ data:
     RCLONE_CONFIG_SEAWEED_SECRET_ACCESS_KEY=$(tr ',{}' '\n' <"$config" | sed -n 's/.*"secretKey": *"\([^"]*\)".*/\1/p' | head -1)
     export RCLONE_CONFIG_SEAWEED_ACCESS_KEY_ID RCLONE_CONFIG_SEAWEED_SECRET_ACCESS_KEY
 
-    if [ -n "$(rclone lsf -R --files-only seaweed: | head -1)" ]; then
+    # The filer keeps bucket metadata under /buckets/.system, which the
+    # mirror carries but which no bucket can be named after.
+    mirror=hetzner:nca-backup-jjforge-prod-seaweedfs
+    objects() { rclone size --json --exclude '.system/**' "$1" | sed 's/.*"count":\([0-9]*\).*/\1/'; }
+    if [ "$(objects seaweed:)" -ge "$(objects "$mirror")" ]; then
       echo "data present, nothing to restore"
       exit 0
     fi
-    rclone copy hetzner:nca-backup-jjforge-prod-seaweedfs seaweed:
-    rclone size seaweed:
+    rclone copy --exclude '.system/**' "$mirror" seaweed:
+    rclone size --exclude '.system/**' seaweed:
 ---
 apiVersion: batch/v1
 kind: Job
