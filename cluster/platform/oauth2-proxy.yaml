@@ -30,8 +30,9 @@ spec:
           reverse-proxy: "true"
           skip-provider-button: "true"
           # One sign-in for every host under the domain. The cookie covers them
-          # all, and the callback may return to any of them. The public prod
-          # environments remove it, see apps/*/prod/cookies.yaml.
+          # all, and the callback may return to any of them. jjforge removes
+          # it, see apps/jjforge/*/cookies.yaml. ncaleague keeps its own
+          # cookies, so it sees the sign-in's cookie too.
           cookie-domain: .nca-apprentices.dev
           whitelist-domain: .nca-apprentices.dev
   destination:

@@ -70,11 +70,12 @@ the app's reach:
 Every dev environment admits members of the GitHub organization only. Its
 `login.yaml` holds `github-login`, which asks `oauth2-proxy` about every
 request, and `application.yaml` names it in the chart's `ingress.middlewares`.
-One sign-in covers every host under the domain. Every environment's
+One sign-in covers every host under the domain. Every jjforge environment's
 `cookies.yaml` holds `no-cookies`, which removes the sign-in's cookie before a
 request reaches the app, so code from a branch never reads a member's
-session. Dev names it after `github-login`, and the public `jjforge-prod` and
-`ncaleague-prod` name it alone.
+session. Dev names it after `github-login`, and the public `jjforge-prod`
+names it alone. ncaleague has none: the middleware removes every cookie, and
+ncaleague needs its own, so its environments see the sign-in's cookie.
 
 Each environment runs its own Redpanda and SeaweedFS, so no environment
 reaches the topics and buckets of another. A file in the environment's

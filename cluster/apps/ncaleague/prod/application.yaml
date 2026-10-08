@@ -27,7 +27,6 @@ spec:
             limits: { memory: 64Mi }
         ingress:
           host: ncaleague.nca-apprentices.dev
-          middlewares: [no-cookies]
   destination:
     server: https://kubernetes.default.svc
     namespace: ncaleague-prod
