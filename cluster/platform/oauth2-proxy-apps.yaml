@@ -1,0 +1,47 @@
+# The GitHub login in front of every app environment but the public prod ones.
+# Traefik asks it about every request, see the github-login Middleware of each
+# app environment. It has its own OAuth 2.0 app and cookie secret, so an app
+# that reads its cookie can't sign in to the ops portal with it.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: oauth2-proxy-apps
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://oauth2-proxy.github.io/manifests
+    chart: oauth2-proxy
+    targetRevision: "10.7.0"
+    helm:
+      releaseName: oauth2-proxy-apps
+      valuesObject:
+        config:
+          # client-id, client-secret, and cookie-secret. See docs/bootstrap.md.
+          existingSecret: oauth2-proxy-apps
+          # Answers 202 to a signed-in request, which Traefik then passes on.
+          upstreams: ["static://202"]
+        extraArgs:
+          provider: github
+          github-org: nca-apprentices
+          # The ops login holds /oauth2/ on the ops host, so this one answers
+          # GitHub under its own prefix there, see manifests/ops/portal.yaml.
+          proxy-prefix: /apps-oauth2
+          redirect-url: https://ops.nca-apprentices.dev/apps-oauth2/callback
+          reverse-proxy: "true"
+          skip-provider-button: "true"
+          # One sign-in for every app host. The cookie covers them all, and
+          # the callback may return to any of them. jjforge removes it, see
+          # apps/jjforge/*/cookies.yaml. ncaleague keeps its own cookies, so
+          # it sees the sign-in's cookie too.
+          cookie-name: _apps_login
+          cookie-domain: .nca-apprentices.dev
+          whitelist-domain: .nca-apprentices.dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ops
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]
