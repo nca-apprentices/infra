@@ -13,6 +13,16 @@ variable "porkbun_secret_key" {
   sensitive = true
 }
 
+variable "cloudflare_api_token" {
+  type      = string
+  sensitive = true
+}
+
+variable "cloudflare_account_id" {
+  type        = string
+  description = "ID of the Cloudflare account the zone lives in, from the dashboard's Account home."
+}
+
 variable "operator_cidrs" {
   type        = list(string)
   description = "Addresses the operators run talosctl and kubectl from, such as [\"203.0.113.7/32\"]."

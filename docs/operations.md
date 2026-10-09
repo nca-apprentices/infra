@@ -277,16 +277,18 @@ writing it down here rather than discovering it during an outage.
 5. One Object Storage key per backup bucket in [Backups](#backups), in the
    same project as `nca-tofu`. Hetzner has no API for keys.
 
-| Variable                           | What it is                                                |
-| ---------------------------------- | --------------------------------------------------------- |
-| `TF_VAR_hcloud_token`              | Hetzner Cloud API token with read and write access        |
-| `TF_VAR_porkbun_api_key`           | Porkbun API key                                           |
-| `TF_VAR_porkbun_secret_key`        | Porkbun secret key                                        |
-| `TF_VAR_operator_cidrs`            | Where talosctl and kubectl run from, as a list            |
-| `AWS_ACCESS_KEY_ID`                | Object Storage key for the tofu state and buckets         |
-| `AWS_SECRET_ACCESS_KEY`            | Object Storage secret for the tofu state and buckets      |
-| `TF_VAR_object_storage_project_id` | Numeric ID of the Hetzner project                         |
-| `TF_VAR_backup_keys`               | Access key per backup bucket, as `{"metrics"="...", ...}` |
+| Variable                           | What it is                                                          |
+| ---------------------------------- | ------------------------------------------------------------------- |
+| `TF_VAR_hcloud_token`              | Hetzner Cloud API token with read and write access                  |
+| `TF_VAR_porkbun_api_key`           | Porkbun API key                                                     |
+| `TF_VAR_porkbun_secret_key`        | Porkbun secret key                                                  |
+| `TF_VAR_cloudflare_api_token`      | Cloudflare API token that edits the zone, its DNS, and its settings |
+| `TF_VAR_cloudflare_account_id`     | ID of the Cloudflare account                                        |
+| `TF_VAR_operator_cidrs`            | Where talosctl and kubectl run from, as a list                      |
+| `AWS_ACCESS_KEY_ID`                | Object Storage key for the tofu state and buckets                   |
+| `AWS_SECRET_ACCESS_KEY`            | Object Storage secret for the tofu state and buckets                |
+| `TF_VAR_object_storage_project_id` | Numeric ID of the Hetzner project                                   |
+| `TF_VAR_backup_keys`               | Access key per backup bucket, as `{"metrics"="...", ...}`           |
 
 ### Secrets that must exist before the first sync
 

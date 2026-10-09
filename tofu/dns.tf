@@ -45,3 +45,68 @@ resource "porkbun_dns_record" "github_pages_challenge" {
   content = "fd04a41c9035f14e899af6ad3cda94"
   ttl     = "600"
 }
+
+# The same records at Cloudflare, which serves the zone once Porkbun names
+# its name servers. Porkbun's go after the switch. Cloudflare proxies the node's
+# names, so visitors reach Cloudflare and never the node. GitHub Pages issues
+# its certificate only for a name that points at it, so its names aren't
+# proxied.
+resource "cloudflare_zone" "main" {
+  account = { id = var.cloudflare_account_id }
+  name    = var.domain
+}
+
+locals {
+  # TTL 1 means automatic, the only TTL a proxied record takes.
+  cloudflare_records = {
+    apex = {
+      name    = var.domain
+      type    = "A"
+      proxied = true
+      content = hcloud_server.node[0].ipv4_address
+    }
+    wildcard = {
+      name    = "*.${var.domain}"
+      type    = "A"
+      proxied = true
+      content = hcloud_server.node[0].ipv4_address
+    }
+    jjforge_docs = {
+      name    = "jjforge-docs.${var.domain}"
+      type    = "CNAME"
+      proxied = false
+      content = "nca-apprentices.github.io"
+    }
+    status = {
+      name    = "status.${var.domain}"
+      type    = "CNAME"
+      proxied = false
+      content = "nca-apprentices.github.io"
+    }
+    github_pages_challenge = {
+      name    = "_github-pages-challenge-nca-apprentices.${var.domain}"
+      type    = "TXT"
+      proxied = false
+      content = "\"fd04a41c9035f14e899af6ad3cda94\""
+    }
+  }
+}
+
+resource "cloudflare_dns_record" "main" {
+  for_each = local.cloudflare_records
+
+  zone_id = cloudflare_zone.main.id
+  name    = each.value.name
+  type    = each.value.type
+  content = each.value.content
+  proxied = each.value.proxied
+  ttl     = 1
+}
+
+# Cloudflare reaches the node over HTTPS and checks its Let's Encrypt
+# certificate, as a browser would.
+resource "cloudflare_zone_setting" "ssl" {
+  zone_id    = cloudflare_zone.main.id
+  setting_id = "ssl"
+  value      = "strict"
+}

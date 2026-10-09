@@ -25,6 +25,10 @@ terraform {
       source  = "cullenmcdermott/porkbun"
       version = "0.3.0"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "5.27.0"
+    }
     minio = {
       source  = "aminueza/minio"
       version = "3.43.0"
@@ -39,6 +43,10 @@ provider "hcloud" {
 provider "porkbun" {
   api_key    = var.porkbun_api_key
   secret_key = var.porkbun_secret_key
+}
+
+provider "cloudflare" {
+  api_token = var.cloudflare_api_token
 }
 
 # Hetzner Object Storage speaks S3, and Hetzner documents this provider for
