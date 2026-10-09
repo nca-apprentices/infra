@@ -13,8 +13,9 @@ Cloud, set up by OpenTofu and kept in sync with this repository by Argo CD.
 
 Apprentices start with [the guide for apprentices](docs/onboarding.md).
 
-Apps run from released charts only. A jjforge PR labeled `preview` runs its
-own chart next to dev, as [docs/operations.md](docs/operations.md#previews)
-describes. Adding an app is a new directory under
-`cluster/apps/<app>/<env>/`, as [docs/operations.md](docs/operations.md#add-an-app-or-an-environment)
-describes.
+Apps run from released charts only. `docs/operations.md` describes:
+
+- [Adding an app](docs/operations.md#add-an-app-or-an-environment): a new
+  directory under `cluster/apps/<app>/<env>/`.
+- [Previews](docs/operations.md#previews): a jjforge PR labeled `preview` runs
+  its own chart next to dev.
