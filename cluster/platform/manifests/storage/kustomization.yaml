@@ -15,6 +15,26 @@ patches:
         name: local-path-storage
         labels:
           pod-security.kubernetes.io/enforce: privileged
+  # The provisioner itself only talks to the API, so it runs restricted.
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: local-path-provisioner
+        namespace: local-path-storage
+      spec:
+        template:
+          spec:
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 65532
+              runAsGroup: 65532
+              seccompProfile: { type: RuntimeDefault }
+            containers:
+              - name: local-path-provisioner
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities: { drop: [ALL] }
   # Talos keeps the data disk at /var/mnt/data, and /opt is
   # read-only there.
   - patch: |-

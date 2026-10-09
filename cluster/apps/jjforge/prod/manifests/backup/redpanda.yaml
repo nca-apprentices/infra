@@ -72,6 +72,7 @@ spec:
             - secretRef: { name: redpanda-backup-s3 }
           resources:
             requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
           volumeMounts:
             - name: config
               mountPath: /etc/connect

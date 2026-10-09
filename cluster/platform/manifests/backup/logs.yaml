@@ -40,10 +40,23 @@ spec:
       template:
         spec:
           restartPolicy: OnFailure
+          # Pod Security restricted, as the store's user, which owns the
+          # snapshots.
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 2000
+            seccompProfile: { type: RuntimeDefault }
           containers:
             - name: rclone
               image: rclone/rclone:1.75.1
               command: [sh, /scripts/backup.sh]
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities: { drop: [ALL] }
+              resources:
+                requests: { cpu: 100m, memory: 128Mi }
+                limits: { memory: 512Mi }
               env:
                 - { name: RCLONE_CONFIG_HETZNER_TYPE, value: s3 }
                 - { name: RCLONE_CONFIG_HETZNER_PROVIDER, value: Other }
