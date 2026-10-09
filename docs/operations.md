@@ -282,8 +282,6 @@ writing it down here rather than discovering it during an outage.
 | Variable                           | What it is                                                          |
 | ---------------------------------- | ------------------------------------------------------------------- |
 | `TF_VAR_hcloud_token`              | Hetzner Cloud API token with read and write access                  |
-| `TF_VAR_porkbun_api_key`           | Porkbun API key                                                     |
-| `TF_VAR_porkbun_secret_key`        | Porkbun secret key                                                  |
 | `TF_VAR_cloudflare_api_token`      | Cloudflare API token that edits the zone, its DNS, and its settings |
 | `TF_VAR_cloudflare_account_id`     | ID of the Cloudflare account                                        |
 | `TF_VAR_operator_cidrs`            | Where talosctl and kubectl run from, as a list                      |

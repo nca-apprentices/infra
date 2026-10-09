@@ -3,16 +3,6 @@ variable "hcloud_token" {
   sensitive = true
 }
 
-variable "porkbun_api_key" {
-  type      = string
-  sensitive = true
-}
-
-variable "porkbun_secret_key" {
-  type      = string
-  sensitive = true
-}
-
 variable "cloudflare_api_token" {
   type      = string
   sensitive = true

@@ -21,10 +21,6 @@ terraform {
       source  = "hetznercloud/hcloud"
       version = "1.69.0"
     }
-    porkbun = {
-      source  = "cullenmcdermott/porkbun"
-      version = "0.3.0"
-    }
     cloudflare = {
       source  = "cloudflare/cloudflare"
       version = "5.27.0"
@@ -38,11 +34,6 @@ terraform {
 
 provider "hcloud" {
   token = var.hcloud_token
-}
-
-provider "porkbun" {
-  api_key    = var.porkbun_api_key
-  secret_key = var.porkbun_secret_key
 }
 
 provider "cloudflare" {

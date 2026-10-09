@@ -36,16 +36,10 @@ then delete the local copy.
 | -------------------------------------------------- | ------------------------------------------ |
 | Hetzner Cloud API token with read and write access | Console, project, Security, API tokens     |
 | Bucket `nca-tofu` in `nbg1`, and an S3 key pair    | Console, Object Storage                    |
-| Porkbun API key and secret key                     | `porkbun.com`, Account, API Access         |
-| API access for the domain                          | `porkbun.com`, the domain's Details        |
 | Cloudflare account on the Free plan, and its ID    | `dash.cloudflare.com`, Account home        |
 | Cloudflare API token, see below                    | `dash.cloudflare.com`, Profile, API Tokens |
 | One S3 key pair per backup bucket, six in all      | Console, Object Storage                    |
 | The project's numeric ID                           | Console, the project's URL                 |
-
-A new Porkbun domain comes with parking records: an ALIAS at the apex and a
-wildcard CNAME, both to `pixie.porkbun.com`. Delete both under the domain's DNS
-settings. Tofu can't create its A records next to them.
 
 The Cloudflare token is a custom token that may edit Zone, DNS, and Zone
 Settings, for all zones of the account. Editing Zone lets tofu create the zone.
@@ -62,8 +56,6 @@ sops --encrypt --in-place secrets/tofu.enc.env
 
 ```sh
 TF_VAR_hcloud_token=...
-TF_VAR_porkbun_api_key=...
-TF_VAR_porkbun_secret_key=...
 TF_VAR_cloudflare_api_token=...
 TF_VAR_cloudflare_account_id=...
 TF_VAR_operator_cidrs=["203.0.113.7/32"]
@@ -270,8 +262,11 @@ mise run apply
 
 Before you confirm, read the plan. It updates the server in place, with a new
 name and the private network, and creates the network, the subnet, the
-firewall, the volume, and two DNS records. If it replaces the server, answer
-no.
+firewall, the volume, and the Cloudflare zone with its records. If it replaces
+the server, answer no.
+
+At Porkbun, the registrar, set the domain's name servers to the
+`cloudflare_name_servers` output, in the domain's Details.
 
 ## 9. Rebuild the server with Talos
 
