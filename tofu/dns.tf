@@ -69,3 +69,10 @@ resource "cloudflare_zone_setting" "ssl" {
   setting_id = "ssl"
   value      = "strict"
 }
+
+# Signs the zone. The DS record that `dnssec_ds` shows goes to Porkbun, which
+# hands it to the .dev registry, so resolvers can check the signatures.
+resource "cloudflare_zone_dnssec" "main" {
+  zone_id = cloudflare_zone.main.id
+  status  = "active"
+}

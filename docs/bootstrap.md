@@ -266,7 +266,8 @@ firewall, the volume, and the Cloudflare zone with its records. If it replaces
 the server, answer no.
 
 At Porkbun, the registrar, set the domain's name servers to the
-`cloudflare_name_servers` output, in the domain's Details.
+`cloudflare_name_servers` output, in the domain's Details. Then add the DS
+record of the `dnssec_ds` output under DNSSEC there.
 
 ## 9. Rebuild the server with Talos
 
