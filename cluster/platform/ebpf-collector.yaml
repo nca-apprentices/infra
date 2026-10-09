@@ -1,0 +1,133 @@
+# Watches every pod on the node through eBPF, with no change to the apps:
+# - Pyroscope in profiles.yaml gets each pod's CPU profiles.
+# - Beyla turns the apps' HTTP, gRPC, SQL, Redis, and Kafka calls into traces
+#   for the OpenTelemetry Collector in telemetry.yaml, and into request rate,
+#   error, and duration metrics for VictoriaMetrics.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ebpf-collector
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: alloy
+    targetRevision: "1.13.0"
+    helm:
+      releaseName: ebpf-collector
+      valuesObject:
+        # eBPF needs root in the host PID namespace.
+        controller: { hostPID: true }
+        alloy:
+          securityContext: { privileged: true, runAsUser: 0, runAsGroup: 0 }
+          enableReporting: false
+          resources:
+            requests: { cpu: 50m, memory: 256Mi }
+            limits: { memory: 1Gi }
+          # The chart sets HOSTNAME to the node's name. Each profile is named
+          # ebpf/<namespace>/<container>.
+          #
+          # Beyla skips a service that already sends OpenTelemetry, such as
+          # jjforge's server, so its spans don't arrive twice. The Collector
+          # matches each span to its pod by the pod UID Beyla sets.
+          configMap:
+            content: |
+              discovery.kubernetes "pods" {
+                role = "pod"
+                selectors {
+                  role  = "pod"
+                  field = "spec.nodeName=" + sys.env("HOSTNAME")
+                }
+              }
+
+              discovery.relabel "pods" {
+                targets = discovery.kubernetes.pods.targets
+                rule {
+                  action        = "drop"
+                  source_labels = ["__meta_kubernetes_pod_phase"]
+                  regex         = "Succeeded|Failed"
+                }
+                rule {
+                  source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
+                  separator     = "/"
+                  replacement   = "ebpf/${1}"
+                  target_label  = "service_name"
+                }
+                rule {
+                  source_labels = ["__meta_kubernetes_namespace"]
+                  target_label  = "namespace"
+                }
+                rule {
+                  source_labels = ["__meta_kubernetes_pod_name"]
+                  target_label  = "pod"
+                }
+              }
+
+              pyroscope.ebpf "pods" {
+                targets    = discovery.relabel.pods.output
+                forward_to = [pyroscope.write.profiles.receiver]
+              }
+
+              pyroscope.write "profiles" {
+                endpoint {
+                  url = "http://profiles.observability.svc:4040"
+                }
+              }
+
+              beyla.ebpf "apps" {
+                attributes {
+                  kubernetes {
+                    enable = "true"
+                  }
+                }
+                discovery {
+                  instrument {
+                    kubernetes {
+                      namespace = "*-dev"
+                    }
+                  }
+                  instrument {
+                    kubernetes {
+                      namespace = "*-prod"
+                    }
+                  }
+                }
+                output {
+                  traces = [otelcol.processor.batch.apps.input]
+                }
+              }
+
+              otelcol.processor.batch "apps" {
+                output {
+                  traces = [otelcol.exporter.otlphttp.telemetry.input]
+                }
+              }
+
+              otelcol.exporter.otlphttp "telemetry" {
+                client {
+                  endpoint = "http://telemetry.observability.svc:4318"
+                }
+              }
+
+              prometheus.scrape "apps" {
+                targets      = beyla.ebpf.apps.targets
+                honor_labels = true
+                forward_to   = [prometheus.remote_write.metrics.receiver]
+              }
+
+              prometheus.remote_write "metrics" {
+                endpoint {
+                  url = "http://vmsingle-metrics.observability.svc:8428/api/v1/write"
+                }
+              }
+  # The collector reads the host's processes, so it runs in node-agents, see
+  # manifests/policies/node-agents.yaml.
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: node-agents
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ServerSideApply=true]

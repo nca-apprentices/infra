@@ -38,10 +38,10 @@ spec:
               - SETGID
               - SETUID
             cleanCiliumState: [NET_ADMIN, SYS_ADMIN, SYS_RESOURCE]
+        # Relay answers `hubble observe` through a port-forward, which shows
+        # the flows the network policies drop.
         hubble:
           relay: { enabled: true }
-          # Served at ops.nca-apprentices.dev/hubble behind the GitHub login.
-          ui: { enabled: true, baseUrl: /hubble/, rollOutPods: true }
         # Operator replicas refuse to share a node, so a second one stays
         # Pending, and keeps this Application Degraded, until a second node
         # joins.

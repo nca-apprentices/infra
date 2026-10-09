@@ -63,10 +63,10 @@ data:
       }
       * { box-sizing: border-box; }
       body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, sans-serif; }
-      main { max-width: 56rem; margin: 0 auto; padding: 3rem 1rem; }
+      main { max-width: 64rem; margin: 0 auto; padding: 3rem 1rem; }
       h1 { margin: 0; font-size: 1.75rem; }
       h2 { margin: 2.5rem 0 .75rem; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-      ul { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .75rem; margin: 0; padding: 0; list-style: none; }
+      ul { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: .75rem; margin: 0; padding: 0; list-style: none; }
       a { display: block; height: 100%; padding: 1rem 1.1rem; background: var(--card); border: 1px solid var(--line); border-radius: .6rem; color: inherit; text-decoration: none; }
       a:hover, a:focus-visible { border-color: var(--accent); }
       strong { display: block; color: var(--accent); }
@@ -80,11 +80,9 @@ data:
       <ul>
         <!-- Starts the Argo CD login, which GitHub completes without a click. -->
         <li><a href="/argocd/auth/login?return_url=https%3A%2F%2Fops.nca-apprentices.dev%2Fargocd%2Fapplications"><strong>Argo CD</strong><span>Deploys the cluster from the <code>nca-apprentices/infra</code> repository on GitHub and shows whether each app matches it.</span><small>admins: everything. dev: syncs jjforge-dev and ncaleague-dev and sets their images. Others: read.</small></a></li>
-        <li><a href="/grafana/"><strong>Grafana</strong><span>Dashboards of the metrics. Explore queries metrics and logs.</span><small>admins: edit. Others: view and Explore.</small></a></li>
-        <li><a href="/grafana/alerting/groups?alertmanager=Alertmanager"><strong>Alerts</strong><span>The firing alerts and silences from Alertmanager, in Grafana.</span><small>admins: silence. Others: view.</small></a></li>
+        <li><a href="/grafana/"><strong>Grafana</strong><span>Dashboards of the metrics. Explore queries metrics, logs, and profiles.</span><small>admins: edit. Others: view and Explore.</small></a></li>
         <li><a href="/logs/select/vmui/"><strong>VictoriaLogs</strong><span>Searches the logs of every pod.</span><small>Everyone: search.</small></a></li>
         <li><a href="/headlamp/"><strong>Headlamp</strong><span>Shows the Kubernetes objects in the cluster.</span><small>Everyone: read, except Secrets.</small></a></li>
-        <li><a href="/hubble/"><strong>Hubble</strong><span>Shows the network traffic between pods, and the traffic the network policies drop.</span><small>Everyone: read, every namespace.</small></a></li>
       </ul>
       <h2>jjforge-dev</h2>
       <ul>

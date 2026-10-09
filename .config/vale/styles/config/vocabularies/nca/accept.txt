@@ -24,3 +24,5 @@ VictoriaLogs
 VictoriaMetrics
 vmalert
 middleware
+Pyroscope
+Beyla

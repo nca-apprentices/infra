@@ -208,15 +208,14 @@ grant more:
 - `dev`: the apprentices. They also sync `jjforge-dev` and `ncaleague-dev` and
   set their Helm parameters in Argo CD.
 
-| Path                     | Tool             | Signs in with        | Everyone else in the organization                           |
-| ------------------------ | ---------------- | -------------------- | ----------------------------------------------------------- |
-| `/argocd`                | Argo CD          | Its own GitHub login | Reads                                                       |
-| `/grafana`               | Grafana          | Its own GitHub login | Reads, searches logs and traces in Explore, and sees alerts |
-| `/headlamp`              | Headlamp         | `oauth2-proxy`       | Reads everything except Secrets                             |
-| `/logs`                  | VictoriaLogs     | `oauth2-proxy`       | Searches the logs                                           |
-| `/hubble`                | Hubble UI        | `oauth2-proxy`       | Reads the network flows of every namespace                  |
-| `/jjforge-dev/redpanda`  | Redpanda Console | `oauth2-proxy`       | Reads, writes, and deletes topics in `jjforge-dev`          |
-| `/jjforge-dev/seaweedfs` | SeaweedFS        | `oauth2-proxy`       | Changes buckets, files, and S3 users in `jjforge-dev`       |
+| Path                     | Tool             | Signs in with        | Everyone else in the organization                                      |
+| ------------------------ | ---------------- | -------------------- | ---------------------------------------------------------------------- |
+| `/argocd`                | Argo CD          | Its own GitHub login | Reads                                                                  |
+| `/grafana`               | Grafana          | Its own GitHub login | Reads, searches logs, traces, and profiles in Explore, and sees alerts |
+| `/headlamp`              | Headlamp         | `oauth2-proxy`       | Reads everything except Secrets                                        |
+| `/logs`                  | VictoriaLogs     | `oauth2-proxy`       | Searches the logs                                                      |
+| `/jjforge-dev/redpanda`  | Redpanda Console | `oauth2-proxy`       | Reads, writes, and deletes topics in `jjforge-dev`                     |
+| `/jjforge-dev/seaweedfs` | SeaweedFS        | `oauth2-proxy`       | Changes buckets, files, and S3 users in `jjforge-dev`                  |
 
 The three logins share one GitHub OAuth app, so GitHub asks once. Grafana and
 the portal's Argo CD link then go to GitHub and back without a click. Only
@@ -226,6 +225,9 @@ The prod stores have no UI.
 Headlamp acts as its own account for everyone, bound to the `view` role. For
 more, use kubectl. Argo CD has no administrator password, so kubectl is also the way
 in when the GitHub login fails.
+
+To see the flows the network policies drop, run `cilium hubble port-forward`,
+then `hubble observe --verdict DROPPED`.
 
 In `jjforge-dev`, a Helm parameter set in the Argo CD UI, such as an image tag,
 stays until someone removes it. Git still sets the chart version and values.
@@ -387,6 +389,16 @@ The Collector only receives, so every pod in the cluster reaches it on ports
 4317 and 4318. The stores stay out of reach. In Grafana, a log line with a
 `trace_id` field links to its trace. `TelemetryExportFailing` fires when a
 store refuses what the Collector sends.
+
+The eBPF collector in `platform/ebpf-collector.yaml` watches every pod
+without a change to the app:
+
+- Beyla traces the HTTP, gRPC, SQL, Redis, and Kafka calls of every app in a
+  `-dev` or `-prod` namespace, and sends the spans to the Collector. It skips
+  an app that already sends its own traces. It also writes request rate,
+  error, and duration metrics to VictoriaMetrics.
+- Pyroscope gets every pod's CPU profiles and keeps them 7 days without a
+  backup. Grafana shows them under the Pyroscope data source.
 
 ## Alerts
 

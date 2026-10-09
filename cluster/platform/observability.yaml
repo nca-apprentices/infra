@@ -67,6 +67,12 @@ spec:
               type: jaeger
               access: proxy
               url: http://traces.observability.svc:10428/select/jaeger
+            # Pyroscope, see profiles.yaml.
+            - name: Pyroscope
+              uid: pyroscope
+              type: grafana-pyroscope-datasource
+              access: proxy
+              url: http://profiles.observability.svc:4040
         # The default prefix, observability-victoria-metrics-k8s-stack, made
         # names and labels longer than the 63 characters Kubernetes allows.
         fullnameOverride: metrics

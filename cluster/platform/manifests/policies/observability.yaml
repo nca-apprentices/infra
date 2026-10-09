@@ -1,7 +1,8 @@
-# VictoriaMetrics, VictoriaLogs, and VictoriaTraces take writes and deletes,
-# Alertmanager takes silences, and github-alerts opens GitHub issues, all
-# without a login. Only the namespace itself, the log collector, Traefik with
-# the GitHub login in front, and the API server's webhook calls reach them.
+# VictoriaMetrics, VictoriaLogs, VictoriaTraces, and Pyroscope take writes and
+# deletes, Alertmanager takes silences, and github-alerts opens GitHub issues,
+# all without a login. Only the namespace itself, the log and eBPF
+# collectors, Traefik with the GitHub login in front, and the API server's
+# webhook calls reach them.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -17,6 +18,9 @@ spec:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: node-agents
             app.kubernetes.io/name: victoria-logs-collector
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: node-agents
+            app.kubernetes.io/instance: ebpf-collector
     - fromEntities: [kube-apiserver]
 ---
 # The OpenTelemetry Collector only receives, so every pod in the cluster may
