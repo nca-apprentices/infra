@@ -73,9 +73,12 @@ data:
       span { font-size: .9rem; }
       code { font-size: .85em; }
       small { display: block; margin-top: .5rem; color: var(--muted); font-size: .8rem; }
+      p { margin: .5rem 0 0; color: var(--muted); }
+      p a { display: inline; padding: 0; background: none; border: 0; color: var(--accent); text-decoration: underline; }
     </style>
     <main>
       <h1>nca ops</h1>
+      <p>Uptime of the apps and the alert pipeline: <a href="https://status.nca-apprentices.dev">status.nca-apprentices.dev</a></p>
       <h2>Cluster</h2>
       <ul>
         <!-- Starts the Argo CD login, which GitHub completes without a click. -->
