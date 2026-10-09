@@ -1,5 +1,5 @@
 # Public certificates for every Ingress. Traefik answers the HTTP-01 challenge
-# on the node's port 80, which the firewall opens to everyone.
+# on the node's port 80, which Let's Encrypt reaches through Cloudflare.
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -13,7 +13,7 @@ spec:
       - http01:
           ingress:
             ingressClassName: traefik
-            # Port 80 is open to everyone for this challenge alone.
+            # Port 80 carries this challenge alone.
             ingressTemplate:
               metadata:
                 annotations:
