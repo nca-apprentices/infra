@@ -32,14 +32,6 @@ locals {
       proxied = false
       content = "nca-apprentices.github.io"
     }
-    # The status page runs on GitHub Pages too, from nca-apprentices/status,
-    # so it stays up when the node is down.
-    status = {
-      name    = "status.${var.domain}"
-      type    = "CNAME"
-      proxied = false
-      content = "nca-apprentices.github.io"
-    }
     # Proves to GitHub that the org owns the domain, so no other account can
     # serve a Pages site under it.
     github_pages_challenge = {
@@ -60,6 +52,16 @@ resource "cloudflare_dns_record" "main" {
   content = each.value.content
   proxied = each.value.proxied
   ttl     = 1
+}
+
+# The status page is the Worker from nca-apprentices/status, which runs on
+# Cloudflare, so it stays up when the node is down. Cloudflare creates the DNS
+# record and the certificate itself.
+resource "cloudflare_workers_custom_domain" "status" {
+  account_id = var.cloudflare_account_id
+  zone_id    = cloudflare_zone.main.id
+  hostname   = "status.${var.domain}"
+  service    = "status"
 }
 
 # Cloudflare reaches the node over HTTPS and checks its Let's Encrypt
