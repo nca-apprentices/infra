@@ -15,7 +15,9 @@ TF_DATA_DIR="$scratch/tofu" tofu -chdir=tofu validate
 
 # A throwaway secret is enough to prove the config renders and is valid.
 talhelper gensecret >"$scratch/talsecret.yaml"
-talhelper genconfig \
+# Offline: the schematic ID is a hash of the schematic, so validation doesn't
+# need factory.talos.dev, whose handshake times out now and then and failed CI.
+talhelper genconfig --offline-mode \
   --config-file talos/talconfig.yaml \
   --secret-file "$scratch/talsecret.yaml" \
   --out-dir "$scratch/clusterconfig" >/dev/null
