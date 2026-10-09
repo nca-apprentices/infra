@@ -25,3 +25,4 @@ VictoriaMetrics
 vmalert
 middleware
 Beyla
+Alertmanager

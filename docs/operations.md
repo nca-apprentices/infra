@@ -306,6 +306,7 @@ into the namespace it names, and creates that namespace first.
 | `oauth2-proxy`                | `ops`           | `platform/`             | The same OAuth 2.0 app, and a cookie secret              |
 | `oauth2-proxy-apps`           | `ops`           | `platform/`             | The apps' OAuth 2.0 app, and a cookie secret             |
 | `github-alerts`               | `observability` | `platform/`             | The token that opens alert issues, see [Alerts](#alerts) |
+| `status-heartbeat`            | `observability` | `platform/`             | The token Watchdog posts to the status page with         |
 
 Everything else in the cluster comes from Git.
 
@@ -401,9 +402,27 @@ opens an issue labeled `alert` in this repository, and the issue closes when
 the alert resolves. Watch the repository to get the notifications.
 
 <https://status.nca-apprentices.dev> shows the uptime of the production
-hosts. [nca-apprentices/status](https://github.com/nca-apprentices/status)
-checks them from GitHub Actions about every 5 minutes, so it keeps working
-when the node is down, and opens an issue there per outage.
+apps and of the alert pipeline. A Cloudflare Worker in
+[nca-apprentices/status](https://github.com/nca-apprentices/status) checks
+the apps every 10 seconds, so it keeps working when the node is down.
+Alertmanager posts the always-firing `Watchdog` to it every minute, and the
+page shows the alert pipeline down after 5 minutes without a post. Outages
+show on the page only and open no issue.
+
+The `status-heartbeat` secret holds the token Alertmanager sends, the same as
+the Worker's `HEARTBEAT_TOKEN`. To set or rotate it:
+
+```sh
+kubectl -n observability create secret generic status-heartbeat \
+  --from-literal token=<token> --dry-run=client -o yaml \
+  > secrets/platform/status-heartbeat.enc.yaml
+sops --encrypt --in-place secrets/platform/status-heartbeat.enc.yaml
+sops --decrypt secrets/platform/status-heartbeat.enc.yaml | kubectl apply -f -
+```
+
+Then set the same token in the Worker with `mise run secret` in the status
+repository. Alertmanager reads the file on each send, so it needs no
+restart.
 
 `github-alerts` holds a fine-grained token that expires. When it expires, alerts
 stop opening issues without any error in Grafana. To renew it:

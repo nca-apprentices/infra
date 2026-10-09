@@ -87,13 +87,23 @@ spec:
         victoria-metrics-operator:
           admissionWebhooks: { certManager: { enabled: true } }
         # Every alert goes to GitHub, see manifests/alerts/github.yaml, except
-        # the always-firing Watchdog and the info alerts.
+        # the always-firing Watchdog and the info alerts. Watchdog goes to the
+        # status page every minute instead, which shows the alert pipeline
+        # down when it stops, see nca-apprentices/status.
         alertmanager:
+          spec:
+            # Mounted at /etc/vm/secrets/<name>/.
+            secrets: [status-heartbeat]
           config:
             route:
               receiver: blackhole
               group_by: [alertname]
               routes:
+                - matchers: ['alertname="Watchdog"']
+                  receiver: status
+                  group_wait: 0s
+                  group_interval: 1m
+                  repeat_interval: 1m
                 - matchers: ['severity!~"info|none"']
                   receiver: github
             receivers:
@@ -102,6 +112,13 @@ spec:
                 webhook_configs:
                   - url: http://github-alerts.observability.svc/v1/receiver
                     send_resolved: true
+              - name: status
+                webhook_configs:
+                  - url: https://status.nca-apprentices.dev/heartbeat/alerts
+                    send_resolved: false
+                    http_config:
+                      authorization:
+                        credentials_file: /etc/vm/secrets/status-heartbeat/token
         vmsingle:
           spec:
             retentionPeriod: "90d"
