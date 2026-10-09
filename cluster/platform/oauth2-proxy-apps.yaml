@@ -7,6 +7,7 @@ kind: Application
 metadata:
   name: oauth2-proxy-apps
   namespace: argocd
+  finalizers: [resources-finalizer.argocd.argoproj.io]
   annotations:
     argocd.argoproj.io/sync-wave: "2"
 spec:

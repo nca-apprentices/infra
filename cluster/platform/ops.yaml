@@ -5,6 +5,7 @@ kind: Application
 metadata:
   name: ops
   namespace: argocd
+  finalizers: [resources-finalizer.argocd.argoproj.io]
   annotations:
     # After the tools it routes to and the login in front of them.
     argocd.argoproj.io/sync-wave: "3"

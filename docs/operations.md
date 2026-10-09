@@ -164,7 +164,11 @@ can use it.
 ## Changing it
 
 - **A platform component:** add or edit a file in `platform/`. Argo CD syncs
-  it on merge.
+  it on merge. Removing a file deletes what its Application created only when
+  the Application has `resources-finalizer.argocd.argoproj.io`. The stateless
+  tools have it. The operators, the stores, the policies, and Cilium don't, so
+  removing or renaming one of their files leaves its resources running and
+  can't delete data or the network. Delete those resources by hand.
 - **An app release:** bump `targetRevision` in `dev/application.yaml`, then in
   `prod/application.yaml` once `dev` works. Renovate opens those PRs when a new
   chart is published.
