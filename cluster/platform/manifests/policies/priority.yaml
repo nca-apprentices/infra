@@ -13,3 +13,47 @@ metadata:
   name: preview
 value: -100
 description: Preview environments of pull requests.
+---
+# An app's chart, a dev member's Job, and a PR's chart all name their pods'
+# priority class. Any of them could claim prod's or the system's and evict
+# prod or the platform on the full node, so each environment gets its own
+# class or none:
+#
+#   jjforge-prod    prod
+#   jjforge-dev     none
+#   jjforge-pr-12   preview
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: app-priority
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE]
+        resources: [pods]
+  matchConditions:
+    - name: app
+      expression: request.namespace.matches('-(dev|prod|pr-[0-9]+)$')
+  variables:
+    - name: class
+      expression: object.spec.?priorityClassName.orValue('')
+    - name: allowed
+      expression: >-
+        request.namespace.endsWith('-prod') ? 'prod'
+        : request.namespace.endsWith('-dev') ? '' : 'preview'
+  validations:
+    - expression: variables.class in ['', variables.allowed]
+      messageExpression: >-
+        "A pod in " + request.namespace + " can't use the priority class "
+        + variables.class + "."
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: app-priority
+spec:
+  policyName: app-priority
+  validationActions: [Deny]

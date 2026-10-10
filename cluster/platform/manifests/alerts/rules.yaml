@@ -9,8 +9,13 @@ spec:
   groups:
     - name: backup
       rules:
+        # A CronJob that never succeeded has no last success, so its age
+        # counts instead.
         - alert: BackupJobStale
-          expr: time() - max by (namespace, cronjob) (kube_cronjob_status_last_successful_time{cronjob=~".+-backup"}) > 26 * 3600
+          expr: >-
+            time() - max by (namespace, cronjob) (kube_cronjob_status_last_successful_time{cronjob=~".+-backup"}) > 26 * 3600
+            or (time() - max by (namespace, cronjob) (kube_cronjob_created{cronjob=~".+-backup"}) > 26 * 3600
+            unless on (namespace, cronjob) kube_cronjob_status_last_successful_time)
           annotations:
             summary: "{{ $labels.namespace }}/{{ $labels.cronjob }} hasn't succeeded for more than a day."
         - alert: BackupMirrorDown
@@ -24,9 +29,14 @@ spec:
           annotations:
             summary: "{{ $labels.namespace }}/{{ $labels.pod }} can't archive WAL."
         # WAL replays from the last base backup, so a stalled ScheduledBackup
-        # makes every restore slower and, after the retention, impossible.
+        # makes every restore slower and, after the retention, impossible. A
+        # prod database whose backup plugin reports nothing has none at all.
         - alert: BaseBackupStale
-          expr: time() - barman_cloud_cloudnative_pg_io_last_available_backup_timestamp > 26 * 3600
+          expr: >-
+            time() - barman_cloud_cloudnative_pg_io_last_available_backup_timestamp > 26 * 3600
+            or (cnpg_collector_up{namespace=~".+-prod"}
+            unless on (namespace, pod) barman_cloud_cloudnative_pg_io_last_available_backup_timestamp)
+          for: 1h
           annotations:
             summary: "{{ $labels.namespace }}/{{ $labels.pod }} has no base backup from the last day."
     - name: ingress

@@ -7,8 +7,10 @@ kind: AppProject
 metadata:
   name: {{ .Release.Namespace }}
   namespace: argocd
+  # After the namespace's quotas and network policies, so the PR's chart
+  # can't sync before its limits are in place.
   annotations:
-    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   description: jjforge, the preview of a PR
   sourceRepos:

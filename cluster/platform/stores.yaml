@@ -1,0 +1,30 @@
+# What the Redpanda and SeaweedFS of redpanda.yaml and seaweedfs.yaml may
+# deploy: their charts, with values from this repository, into a dev or prod
+# namespace. Redpanda's chart needs Roles of its own, which the app projects
+# block, so the stores get this project. No team has rights in it.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: stores
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  description: Each environment's Redpanda and SeaweedFS
+  sourceRepos:
+    - https://charts.redpanda.com
+    - https://seaweedfs.github.io/seaweedfs/helm
+    - https://github.com/nca-apprentices/infra.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: "*-dev"
+    - server: https://kubernetes.default.svc
+      namespace: "*-prod"
+  clusterResourceWhitelist: []
+  # The platform's limits on the namespace, as in the app projects.
+  namespaceResourceBlacklist:
+    - { group: cilium.io, kind: "*" }
+    - { group: networking.k8s.io, kind: NetworkPolicy }
+    - { group: "", kind: LimitRange }
+    - { group: traefik.io, kind: "*" }
+    - { group: isindir.github.com, kind: SopsSecret }

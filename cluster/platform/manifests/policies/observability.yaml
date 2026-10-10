@@ -2,7 +2,7 @@
 # Alertmanager takes silences, and github-alerts opens GitHub issues, all
 # without a login. Only the namespace itself, the log and eBPF collectors,
 # Traefik with the GitHub login in front, and the API server's webhook calls
-# reach them.
+# reach them. Grafana is the exception, see grafana-reads below.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -12,7 +12,10 @@ spec:
   endpointSelector: {}
   ingress:
     - fromEndpoints:
-        - {}
+        - matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: NotIn
+              values: [grafana]
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: traefik
         - matchLabels:
@@ -22,6 +25,70 @@ spec:
             k8s:io.kubernetes.pod.namespace: node-agents
             app.kubernetes.io/instance: ebpf-collector
     - fromEntities: [kube-apiserver]
+---
+# Every member signs in to Grafana as at least a Viewer, and its data source
+# proxy forwards any method to any path a viewer names, such as
+# /api/v1/admin/tsdb/delete_series. So Grafana reaches the stores' read APIs
+# alone. Silences go through `kubectl port-forward` to Alertmanager instead.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: grafana-reads-metrics
+  namespace: observability
+spec:
+  endpointSelector:
+    matchLabels: { app.kubernetes.io/name: vmsingle }
+  ingress:
+    - fromEndpoints:
+        - matchLabels: { app.kubernetes.io/name: grafana }
+      toPorts:
+        - ports: [{ port: "8428", protocol: TCP }]
+          rules:
+            http:
+              - method: GET|POST
+                path: >-
+                  /api/v1/(query|query_range|query_exemplars|series|labels|label/[^/?]+/values|metadata|rules|alerts|format_query|status/[a-z_]+)(\?.*)?
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: grafana-reads-alerts
+  namespace: observability
+spec:
+  endpointSelector:
+    matchLabels: { app.kubernetes.io/name: vmalertmanager }
+  ingress:
+    - fromEndpoints:
+        - matchLabels: { app.kubernetes.io/name: grafana }
+      toPorts:
+        - ports: [{ port: "9093", protocol: TCP }]
+          rules:
+            http:
+              - { method: GET, path: "/api/v2/.*" }
+---
+# VictoriaLogs and VictoriaTraces read under /select/ alone, as the logs
+# route in manifests/ops/routes.yaml does.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: grafana-reads-logs
+  namespace: observability
+spec:
+  endpointSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [victoria-logs-single, vt-single]
+  ingress:
+    - fromEndpoints:
+        - matchLabels: { app.kubernetes.io/name: grafana }
+      toPorts:
+        - ports:
+            - { port: "9428", protocol: TCP }
+            - { port: "10428", protocol: TCP }
+          rules:
+            http:
+              - { method: GET|POST, path: "/select/.*" }
 ---
 # The OpenTelemetry Collector only receives, so every pod in the cluster may
 # send it OTLP. It writes to the stores, which stay isolated above.
