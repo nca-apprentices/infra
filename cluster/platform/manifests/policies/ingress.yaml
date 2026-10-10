@@ -37,12 +37,15 @@ spec:
         : variables.ns.endsWith('-dev') || variables.ns.matches('-pr-[0-9]+$')
         ? '^' + variables.ns + r'\.nca-apprentices\.dev$'
         : '^$'
-    # cert-manager's challenge Ingress: every path is a challenge token. The
-    # strict pattern leaves no encoded or dotted path that an app might read
-    # as another.
+    # cert-manager's challenge Ingress: port 80, where browsers send no Secure
+    # cookie, and every path a challenge token. Traefik matches paths as
+    # prefixes, and the strict pattern leaves no encoded or dotted path that an
+    # app might read as another.
     - name: acme
       expression: >-
-        object.spec.?rules.orValue([]).exists(r, size(r.?http.paths.orValue([])) > 0)
+        object.metadata.?annotations[?'traefik.ingress.kubernetes.io/router.entrypoints']
+        .orValue('') == 'web'
+        && object.spec.?rules.orValue([]).exists(r, size(r.?http.paths.orValue([])) > 0)
         && object.spec.?rules.orValue([]).all(r, r.?http.paths.orValue([]).all(p,
         p.?path.orValue('').matches(r'^/\.well-known/acme-challenge/[A-Za-z0-9_-]+$')))
     - name: middlewares
@@ -71,11 +74,12 @@ spec:
         An Ingress may not name TLS options, which would drop the client
         certificate check.
     - expression: >-
-        !object.metadata.?annotations[?'traefik.ingress.kubernetes.io/router.entrypoints'].hasValue()
+        object.metadata.?annotations[?'traefik.ingress.kubernetes.io/router.entrypoints']
+        .orValue('websecure') == 'websecure'
         || variables.acme
       message: >-
-        Only ACME challenges may name an entry point, since port 80 has no
-        client certificate check.
+        Only ACME challenges may serve on an entry point other than websecure,
+        since port 80 has no client certificate check.
     # Dev and previews sit behind the GitHub login, and a preview, which runs
     # a PR's code, also drops the login's cookie. The app's own chart writes
     # its Ingress, so the policy checks that it names both.
