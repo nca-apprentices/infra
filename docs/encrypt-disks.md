@@ -3,23 +3,38 @@
 The node runs without disk encryption. Talos encrypts a volume only when it
 creates it, so encryption arrives with the next node built from scratch, as
 in [bootstrap.md](bootstrap.md). Before that build, add LUKS2 to the data
-volume in `talos/talconfig.yaml`, and to the system disk's `STATE` and
+volume in `talos/patch.yaml`, and to the system disk's `STATE` and
 `EPHEMERAL` partitions:
 
 ```yaml
-    userVolumes:
-      - name: data
-        provisioning: ...
-        encryption: &luks
-          provider: luks2
-          keys:
-            - slot: 0
-              nodeID: {}
-    volumes:
-      - name: STATE
-        encryption: *luks
-      - name: EPHEMERAL
-        encryption: *luks
+---
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: data
+provisioning: ...
+encryption:
+  provider: luks2
+  keys:
+    - slot: 0
+      nodeID: {}
+---
+apiVersion: v1alpha1
+kind: VolumeConfig
+name: STATE
+encryption:
+  provider: luks2
+  keys:
+    - slot: 0
+      nodeID: {}
+---
+apiVersion: v1alpha1
+kind: VolumeConfig
+name: EPHEMERAL
+encryption:
+  provider: luks2
+  keys:
+    - slot: 0
+      nodeID: {}
 ```
 
 Never apply it to a node whose volumes exist: they would no longer mount.

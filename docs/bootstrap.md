@@ -85,7 +85,7 @@ function encrypt-to -a path
     sops encrypt --filename-override $path /dev/stdin >$path
 end
 
-talhelper gensecret | encrypt-to talos/talsecret.sops.yaml
+talosctl gen secrets --output-file - | encrypt-to talos/secrets.sops.yaml
 ```
 
 ## 5. Create the cluster secrets
@@ -245,7 +245,7 @@ kubectl create secret generic oauth2-proxy-apps --namespace ops \
 ```
 
 Remove the GitHub App's plain-text key, and commit `.sops.yaml`, `secrets/`,
-and `talos/talsecret.sops.yaml`:
+and `talos/secrets.sops.yaml`:
 
 ```fish
 rm $app_key
@@ -287,10 +287,7 @@ and the firewall must already limit that port to the operator addresses.
 In the console, detach every firewall from the server. Then:
 
 ```fish
-talhelper genconfig \
-    --config-file talos/talconfig.yaml \
-    --secret-file talos/talsecret.sops.yaml \
-    --out-dir talos/clusterconfig
+sops exec-file talos/secrets.sops.yaml "mise run talos:config {} talos/clusterconfig"
 sops exec-env secrets/tofu.enc.env "
     export TF_VAR_s3_access_key=\$AWS_ACCESS_KEY_ID TF_VAR_s3_secret_key=\$AWS_SECRET_ACCESS_KEY &&
     tofu -chdir=tofu init -input=false &&
@@ -364,7 +361,7 @@ Kubernetes kubeconfig with full access.
    every file to the new set of keys:
 
    ```fish
-   for f in secrets/**.enc.* talos/talsecret.sops.yaml
+   for f in secrets/**.enc.* talos/secrets.sops.yaml
        sops updatekeys --yes $f
    end
    ```

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Show how talconfig.yaml differs from the node, then apply it"
+#MISE description="Show how talos/patch.yaml differs from the node, then apply it"
 set -euo pipefail
 
 ip=$(sops exec-env secrets/tofu.enc.env "tofu -chdir=tofu output -raw node_ipv4")
@@ -10,10 +10,7 @@ export TALOSCONFIG=talos/clusterconfig/talosconfig
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 
-talhelper genconfig \
-  --config-file talos/talconfig.yaml \
-  --secret-file talos/talsecret.sops.yaml \
-  --out-dir "$scratch" >/dev/null
+sops exec-file talos/secrets.sops.yaml "mise run talos:config {} $scratch"
 
 # The dry run prints the difference to the running configuration and
 # changes nothing.

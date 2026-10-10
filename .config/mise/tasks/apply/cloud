@@ -2,12 +2,8 @@
 #MISE description="Generate the Talos node config and apply the tofu configuration"
 set -euo pipefail
 
-# The node boots from this file as Hetzner user data. talhelper decrypts the
-# cluster secrets itself.
-talhelper genconfig \
-  --config-file talos/talconfig.yaml \
-  --secret-file talos/talsecret.sops.yaml \
-  --out-dir talos/clusterconfig
+# The node boots from this file as Hetzner user data.
+sops exec-file talos/secrets.sops.yaml "mise run talos:config {} talos/clusterconfig"
 
 # The key that holds the state also manages the backup buckets, and each
 # bucket policy names it, so tofu needs it as a variable too.

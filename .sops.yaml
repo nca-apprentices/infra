@@ -31,5 +31,5 @@ creation_rules:
     age: [*escrow, *kevin-nca, *cluster]
   # Everything else is encrypted whole: the tofu credentials and the Talos
   # cluster secrets.
-  - path_regex: (secrets/.*\.enc\.env|talos/talsecret\.sops\.yaml)$
+  - path_regex: (secrets/.*\.enc\.env|talos/secrets\.sops\.yaml)$
     age: [*escrow, *kevin-nca]

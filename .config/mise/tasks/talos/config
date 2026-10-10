@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+#MISE description="Render the node config and talosconfig from a plain-text secrets bundle"
+#MISE hide=true
+#MISE arg "<secrets>" help="The output of `talosctl gen secrets`"
+#MISE arg "<out>" help="The directory to write nca-nca-1.yaml and talosconfig to"
+set -euo pipefail
+
+# The node's private address, which tofu/cloud.tf fixes.
+address=10.0.1.2
+
+# Callers decrypt talos/secrets.sops.yaml with `sops exec-file`, so the
+# secrets never reach the disk in plain text. The config does, which is why
+# talos/clusterconfig is ignored.
+talosctl gen config nca "https://$address:6443" \
+  --with-secrets "$1" \
+  --talos-version "$(yq .talos talos/versions.yaml)" \
+  --kubernetes-version "$(yq .kubernetes talos/versions.yaml)" \
+  --config-patch @talos/patch.yaml \
+  --output-types controlplane,talosconfig \
+  --with-docs=false \
+  --with-examples=false \
+  --force \
+  --output "$2" >/dev/null
+
+# Named after the node, as tofu/cloud.tf reads it.
+config=$2/nca-nca-1.yaml
+mv "$2/controlplane.yaml" "$config"
+
+# talosctl keeps a control plane node out of external load balancers, but this
+# one is also the worker. A patch can't delete the label: Talos splits its name
+# on the dots.
+yq -i 'del(.machine.nodeLabels["node.kubernetes.io/exclude-from-external-load-balancers"])' "$config"
+
+# The generated talosconfig names no node. This one names the private
+# address, which only the cloud network reaches, so tasks pass the public one.
+talosctl --talosconfig "$2/talosconfig" config endpoint "$address"
+talosctl --talosconfig "$2/talosconfig" config node "$address"

@@ -3,7 +3,7 @@ excludes = [
   ".terraform.lock.hcl",
   # Encrypted: sops rejects a file whose bytes changed.
   "secrets/**",
-  "talos/talsecret.sops.yaml",
+  "talos/secrets.sops.yaml",
   # Vendored unchanged, so an update replaces the whole file.
   "cluster/platform/manifests/storage/local-path-provisioner.yaml",
   # Go templates, which no YAML formatter parses.

@@ -1,5 +1,5 @@
 # Phase A: Hetzner Cloud, official provider, no Robot API. The nodes are cattle
-# -- Talos is installed from an image and configured by talhelper, so a node can
+# -- Talos is installed from an image and configured by talosctl, so a node can
 # be replaced without anything in this file changing.
 resource "hcloud_network" "private" {
   name     = "nca"
@@ -29,7 +29,7 @@ resource "hcloud_server" "node" {
 
   # Talos reads its machine configuration from Hetzner user data, so the node
   # boots configured and never sits in maintenance mode. `mise run apply:cloud`
-  # generates the file with talhelper first.
+  # generates the file first.
   user_data = file("${path.module}/../talos/clusterconfig/nca-nca-${count.index + 1}.yaml")
 
   # Attached at creation, so a new node is never reachable without it.
@@ -40,7 +40,7 @@ resource "hcloud_server" "node" {
     ipv6_enabled = true
   }
 
-  # Fixed, because talconfig.yaml names this address.
+  # Fixed, because the talos:config task names this address.
   network {
     network_id = hcloud_network.private.id
     ip         = cidrhost(hcloud_network_subnet.nodes.ip_range, count.index + 2)
@@ -59,5 +59,5 @@ resource "hcloud_volume" "data" {
   name      = "nca-data-${count.index + 1}"
   size      = 100
   server_id = hcloud_server.node[count.index].id
-  format    = "" # Talos formats it; see talos/talconfig.yaml
+  format    = "" # Talos formats it; see talos/patch.yaml
 }

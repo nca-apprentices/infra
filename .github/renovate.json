@@ -116,16 +116,16 @@
     {
       "customType": "regex",
       "description": "The Talos version the node runs.",
-      "managerFilePatterns": ["/^talos/talconfig\\.yaml$/"],
-      "matchStrings": ["talosVersion: (?<currentValue>v[\\d.]+)"],
+      "managerFilePatterns": ["/^talos/versions\\.yaml$/"],
+      "matchStrings": ["talos: (?<currentValue>v[\\d.]+)"],
       "datasourceTemplate": "github-releases",
       "depNameTemplate": "siderolabs/talos"
     },
     {
       "customType": "regex",
       "description": "The Kubernetes version the node runs.",
-      "managerFilePatterns": ["/^talos/talconfig\\.yaml$/"],
-      "matchStrings": ["kubernetesVersion: (?<currentValue>v[\\d.]+)"],
+      "managerFilePatterns": ["/^talos/versions\\.yaml$/"],
+      "matchStrings": ["kubernetes: (?<currentValue>v[\\d.]+)"],
       "datasourceTemplate": "github-releases",
       "depNameTemplate": "kubernetes/kubernetes"
     },

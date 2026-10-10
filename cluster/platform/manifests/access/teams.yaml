@@ -1,4 +1,4 @@
-# A member who signs in with GitHub, see talos/talconfig.yaml, gets the roles
+# A member who signs in with GitHub, see talos/patch.yaml, gets the roles
 # of their teams. The admins team runs the cluster. The dev team reads
 # everything but Secrets, and debugs the dev environments with dev-debug.
 # Changes go through git and Argo CD.
