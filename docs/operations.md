@@ -475,8 +475,9 @@ apps and of the alert pipeline. A Cloudflare Worker in
 [nca-apprentices/status](https://github.com/nca-apprentices/status) checks
 the apps every 10 seconds, so it keeps working when the node is down.
 Alertmanager posts the always-firing `Watchdog` to it every minute, and the
-page shows the alert pipeline down after 5 minutes without a post. Outages
-show on the page only and open no issue.
+page shows the alert pipeline down after 5 minutes without a post. An outage
+there opens an issue labeled `alert` in this repository as well, so a dead
+alert pipeline still reaches people.
 
 The `status-heartbeat` secret holds the token Alertmanager sends, the same as
 the Worker's `HEARTBEAT_TOKEN`. To rotate it, set `token` with
@@ -498,3 +499,6 @@ stop opening issues without any error in Grafana. To renew it:
    ```sh
    kubectl -n observability rollout restart deployment github-alerts
    ```
+
+3. Set the same token in the status Worker with `mise run github` in the
+   status repository.
