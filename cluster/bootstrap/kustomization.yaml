@@ -32,6 +32,22 @@ patches:
             end
           end
           return hs
+        # The operator reports each SopsSecret in one status message. Anything
+        # but Healthy or suspended is an error, and the Secret keeps its last
+        # good data. The secrets Application turns Degraded, which alerts.
+        resource.customizations.health.isindir.github.com_SopsSecret: |
+          hs = { status = "Progressing", message = "Waiting for the operator" }
+          if obj.status ~= nil and obj.status.message ~= nil then
+            hs.message = obj.status.message
+            if obj.status.message == "Healthy" then
+              hs.status = "Healthy"
+            elseif obj.status.message == "Reconciliation is suspended" then
+              hs.status = "Suspended"
+            else
+              hs.status = "Degraded"
+            end
+          end
+          return hs
   # Server-side diff compares with what the API server would store, so fields
   # that webhooks and defaults fill in don't show as drift under server-side
   # apply. The timeout ends a sync that waits for health forever: a child that
@@ -129,9 +145,9 @@ patches:
               logURL: "{{ .context.argocdUrl }}/applications/argocd/{{ .app.metadata.name }}"
               requiredContexts: []
               autoMerge: false
-  # argocd-notifications-secret comes from secrets/platform/, which the
-  # bootstrap applies first. Argo CD's manifests ship it empty, and applying
-  # them server-side would remove the App's key from it.
+  # argocd-notifications-secret comes from secrets/platform/, through the sops
+  # operator. Argo CD's manifests ship it empty, and applying them server-side
+  # would remove the App's key from it.
   - patch: |-
       $patch: delete
       apiVersion: v1

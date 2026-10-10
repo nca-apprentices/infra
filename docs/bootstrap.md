@@ -25,8 +25,8 @@ age-keygen -o ~/.config/sops/age/nca.txt
 set -x SOPS_AGE_KEY_FILE ~/.config/sops/age/nca.txt
 ```
 
-In `.sops.yaml`, put the two public keys in the `recipients` list, the escrow
-key first, each with a comment that names it. Put
+In `.sops.yaml`, put the two public keys in `keys`, the escrow key first, each
+anchored under a name, and in every rule. Put
 `escrow.age.txt` in escrow as [operations.md](operations.md#escrow) describes,
 then delete the local copy.
 
@@ -80,9 +80,11 @@ sops --encrypt --in-place talos/talsecret.sops.yaml
 
 ## 5. Create the cluster secrets
 
-`mise run bootstrap` applies every `*.enc.yaml` under `secrets/` before
-Argo CD starts. Argo CD reads this repository as a GitHub App, since
-the organization allows no deploy keys. The apps' charts and images on GHCR
+`mise run bootstrap` applies the Secrets in `secrets/bootstrap/` before Argo CD
+starts. Every other secret is a SopsSecret, which Argo CD syncs and
+sops-secrets-operator decrypts with the cluster key, as
+[operations.md](operations.md#in-the-cluster) describes. Argo CD reads this
+repository as a GitHub App, since the organization allows no deploy keys. The apps' charts and images on GHCR
 are public, so pulling them takes no credentials.
 
 Create the app at
@@ -94,9 +96,20 @@ and `jjforge` repositories only. The installation ID is the number at the end
 of the installation's settings URL. Argo CD reads `infra` with it, lists
 jjforge's PRs for previews, and records each deployment in `jjforge`.
 
+The cluster key comes first. Put the public key it prints in `.sops.yaml` as
+the `cluster` key, so the files below are encrypted to it:
+
 ```fish
-mkdir -p secrets/platform secrets/apps/jjforge/prod secrets/apps/jjforge/dev \
-    secrets/apps/ncaleague/prod
+mkdir -p secrets/bootstrap secrets/platform secrets/apps/jjforge/prod \
+    secrets/apps/jjforge/dev secrets/apps/ncaleague/prod
+age-keygen 2>/dev/null |
+    kubectl create secret generic sops-age --namespace sops \
+        --from-file keys.txt=/dev/stdin --dry-run=client -o yaml \
+    >secrets/bootstrap/sops-age.enc.yaml
+yq '.data["keys.txt"]' secrets/bootstrap/sops-age.enc.yaml | base64 -d | age-keygen -y
+```
+
+```fish
 set app_id 123456             # App ID
 set installation_id 12345678  # installation ID
 set app_key ~/Downloads/nca-argocd.*.private-key.pem
@@ -111,12 +124,13 @@ kubectl create secret generic infra-repo --namespace argocd \
     --from-file githubAppPrivateKey=$app_key \
     --dry-run=client -o yaml |
     kubectl label --local -f - argocd.argoproj.io/secret-type=repository -o yaml \
-    >secrets/platform/infra-repo.enc.yaml
+    >secrets/bootstrap/infra-repo.enc.yaml
 kubectl create secret generic argocd-notifications-secret --namespace argocd \
     --from-literal github-appID=$app_id \
     --from-literal github-installationID=$installation_id \
     --from-file github-privateKey=$app_key \
-    --dry-run=client -o yaml >secrets/platform/argocd-notifications-secret.enc.yaml
+    --dry-run=client -o yaml |
+    yq --from-file secrets/sopssecret.yq >secrets/platform/argocd-notifications-secret.enc.yaml
 ```
 
 The SeaweedFS S3 identities, one set per environment. Every S3 request needs a
@@ -130,7 +144,8 @@ for env in prod dev
     printf '{"identities":[{"name":"admin","credentials":[{"accessKey":"%s","secretKey":"%s"}],"actions":["Admin","Read","List","Tagging","Write"]}]}' $ak $sk |
         kubectl create secret generic seaweedfs-s3-config --namespace jjforge-$env \
             --from-file seaweedfs_s3_config=/dev/stdin \
-            --dry-run=client -o yaml >secrets/apps/jjforge/$env/seaweedfs-s3-config.enc.yaml
+            --dry-run=client -o yaml |
+        yq --from-file secrets/sopssecret.yq >secrets/apps/jjforge/$env/seaweedfs-s3-config.enc.yaml
 end
 set -e ak sk
 ```
@@ -145,7 +160,8 @@ function backup-secret -a name namespace dir
         --from-literal AWS_ACCESS_KEY_ID=$key \
         --from-literal AWS_SECRET_ACCESS_KEY=$secret \
         --from-literal AWS_REGION=fsn1 \
-        --dry-run=client -o yaml >secrets/$dir/$name.enc.yaml
+        --dry-run=client -o yaml |
+        yq --from-file secrets/sopssecret.yq >secrets/$dir/$name.enc.yaml
 end
 
 backup-secret jjforge-backup-s3 jjforge-prod apps/jjforge/prod
@@ -174,19 +190,21 @@ kubectl create secret generic argocd-github --namespace argocd \
     --from-literal clientID=$id \
     --from-literal clientSecret=$secret \
     --dry-run=client -o yaml |
-    kubectl label --local -f - app.kubernetes.io/part-of=argocd -o yaml \
-    >secrets/platform/argocd-github.enc.yaml
+    kubectl label --local -f - app.kubernetes.io/part-of=argocd -o yaml |
+    yq --from-file secrets/sopssecret.yq >secrets/platform/argocd-github.enc.yaml
 
 kubectl create secret generic grafana-github --namespace observability \
     --from-literal clientID=$id \
     --from-literal clientSecret=$secret \
-    --dry-run=client -o yaml >secrets/platform/grafana-github.enc.yaml
+    --dry-run=client -o yaml |
+    yq --from-file secrets/sopssecret.yq >secrets/platform/grafana-github.enc.yaml
 
 kubectl create secret generic oauth2-proxy --namespace ops \
     --from-literal client-id=$id \
     --from-literal client-secret=$secret \
     --from-literal cookie-secret=(openssl rand -hex 16) \
-    --dry-run=client -o yaml >secrets/platform/oauth2-proxy.enc.yaml
+    --dry-run=client -o yaml |
+    yq --from-file secrets/sopssecret.yq >secrets/platform/oauth2-proxy.enc.yaml
 ```
 
 The GitHub login of the app environments has an OAuth 2.0 app of its own, so
@@ -202,7 +220,8 @@ kubectl create secret generic oauth2-proxy-apps --namespace ops \
     --from-literal client-id=$id \
     --from-literal client-secret=$secret \
     --from-literal cookie-secret=(openssl rand -hex 16) \
-    --dry-run=client -o yaml >secrets/platform/oauth2-proxy-apps.enc.yaml
+    --dry-run=client -o yaml |
+    yq --from-file secrets/sopssecret.yq >secrets/platform/oauth2-proxy-apps.enc.yaml
 ```
 
 Encrypt them all, remove the plain-text key, and commit `.sops.yaml`,
@@ -323,9 +342,9 @@ Kubernetes kubeconfig with full access.
    age-keygen -o ~/.config/sops/age/nca.txt
    ```
 
-2. An existing operator adds the public key to the `recipients` list in
-   `.sops.yaml`, with a comment that names its owner, then re-encrypts every
-   file to the new set of keys:
+2. An existing operator adds the public key to `keys` in `.sops.yaml`,
+   anchored under its owner's name, and to every rule. Then they re-encrypt
+   every file to the new set of keys:
 
    ```fish
    for f in secrets/**.enc.* talos/talsecret.sops.yaml
@@ -369,8 +388,9 @@ Kubernetes kubeconfig with full access.
 ### Remove an operator
 
 1. Remove their key from `.sops.yaml` and run the `sops updatekeys` loop.
-2. Rotate every credential in `secrets/`. They could read them in plain
-   text.
+2. Rotate every credential in `secrets/`, and replace the cluster key as
+   [operations.md](operations.md#in-the-cluster) describes. They could read
+   them in plain text.
 3. Remove their address from `TF_VAR_operator_cidrs` and run `mise run apply`.
 4. Talos can't revoke one client certificate, but the firewall already cuts
    them off. For full revocation, rotate the cluster CAs with

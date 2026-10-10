@@ -1,0 +1,46 @@
+# sops-secrets-operator turns each SopsSecret from secrets.yaml into a Secret,
+# with the cluster age key that the bootstrap applies, see
+# docs/operations.md#secrets. manifests/policies/sops.yaml limits who creates
+# a SopsSecret and what the operator reaches.
+#
+# No deletion finalizer: deleting this Application would delete the CRD, then
+# every SopsSecret, then every Secret they own.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sops
+  namespace: argocd
+  annotations:
+    # With Cilium: every platform secret depends on it.
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://isindir.github.io/sops-secrets-operator/
+    chart: sops-secrets-operator
+    targetRevision: "0.28.1"
+    helm:
+      releaseName: sops
+      valuesObject:
+        image: { pullPolicy: IfNotPresent }
+        secretsAsFiles:
+          - { name: age-key, mountPath: /etc/sops-age, secretName: sops-age }
+        extraEnv:
+          - { name: SOPS_AGE_KEY_FILE, value: /etc/sops-age/keys.txt }
+        resources:
+          requests: { cpu: 5m, memory: 32Mi }
+          limits: { memory: 128Mi }
+        securityContext:
+          enabled: true
+          container:
+            enabled: true
+            customContainerSecurityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: { drop: [ALL] }
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sops
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]

@@ -11,23 +11,24 @@ jjforge PR is the one exception.
 One cluster runs every app. An app's environments, such as `dev` and `prod`,
 are namespaces in it, named `<app>-<env>`.
 
-| Path                                     | What it is                                         | Applied by                             |
-| ---------------------------------------- | -------------------------------------------------- | -------------------------------------- |
-| `tofu/`                                  | Network, firewall, volume, node, DNS roots         | `mise run apply`                       |
-| `talos/`                                 | Machine configuration, as talhelper input          | `mise run apply`                       |
-| `cluster/bootstrap/`                     | Argo CD and the root Application                   | `mise run bootstrap`                   |
-| `cluster/platform/`                      | One Argo CD Application per platform component     | Argo CD                                |
-| `cluster/platform/manifests/`            | Plain manifests a platform Application points at   | Argo CD                                |
-| `cluster/platform/charts/`               | Helm charts every environment renders              | Argo CD                                |
-| `cluster/apps/<app>/<env>/`              | The namespace, AppProject, and Applications        | Argo CD                                |
-| `cluster/apps/<app>/<env>/manifests/`    | Plain manifests an app Application points at       | Argo CD                                |
-| `cluster/apps/<app>/<env>/stores/`       | Helm values of the environment's stores            | Argo CD                                |
-| `cluster/apps/<app>/<env>/network/`      | Helm values of its network policies                | Argo CD                                |
-| `cluster/apps/<app>/<env>/database/`     | Helm values of its Postgres cluster                | Argo CD                                |
-| `cluster/apps/jjforge/preview/`          | The ApplicationSet of jjforge's PR previews        | Argo CD                                |
-| `secrets/platform/`                      | SOPS-encrypted platform credentials                | `mise run bootstrap`                   |
-| `secrets/apps/<app>/<env>/`              | SOPS-encrypted app credentials                     | `mise run bootstrap`                   |
-| `secrets/tofu.enc.env`                   | SOPS-encrypted cloud credentials                   | `mise run apply`, `mise run bootstrap` |
+| Path                                  | What it is                                          | Applied by                             |
+| ------------------------------------- | --------------------------------------------------- | -------------------------------------- |
+| `tofu/`                               | Network, firewall, volume, node, DNS roots          | `mise run apply`                       |
+| `talos/`                              | Machine configuration, as talhelper input           | `mise run apply`                       |
+| `cluster/bootstrap/`                  | Argo CD and the root Application                    | `mise run bootstrap`                   |
+| `cluster/platform/`                   | One Argo CD Application per platform component      | Argo CD                                |
+| `cluster/platform/manifests/`         | Plain manifests a platform Application points at    | Argo CD                                |
+| `cluster/platform/charts/`            | Helm charts every environment renders               | Argo CD                                |
+| `cluster/apps/<app>/<env>/`           | The namespace, AppProject, and Applications         | Argo CD                                |
+| `cluster/apps/<app>/<env>/manifests/` | Plain manifests an app Application points at        | Argo CD                                |
+| `cluster/apps/<app>/<env>/stores/`    | Helm values of the environment's stores             | Argo CD                                |
+| `cluster/apps/<app>/<env>/network/`   | Helm values of its network policies                 | Argo CD                                |
+| `cluster/apps/<app>/<env>/database/`  | Helm values of its Postgres cluster                 | Argo CD                                |
+| `cluster/apps/jjforge/preview/`       | The ApplicationSet of jjforge's PR previews         | Argo CD                                |
+| `secrets/bootstrap/`                  | SOPS-encrypted Secrets Argo CD needs to start       | `mise run bootstrap`                   |
+| `secrets/platform/`                   | SOPS-encrypted platform credentials, as SopsSecrets | Argo CD                                |
+| `secrets/apps/<app>/<env>/`           | SOPS-encrypted app credentials, as SopsSecrets      | Argo CD                                |
+| `secrets/tofu.enc.env`                | SOPS-encrypted cloud credentials                    | `mise run apply`, `mise run bootstrap` |
 
 The root Application syncs the files in `platform/`. Among them, the `apps`
 ApplicationSet creates one Application per directory in `apps/<app>/`, named
@@ -258,8 +259,10 @@ operators.
 
 ## Secrets
 
-Encrypted with SOPS and age, and decrypted on the operator's machine while a
-task runs. Run `sops` from the repository root, where `.sops.yaml` lives.
+Encrypted with SOPS and age. Run `sops` from the repository root, where
+`.sops.yaml` lives. The cloud credentials and the Talos secrets are decrypted
+on the operator's machine while a task runs. The cluster's secrets are
+decrypted in the cluster, see [In the cluster](#in-the-cluster).
 
 ### Escrow
 
@@ -271,10 +274,13 @@ Losing it means every encrypted file in this repository is scrap and every
 secret has to be reissued. That is recoverable but slow, which is the point of
 writing it down here rather than discovering it during an outage.
 
+The cluster key needs no escrow of its own. Its private half is in
+`secrets/bootstrap/sops-age.enc.yaml`, which the escrow key decrypts.
+
 ### Created once, by hand
 
 1. The age key: `age-keygen`, put the private half in escrow and the public
-   half in the `recipients` list of `.sops.yaml`.
+   half in `keys` and every rule of `.sops.yaml`.
 2. The tofu state bucket `nca-tofu` in Hetzner Object Storage, `nbg1`.
 3. `secrets/tofu.enc.env`, a dotenv file with the variables below,
    encrypted with `sops --encrypt --in-place`.
@@ -296,23 +302,82 @@ writing it down here rather than discovering it during an outage.
 
 ### Secrets that must exist before the first sync
 
-`mise run bootstrap` applies every `*.enc.yaml` under `secrets/`, each
-into the namespace it names, and creates that namespace first.
+`mise run bootstrap` applies each file in `secrets/bootstrap/`. It also creates
+every namespace a file under `secrets/` names, since the `secrets` Application
+syncs before the Applications that own most of them.
 
-| Secret                        | Namespace       | Directory               | What it is                                               |
-| ----------------------------- | --------------- | ----------------------- | -------------------------------------------------------- |
-| `infra-repo`                  | `argocd`        | `platform/`             | GitHub App key Argo CD reads this repository with        |
-| `argocd-notifications-secret` | `argocd`        | `platform/`             | The same GitHub App key, which records deployments       |
-| `<store>-backup-s3`           | The store's     | See [Backups](#backups) | The store's key for its backup bucket                    |
-| `seaweedfs-s3-config`         | `<app>-<env>`   | `apps/<app>/<env>/`     | The S3 identities and the buckets each may use           |
-| `argocd-github`               | `argocd`        | `platform/`             | The GitHub OAuth 2.0 app of the ops portal               |
-| `grafana-github`              | `observability` | `platform/`             | The same OAuth 2.0 app                                   |
-| `oauth2-proxy`                | `ops`           | `platform/`             | The same OAuth 2.0 app, and a cookie secret              |
-| `oauth2-proxy-apps`           | `ops`           | `platform/`             | The apps' OAuth 2.0 app, and a cookie secret             |
-| `github-alerts`               | `observability` | `platform/`             | The token that opens alert issues, see [Alerts](#alerts) |
-| `status-heartbeat`            | `observability` | `platform/`             | The token Watchdog posts to the status page with         |
+| Secret       | Namespace | What it is                                                 |
+| ------------ | --------- | ---------------------------------------------------------- |
+| `infra-repo` | `argocd`  | GitHub App key Argo CD reads this repository with          |
+| `sops-age`   | `sops`    | The cluster key, which decrypts the secrets in the cluster |
 
-Everything else in the cluster comes from Git.
+To change one, `sops edit` the file and run `mise run bootstrap`.
+
+### In the cluster
+
+Every other secret is a `SopsSecret` under `secrets/platform/` or
+`secrets/apps/`. The `secrets` Application syncs them, and
+sops-secrets-operator in the `sops` namespace decrypts each into the Secret of
+the same name, with the cluster key.
+
+| Secret                        | Namespace       | Directory               | What it is                                                 |
+| ----------------------------- | --------------- | ----------------------- | ---------------------------------------------------------- |
+| `argocd-notifications-secret` | `argocd`        | `platform/`             | The `infra-repo` GitHub App key, which records deployments |
+| `<store>-backup-s3`           | The store's     | See [Backups](#backups) | The store's key for its backup bucket                      |
+| `seaweedfs-s3-config`         | `<app>-<env>`   | `apps/<app>/<env>/`     | The S3 identities and the buckets each may use             |
+| `argocd-github`               | `argocd`        | `platform/`             | The GitHub OAuth 2.0 app of the ops portal                 |
+| `grafana-github`              | `observability` | `platform/`             | The same OAuth 2.0 app                                     |
+| `oauth2-proxy`                | `ops`           | `platform/`             | The same OAuth 2.0 app, and a cookie secret                |
+| `oauth2-proxy-apps`           | `ops`           | `platform/`             | The apps' OAuth 2.0 app, and a cookie secret               |
+| `github-alerts`               | `observability` | `platform/`             | The token that opens alert issues, see [Alerts](#alerts)   |
+| `status-heartbeat`            | `observability` | `platform/`             | The token Watchdog posts to the status page with           |
+
+To change a secret, `sops edit` its file, then commit and push. The operator
+updates the Secret as soon as Argo CD syncs the file. A pod that reads the Secret as
+environment variables needs a restart. To add one, convert the Secret and
+encrypt it:
+
+```sh
+kubectl -n <namespace> create secret generic <name> --from-literal <key>=<value> \
+  --dry-run=client -o yaml | yq --from-file secrets/sopssecret.yq \
+  > secrets/<dir>/<name>.enc.yaml
+sops --encrypt --in-place secrets/<dir>/<name>.enc.yaml
+```
+
+If the operator can't decrypt a file, the Secret keeps its last data, and the
+`secrets` Application turns Degraded, which opens an `ArgoAppUnhealthy` issue.
+
+Four limits keep the cluster key from reaching more than the cluster holds:
+
+- `.sops.yaml` encrypts only the files under `secrets/platform/` and
+  `secrets/apps/` to it, never `secrets/bootstrap/`, the cloud credentials,
+  or the Talos secrets.
+- The operator decrypts a `SopsSecret` into whatever namespace holds it, and
+  doesn't check the sops MAC. A copy of an encrypted file would decrypt in any
+  namespace its author can read. So only the `secrets` Application may create
+  a `SopsSecret`: the `sopssecrets` admission policy checks Argo CD's tracking
+  annotation, and the app projects deny the kind.
+- The `sops` namespace accepts no connections and reaches the API server
+  alone.
+- Only `admins` read Secrets in `sops`. Headlamp hides Secrets, and Argo CD
+  masks their data.
+
+Replace the cluster key when it leaks or an operator leaves:
+
+1. Create a new key as [bootstrap.md](bootstrap.md#5-create-the-cluster-secrets)
+   describes, and replace the `cluster` key in `.sops.yaml` with its public
+   half.
+2. Re-encrypt the cluster's secrets to it, and rotate each credential they
+   hold, since the old key reads every earlier version in Git:
+
+   ```fish
+   for f in secrets/platform/**.enc.yaml secrets/apps/**.enc.yaml
+       sops updatekeys --yes $f
+   end
+   ```
+
+3. Run `mise run bootstrap`, then commit and push. Until the push, the
+   operator fails on the old files and keeps the Secrets as they are.
 
 ## Backups
 
@@ -414,16 +479,8 @@ page shows the alert pipeline down after 5 minutes without a post. Outages
 show on the page only and open no issue.
 
 The `status-heartbeat` secret holds the token Alertmanager sends, the same as
-the Worker's `HEARTBEAT_TOKEN`. To set or rotate it:
-
-```sh
-kubectl -n observability create secret generic status-heartbeat \
-  --from-literal token=<token> --dry-run=client -o yaml \
-  > secrets/platform/status-heartbeat.enc.yaml
-sops --encrypt --in-place secrets/platform/status-heartbeat.enc.yaml
-sops --decrypt secrets/platform/status-heartbeat.enc.yaml | kubectl apply -f -
-```
-
+the Worker's `HEARTBEAT_TOKEN`. To rotate it, set `token` with
+`sops edit secrets/platform/status-heartbeat.enc.yaml`, then commit and push.
 Then set the same token in the Worker with `mise run secret` in the status
 repository. Alertmanager reads the file on each send, so it needs no
 restart.
@@ -435,13 +492,9 @@ stop opening issues without any error in Grafana. To renew it:
    `nca-apprentices` as the resource owner, access to `infra` only, and
    read and write access to Issues. Remind the admins team a week before it
    expires.
-2. Write it to the secret, encrypt it, and apply it:
+2. Set `token` with `sops edit secrets/platform/github-alerts.enc.yaml`,
+   then commit and push. Once Argo CD has synced, restart the receiver:
 
    ```sh
-   kubectl -n observability create secret generic github-alerts \
-     --from-literal token=<token> --dry-run=client -o yaml \
-     > secrets/platform/github-alerts.enc.yaml
-   sops --encrypt --in-place secrets/platform/github-alerts.enc.yaml
-   sops --decrypt secrets/platform/github-alerts.enc.yaml | kubectl apply -f -
    kubectl -n observability rollout restart deployment github-alerts
    ```

@@ -39,17 +39,22 @@ if ! kubectl -n argocd get application cilium >/dev/null 2>&1; then
     kubectl apply --server-side -f -
 fi
 
-# The secrets that must exist before the first sync, for the platform and for
-# every app, each into the namespace it names. See docs/operations.md.
-# Server-side, as a field manager of its own: Argo CD owns the namespaces, and
-# the Argo CD manifests below must not take over a secret's data.
+# Every namespace a secret names. The secrets Application syncs before the
+# Applications that own most of them, and the namespace names stay readable
+# in the encrypted files. Server-side, as a field manager of its own: Argo CD
+# owns the namespaces, and the Argo CD manifests below must not take over a
+# secret's data.
 apply=(kubectl apply --server-side --force-conflicts --field-manager=bootstrap-secrets -f -)
-while IFS= read -r secret; do
-  manifest=$(sops --decrypt "$secret")
-  namespace=$(yq .metadata.namespace <<<"$manifest")
+while IFS= read -r namespace; do
   kubectl create namespace "$namespace" --dry-run=client -o yaml | "${apply[@]}"
-  "${apply[@]}" <<<"$manifest"
-done < <(find secrets -name '*.enc.yaml' | sort)
+done < <(find secrets -name '*.enc.yaml' -exec yq --no-doc .metadata.namespace {} + | sort -u)
+
+# The secrets that must exist before the first sync: Argo CD's access to this
+# repository, and the cluster age key that decrypts the rest. See
+# docs/operations.md#secrets.
+for secret in secrets/bootstrap/*.enc.yaml; do
+  sops --decrypt "$secret" | "${apply[@]}"
+done
 
 # The root Application needs its CRD established, which the first apply of
 # the Argo CD manifests only starts.

@@ -1,0 +1,46 @@
+# The operator holds the cluster age key and reads every Secret, so nothing
+# may connect to it, and it reaches the API server alone. Decryption needs no
+# other address, so a compromised operator has nowhere to send what it reads.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: isolate
+  namespace: sops
+spec:
+  endpointSelector: {}
+  ingress: [{}]
+  egress:
+    - toEntities: [kube-apiserver]
+---
+# The operator decrypts a SopsSecret into whatever namespace holds it, and
+# ignores the sops MAC, so a copy of an encrypted file from this repository
+# would decrypt in any namespace its author can read. Only the secrets
+# Application may create one. Argo CD writes the tracking annotation itself,
+# so another Application can't claim to be it. The app projects also deny the
+# kind, see cluster/apps/*/*/project.yaml.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: sopssecrets
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [isindir.github.com]
+        apiVersions: ["*"]
+        operations: [CREATE, UPDATE]
+        resources: [sopssecrets]
+  validations:
+    - expression: >-
+        object.metadata.?annotations[?'argocd.argoproj.io/tracking-id'].orValue('').startsWith('secrets:')
+      message: >-
+        Only the secrets Application creates SopsSecrets, from secrets/ in
+        nca-apprentices/infra.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: sopssecrets
+spec:
+  policyName: sopssecrets
+  validationActions: [Deny]
