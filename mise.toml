@@ -1,6 +1,11 @@
-# The shared cluster. Run the tasks from the repository root:
-# `mise run image`, `mise run apply` and `mise run bootstrap`, each optionally
-# followed by an environment name. `mise run check` is what CI runs.
+# The shared cluster. Run the tasks from the repository root. `mise tasks`
+# lists them by group:
+#
+#   apply:*    change the cloud, the node, or the cluster, or restore data
+#   upgrade:*  move the node to the Talos or Kubernetes release in talconfig.yaml
+#   cluster:*  show the cluster's state and reach the node
+#   check      validate everything without credentials, as CI does
+#   fmt        format every file
 [tools]
 age = "1.3.2"
 "github:apricote/hcloud-upload-image" = "1.5.0"
@@ -34,5 +39,5 @@ vale = "3.24.0"
 [env]
 TREEFMT_CONFIG = "{{config_root}}/.config/treefmt.toml"
 VALE_CONFIG_PATH = "{{config_root}}/.config/vale/vale.ini"
-# Written by `mise run bootstrap`, or by talosctl when an operator is added.
+# Written by `mise run apply:bootstrap`, or by talosctl when an operator is added.
 KUBECONFIG = "{{config_root}}/talos/clusterconfig/kubeconfig"

@@ -90,7 +90,7 @@ talhelper gensecret | encrypt-to talos/talsecret.sops.yaml
 
 ## 5. Create the cluster secrets
 
-`mise run bootstrap` applies the Secrets in `secrets/bootstrap/` before Argo CD
+`mise run apply:bootstrap` applies the Secrets in `secrets/bootstrap/` before Argo CD
 starts. Every other secret is a SopsSecret, which Argo CD syncs and
 sops-secrets-operator decrypts with the cluster key, as
 [operations.md](operations.md#in-the-cluster) describes. Argo CD reads this
@@ -276,7 +276,7 @@ end
 ## 7. Upload the Talos image
 
 ```fish
-mise run image
+mise run apply:image
 ```
 
 ## 8. Put the server under tofu
@@ -296,7 +296,7 @@ sops exec-env secrets/tofu.enc.env "
     tofu -chdir=tofu init -input=false &&
     tofu -chdir=tofu import 'hcloud_server.node[0]' $server
 "
-mise run apply
+mise run apply:cloud
 ```
 
 Before you confirm, read the plan. It updates the server in place, with a new
@@ -325,7 +325,7 @@ talosctl apply-config --insecure -n $ip \
 ## 10. Bootstrap the cluster
 
 ```fish
-mise run bootstrap
+mise run apply:bootstrap
 ```
 
 ## 11. Check the result
@@ -373,7 +373,7 @@ Kubernetes kubeconfig with full access.
 
    ```fish
    sops edit secrets/tofu.enc.env
-   mise run apply
+   mise run apply:cloud
    ```
 
 4. Issue a Talos client certificate and encrypt it to the new operator's key:
@@ -410,7 +410,7 @@ Kubernetes kubeconfig with full access.
 2. Rotate every credential in `secrets/`, and replace the cluster key as
    [operations.md](operations.md#in-the-cluster) describes. They could read
    them in plain text.
-3. Remove their address from `TF_VAR_operator_cidrs` and run `mise run apply`.
+3. Remove their address from `TF_VAR_operator_cidrs` and run `mise run apply:cloud`.
 4. Talos can't revoke one client certificate, but the firewall already cuts
    them off. For full revocation, rotate the cluster CAs with
    `talosctl rotate-ca`.

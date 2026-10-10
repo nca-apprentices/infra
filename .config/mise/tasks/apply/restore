@@ -158,7 +158,7 @@ YAML
   k logs job/restore-logs | tail -5
   ;;
 *)
-  echo "usage: mise run restore metrics [until] | logs" >&2
+  echo "usage: mise run apply:restore metrics [until] | logs" >&2
   exit 1
   ;;
 esac

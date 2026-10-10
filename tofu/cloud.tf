@@ -13,7 +13,7 @@ resource "hcloud_network_subnet" "nodes" {
   ip_range     = "10.0.1.0/24"
 }
 
-# The Talos snapshot that `mise run image` uploads, newest first.
+# The Talos snapshot that `mise run apply:image` uploads, newest first.
 data "hcloud_image" "talos" {
   with_selector     = "os=talos"
   with_architecture = "arm"
@@ -28,7 +28,7 @@ resource "hcloud_server" "node" {
   image       = data.hcloud_image.talos.id
 
   # Talos reads its machine configuration from Hetzner user data, so the node
-  # boots configured and never sits in maintenance mode. `mise run apply`
+  # boots configured and never sits in maintenance mode. `mise run apply:cloud`
   # generates the file with talhelper first.
   user_data = file("${path.module}/../talos/clusterconfig/nca-nca-${count.index + 1}.yaml")
 
