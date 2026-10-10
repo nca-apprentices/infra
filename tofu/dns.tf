@@ -40,6 +40,19 @@ locals {
       proxied = false
       content = "\"fd04a41c9035f14e899af6ad3cda94\""
     }
+    # The domain sends no mail, so receivers reject any that claims it.
+    spf = {
+      name    = var.domain
+      type    = "TXT"
+      proxied = false
+      content = "\"v=spf1 -all\""
+    }
+    dmarc = {
+      name    = "_dmarc.${var.domain}"
+      type    = "TXT"
+      proxied = false
+      content = "\"v=DMARC1; p=reject\""
+    }
   }
 }
 

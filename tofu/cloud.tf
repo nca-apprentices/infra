@@ -35,6 +35,11 @@ resource "hcloud_server" "node" {
   # Attached at creation, so a new node is never reachable without it.
   firewall_ids = [hcloud_firewall.node.id]
 
+  # The node holds etcd and the data volume's only mount, so neither the
+  # Console nor a plan may delete or rebuild it. Hetzner wants both alike.
+  delete_protection  = true
+  rebuild_protection = true
+
   public_net {
     ipv4_enabled = true
     ipv6_enabled = true
@@ -50,7 +55,8 @@ resource "hcloud_server" "node" {
     # The image is only the installer and the user data only the first
     # configuration. Talos upgrades and config changes go through talosctl, so
     # drift in either must not rebuild a working node.
-    ignore_changes = [image, user_data]
+    ignore_changes  = [image, user_data]
+    prevent_destroy = true
   }
 }
 
@@ -60,4 +66,11 @@ resource "hcloud_volume" "data" {
   size      = 100
   server_id = hcloud_server.node[count.index].id
   format    = "" # Talos formats it; see talos/talconfig.yaml
+
+  # Every PersistentVolume lives on it.
+  delete_protection = true
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }

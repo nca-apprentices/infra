@@ -1,7 +1,8 @@
 # A member who signs in with GitHub, see talos/talconfig.yaml, gets the roles
 # of their teams. The admins team runs the cluster. The dev team reads
-# everything but Secrets, and debugs the dev environments with dev-debug.
-# Changes go through git and Argo CD.
+# everything but Secrets, and debugs the dev environments with dev-debug,
+# whose exec and Jobs reach the Secrets of those namespaces. Changes go
+# through git and Argo CD.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -56,9 +57,10 @@ subjects:
     kind: Group
     name: github:nca-apprentices:dev
 ---
-# Debugging a dev environment: logs, exec, port-forward, restarting and
-# scaling, and running a Job. Not edit, which writes NetworkPolicies that
-# would open egress past the platform's, and Services, Ingresses, and Secrets.
+# Debugging a dev environment: logs, exec, kubectl debug, port-forward,
+# restarting and scaling, and running a Job. Not edit, which writes
+# NetworkPolicies that would open egress past the platform's, and Services,
+# Ingresses, and Secrets.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -73,6 +75,9 @@ rules:
   - apiGroups: [""]
     resources: [pods/exec, pods/portforward]
     verbs: [create]
+  - apiGroups: [""]
+    resources: [pods/ephemeralcontainers]
+    verbs: [patch]
   - apiGroups: [apps]
     resources: [deployments, statefulsets]
     verbs: [get, list, watch, patch]
