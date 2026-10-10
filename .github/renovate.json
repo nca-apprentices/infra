@@ -145,7 +145,7 @@
       "description": "The approver's image, pinned to its digest.",
       "managerFilePatterns": ["/^cluster/platform/kubelet-serving-cert-approver\\.yaml$/"],
       "matchStrings": [
-        "- (?<depName>ghcr\\.io/alex1989hu/kubelet-serving-cert-approver):(?<currentValue>[\\d.]+)@(?<currentDigest>sha256:[0-9a-f]{64})"
+        "- (?<depName>ghcr\\.io/alex1989hu/kubelet-serving-cert-approver)@(?<currentDigest>sha256:[0-9a-f]{64}) # (?<currentValue>[\\d.]+)"
       ],
       "datasourceTemplate": "docker"
     },
