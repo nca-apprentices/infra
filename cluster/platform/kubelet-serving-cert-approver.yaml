@@ -1,6 +1,6 @@
 # Approves the kubelet's requests for a serving certificate from the cluster
 # CA, which Talos asks for with rotate-server-certificates, see
-# talos/talconfig.yaml. metrics-server then verifies the kubelet like any other
+# talos/patch.yaml. metrics-server then verifies the kubelet like any other
 # server, instead of trusting whatever certificate it shows.
 apiVersion: argoproj.io/v1alpha1
 kind: Application

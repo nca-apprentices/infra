@@ -19,7 +19,6 @@ restic
 SeaweedFS
 seccomp
 subnet
-talhelper
 talosctl
 VictoriaLogs
 VictoriaMetrics

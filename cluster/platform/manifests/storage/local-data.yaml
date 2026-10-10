@@ -1,6 +1,6 @@
-# The data disk from talconfig.yaml, exposed as a StorageClass. Everything
+# The data disk from talos/patch.yaml, exposed as a StorageClass. Everything
 # stateful in the cluster lands here. The disk is in plain text until a
-# rebuild applies the encryption that talconfig.yaml asks for.
+# rebuild applies the encryption that talos/patch.yaml asks for.
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:

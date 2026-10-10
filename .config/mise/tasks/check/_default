@@ -34,17 +34,11 @@ zizmor --offline .github/workflows
 TF_DATA_DIR="$scratch/tofu" tofu -chdir=tofu init -backend=false -input=false >/dev/null
 TF_DATA_DIR="$scratch/tofu" tofu -chdir=tofu validate
 
-# A throwaway secret is enough to prove the config renders and is valid.
-talhelper gensecret >"$scratch/talsecret.yaml"
-# Offline: the schematic ID is a hash of the schematic, so validation doesn't
-# need factory.talos.dev, whose handshake times out now and then and failed CI.
-talhelper genconfig --offline-mode \
-  --config-file talos/talconfig.yaml \
-  --secret-file "$scratch/talsecret.yaml" \
-  --out-dir "$scratch/clusterconfig" >/dev/null
-for node in "$scratch"/clusterconfig/*.yaml; do
-  talosctl validate --config "$node" --mode cloud --strict
-done
+# A throwaway secrets bundle is enough to prove the config renders and is
+# valid.
+talosctl gen secrets --output-file "$scratch/secrets.yaml"
+mise run talos:config "$scratch/secrets.yaml" "$scratch/clusterconfig"
+talosctl validate --config "$scratch/clusterconfig/nca-nca-1.yaml" --mode cloud --strict
 
 # Custom resources validate against the community CRD catalog. Kinds missing
 # from it are skipped rather than failed.

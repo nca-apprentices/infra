@@ -14,7 +14,7 @@ are namespaces in it, named `<app>-<env>`.
 | Path                                  | What it is                                          | Applied by                                         |
 | ------------------------------------- | --------------------------------------------------- | -------------------------------------------------- |
 | `tofu/`                               | Network, firewall, volume, node, DNS roots          | `mise run apply:cloud`                             |
-| `talos/`                              | Machine configuration, as talhelper input           | `mise run apply:cloud`                             |
+| `talos/`                              | Machine configuration, as a talosctl patch          | `mise run apply:cloud`                             |
 | `cluster/bootstrap/`                  | Argo CD and the root Application                    | `mise run apply:bootstrap`                         |
 | `cluster/platform/`                   | One Argo CD Application per platform component      | Argo CD                                            |
 | `cluster/platform/manifests/`         | Plain manifests a platform Application points at    | Argo CD                                            |
@@ -192,16 +192,16 @@ can use it.
   `prod/application.yaml` once `dev` works. Renovate opens those PRs when a new
   chart is published.
 - **Cloud:** edit `tofu/`, then `mise run apply:cloud`.
-- **Talos configuration:** edit `talos/talconfig.yaml`, then `mise run apply:talos`.
+- **Talos configuration:** edit `talos/patch.yaml`, then `mise run apply:talos`.
   It shows how the node's running configuration would change and applies it
   once you confirm. `mise run apply:cloud` doesn't reach the node: tofu ignores
   changes to the user data, which only a new node boots from.
-- **Talos release:** set `talosVersion` in `talconfig.yaml`, then run
+- **Talos release:** set `talos` in `talos/versions.yaml`, then run
   `mise run apply:image` for the next rebuild, and `mise run upgrade:talos`. The
   upgrade reboots the node, and with one node every app is down until it
   returns. Talos moves one minor version at a time.
 - **Kubernetes release:** after the Talos release that supports it, set
-  `kubernetesVersion` in `talconfig.yaml`, then run
+  `kubernetes` in `talos/versions.yaml`, then run
   `mise run upgrade:kubernetes`. It updates the control plane and the node
   agent one component at a time, and moves one minor version at a time too.
 
@@ -323,8 +323,8 @@ The cluster key needs no escrow of its own. Its private half is in
 2. The tofu state bucket `nca-tofu` in Hetzner Object Storage, `nbg1`.
 3. `secrets/tofu.enc.env`, a dotenv file with the variables below,
    created with `sops edit`, which never writes it in plain text.
-4. The Talos cluster secrets: `talhelper gensecret`, piped through
-   `sops encrypt` into `talos/talsecret.sops.yaml`, as
+4. The Talos cluster secrets: `talosctl gen secrets`, piped through
+   `sops encrypt` into `talos/secrets.sops.yaml`, as
    [bootstrap.md](bootstrap.md#4-generate-the-talos-secrets) shows.
 5. One Object Storage key per backup bucket in [Backups](#backups), in the
    same project as `nca-tofu`. Hetzner has no API for keys.

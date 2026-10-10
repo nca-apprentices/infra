@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Upgrade the node to talosVersion in talconfig.yaml, which reboots it"
+#MISE description="Upgrade the node to the Talos release in talos/versions.yaml, which reboots it"
 set -euo pipefail
 
 ip=$(sops exec-env secrets/tofu.enc.env "tofu -chdir=tofu output -raw node_ipv4")
@@ -8,5 +8,5 @@ export TALOSCONFIG=${TALOSCONFIG:-talos/clusterconfig/talosconfig}
 # The image's schematic is empty, so the stock installer matches it. With one
 # node, every app is down until the node returns.
 talosctl -e "$ip" -n "$ip" upgrade \
-  --image "ghcr.io/siderolabs/installer:$(yq .talosVersion talos/talconfig.yaml)"
+  --image "ghcr.io/siderolabs/installer:$(yq .talos talos/versions.yaml)"
 talosctl -e "$ip" -n "$ip" health --k8s-endpoint "https://$ip:6443"

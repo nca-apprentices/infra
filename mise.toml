@@ -2,7 +2,7 @@
 # lists them by group:
 #
 #   apply:*    change the cloud, the node, or the cluster, or restore data
-#   upgrade:*  move the node to the Talos or Kubernetes release in talconfig.yaml
+#   upgrade:*  move the node to the Talos or Kubernetes release in talos/versions.yaml
 #   cluster:*  show the cluster's state and reach the node
 #   check      validate everything without credentials, as CI does
 #   fmt        format every file
@@ -17,8 +17,7 @@ kubectl = "1.36.5"
 kustomize = "5.8.2"
 opentofu = "1.13.1"
 sops = "3.13.3"
-talhelper = "3.1.17"
-# Follows talosVersion in talos/talconfig.yaml.
+# Follows talos in talos/versions.yaml.
 talosctl = "1.13.11"
 yq = "4.54.1"
 # `mise run check` lints the workflows and scans the history for secrets.

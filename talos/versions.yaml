@@ -1,0 +1,5 @@
+# The releases the node runs. `mise run upgrade:talos` and
+# `upgrade:kubernetes` move the node to them, and every generated
+# configuration names them.
+talos: v1.13.11
+kubernetes: v1.36.5
