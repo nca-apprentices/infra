@@ -41,10 +41,11 @@ then delete the local copy.
 | One S3 key pair per backup bucket, six in all      | Console, Object Storage                    |
 | The project's numeric ID                           | Console, the project's URL                 |
 
-The Cloudflare token is a custom token that may edit Zone, DNS, and Zone
-Settings, for all zones of the account, and Workers Scripts, for the account.
-Editing Zone lets tofu create the zone. Workers Scripts lets it put the status
-page's Worker on `status.nca-apprentices.dev`.
+The Cloudflare token is a custom token that may edit Zone, DNS, Zone
+Settings, and Zone WAF, for all zones of the account, and Workers Scripts, for
+the account. Editing Zone lets tofu create the zone. Zone WAF lets it set the
+rate limit. Workers Scripts lets it put the status page's Worker on
+`status.nca-apprentices.dev`.
 
 ## 3. Write the tofu credentials
 

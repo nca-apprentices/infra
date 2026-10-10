@@ -72,6 +72,31 @@ resource "cloudflare_zone_setting" "ssl" {
   value      = "strict"
 }
 
+# Blocks an address for 10 seconds once it sends more than 100 requests a
+# second, to stop floods before they reach the node. The limit stays high
+# because one address can be a whole office behind NAT. The Free plan allows
+# this one rule, matched on the path, counted per address in each data center,
+# over a fixed 10 second window.
+resource "cloudflare_ruleset" "rate_limit" {
+  zone_id = cloudflare_zone.main.id
+  name    = "Rate limit"
+  kind    = "zone"
+  phase   = "http_ratelimit"
+
+  rules = [{
+    ref         = "flood"
+    description = "Block an address that floods the zone"
+    expression  = "http.request.uri.path contains \"/\""
+    action      = "block"
+    ratelimit = {
+      characteristics     = ["cf.colo.id", "ip.src"]
+      period              = 10
+      requests_per_period = 1000
+      mitigation_timeout  = 10
+    }
+  }]
+}
+
 # Signs the zone. The DS record that `dnssec_ds` shows goes to Porkbun, which
 # hands it to the .dev registry, so resolvers can check the signatures.
 resource "cloudflare_zone_dnssec" "main" {
