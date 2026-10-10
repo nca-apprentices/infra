@@ -1,0 +1,22 @@
+# What each GitHub team may do in the Kubernetes API, for members who sign in
+# with GitHub, see manifests/access.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: access
+  namespace: argocd
+  annotations:
+    # The dev bindings name the app namespaces, which wave 4 creates.
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/nca-apprentices/infra.git
+    targetRevision: main
+    path: cluster/platform/manifests/access
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ServerSideApply=true]

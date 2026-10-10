@@ -10,8 +10,8 @@
   },
   "packageRules": [
     {
-      "description": "Images in our manifests pin a digest, so a moved tag changes nothing until a PR says so. Argo CD charts keep their version, which targetRevision can't hold as a digest.",
-      "matchManagers": ["kubernetes"],
+      "description": "Images in our manifests and Dockerfiles pin a digest, so a moved tag changes nothing until a PR says so. Argo CD charts keep their version, which targetRevision can't hold as a digest.",
+      "matchManagers": ["kubernetes", "dockerfile"],
       "pinDigests": true
     },
     {
@@ -59,6 +59,22 @@
       "description": "The installed Argo CD and the chart the diff renders with move together.",
       "matchDepNames": ["argoproj/argo-cd", "argo-cd"],
       "groupName": "Argo CD"
+    },
+    {
+      "description": "The approver's commit and image move together, through the custom managers below, not the argocd manager.",
+      "matchDepNames": [
+        "https://github.com/alex1989hu/kubelet-serving-cert-approver.git"
+      ],
+      "matchManagers": ["argocd"],
+      "enabled": false
+    },
+    {
+      "description": "The approver's release commit and its image.",
+      "matchDepNames": [
+        "alex1989hu/kubelet-serving-cert-approver",
+        "ghcr.io/alex1989hu/kubelet-serving-cert-approver"
+      ],
+      "groupName": "kubelet-serving-cert-approver"
     },
     {
       "description": "A new Postgres major needs a migration, not a new image, so only minors and patches arrive.",
@@ -111,6 +127,25 @@
       ],
       "matchStrings": [
         "imageName: (?<depName>ghcr\\.io/cloudnative-pg/postgresql):(?<currentValue>\\d+\\.\\d+)"
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "The approver's release, pinned to its commit.",
+      "managerFilePatterns": ["/^cluster/platform/kubelet-serving-cert-approver\\.yaml$/"],
+      "matchStrings": [
+        "targetRevision: (?<currentDigest>[0-9a-f]{40}) # (?<currentValue>v[\\d.]+)"
+      ],
+      "datasourceTemplate": "github-tags",
+      "depNameTemplate": "alex1989hu/kubelet-serving-cert-approver"
+    },
+    {
+      "customType": "regex",
+      "description": "The approver's image, pinned to its digest.",
+      "managerFilePatterns": ["/^cluster/platform/kubelet-serving-cert-approver\\.yaml$/"],
+      "matchStrings": [
+        "- (?<depName>ghcr\\.io/alex1989hu/kubelet-serving-cert-approver)@(?<currentDigest>sha256:[0-9a-f]{64}) # (?<currentValue>[\\d.]+)"
       ],
       "datasourceTemplate": "docker"
     },

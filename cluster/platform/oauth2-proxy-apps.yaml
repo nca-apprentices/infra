@@ -39,6 +39,10 @@ spec:
           # jjforge also removes the cookie before the app, see
           # apps/jjforge/*/cookies.yaml, since a preview runs a branch's code.
           cookie-name: _apps_login
+          # GitHub membership is checked at sign-in only, so a removed member
+          # keeps access until the cookie expires: half a day, not the default
+          # week.
+          cookie-expire: 12h
           whitelist-domain: .nca-apprentices.dev
   destination:
     server: https://kubernetes.default.svc

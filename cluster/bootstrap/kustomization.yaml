@@ -94,6 +94,17 @@ patches:
                 orgs:
                   - name: nca-apprentices
                 teamNameField: slug
+          # kubectl and Headlamp sign in to the Kubernetes API as the person,
+          # through this one public client, see docs/operations.md#kubectl.
+          # PKCE stands in for a secret, and only these redirects are allowed.
+          staticClients:
+            - id: kubernetes
+              name: Kubernetes
+              public: true
+              redirectURIs:
+                - http://localhost:8000
+                - http://localhost:18000
+                - https://headlamp.nca-apprentices.dev/oidc-callback
   # Each synced revision of an Application becomes a GitHub deployment in the
   # repository it comes from, in an environment named after the Application
   # without the app- prefix, such as jjforge-prod or jjforge-pr-12:

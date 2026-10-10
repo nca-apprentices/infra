@@ -126,14 +126,18 @@ spec:
             - { port: "4317", protocol: TCP }
             - { port: "4318", protocol: TCP }
     # The DNS rule routes lookups through Cilium's proxy, which toFQDNs rules
-    # need to learn the bucket host's addresses.
+    # need to learn the bucket host's addresses. Only names in the cluster and
+    # the bucket host resolve, so code here can't send data out in lookups.
     - toEndpoints:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: kube-system
             k8s:k8s-app: kube-dns
       toPorts:
         - ports: [{ port: "53", protocol: ANY }]
-          rules: { dns: [{ matchPattern: "*" }] }
+          rules:
+            dns:
+              - matchPattern: "**.cluster.local"
+              - matchName: {{ $s3 }}
     - toEntities: [kube-apiserver]
 {{- if .Values.backups }}
 ---

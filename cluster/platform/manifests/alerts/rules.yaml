@@ -29,6 +29,18 @@ spec:
           expr: time() - barman_cloud_cloudnative_pg_io_last_available_backup_timestamp > 26 * 3600
           annotations:
             summary: "{{ $labels.namespace }}/{{ $labels.pod }} has no base backup from the last day."
+    - name: ingress
+      rules:
+        - alert: OriginWithoutClientCert
+          expr: probe_success{check="origin-client-cert"} == 1
+          for: 5m
+          annotations:
+            summary: Traefik answers HTTPS without Cloudflare's client certificate, so any Cloudflare account reaches the node. Check TLSOption default and the origin-pull-ca Secret in traefik.
+        - alert: OriginClientCertProbeMissing
+          expr: absent(probe_success{check="origin-client-cert"})
+          for: 30m
+          annotations:
+            summary: Nothing checks that Traefik requires Cloudflare's client certificate.
     - name: argocd
       rules:
         - alert: ArgoAppOutOfSync

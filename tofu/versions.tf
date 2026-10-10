@@ -16,6 +16,26 @@ terraform {
     skip_s3_checksum            = true
   }
 
+  # The state and plans hold the origin-pull private keys, so tofu encrypts
+  # them before they reach the bucket.
+  encryption {
+    key_provider "pbkdf2" "state" {
+      passphrase = var.state_passphrase
+    }
+    method "aes_gcm" "state" {
+      keys = key_provider.pbkdf2.state
+    }
+    # Enforced: tofu refuses to read or write either in plain text.
+    state {
+      method   = method.aes_gcm.state
+      enforced = true
+    }
+    plan {
+      method   = method.aes_gcm.state
+      enforced = true
+    }
+  }
+
   required_providers {
     hcloud = {
       source  = "hetznercloud/hcloud"
@@ -49,6 +69,17 @@ provider "cloudflare" {
 provider "minio" {
   minio_server   = "${var.backup_location}.your-objectstorage.com"
   minio_region   = var.backup_location
+  minio_user     = var.s3_access_key
+  minio_password = var.s3_secret_key
+  minio_ssl      = true
+  s3_compat_mode = true
+}
+
+# The state bucket's location, set by the backend above.
+provider "minio" {
+  alias          = "state"
+  minio_server   = "nbg1.your-objectstorage.com"
+  minio_region   = "nbg1"
   minio_user     = var.s3_access_key
   minio_password = var.s3_secret_key
   minio_ssl      = true

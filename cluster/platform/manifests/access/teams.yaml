@@ -1,0 +1,84 @@
+# A member who signs in with GitHub, see talos/talconfig.yaml, gets the roles
+# of their teams. The admins team runs the cluster. The dev team reads
+# everything but Secrets, and debugs the dev environments with dev-debug.
+# Changes go through git and Argo CD.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: github-admins
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: github:nca-apprentices:admins
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: github-dev
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: github:nca-apprentices:dev
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-dev-debug
+  namespace: jjforge-dev
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: dev-debug
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: github:nca-apprentices:dev
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-dev-debug
+  namespace: ncaleague-dev
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: dev-debug
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: github:nca-apprentices:dev
+---
+# Debugging a dev environment: logs, exec, port-forward, restarting and
+# scaling, and running a Job. Not edit, which writes NetworkPolicies that
+# would open egress past the platform's, and Services, Ingresses, and Secrets.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dev-debug
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch, delete]
+  - apiGroups: [""]
+    resources: [pods/log]
+    verbs: [get]
+  - apiGroups: [""]
+    resources: [pods/exec, pods/portforward]
+    verbs: [create]
+  - apiGroups: [apps]
+    resources: [deployments, statefulsets]
+    verbs: [get, list, watch, patch]
+  - apiGroups: [apps]
+    resources: [deployments/scale, statefulsets/scale]
+    verbs: [get, patch, update]
+  - apiGroups: [batch]
+    resources: [jobs]
+    verbs: [get, list, watch, create, delete]

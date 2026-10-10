@@ -53,3 +53,50 @@ controlPlane:
               type: bind
               source: /var/mnt/data
               options: [bind, rshared, rw]
+    - |-
+      cluster:
+        apiServer:
+          # The audit log goes to the API server's output, which the log
+          # collector already ships to VictoriaLogs, instead of a file on the
+          # node that nothing reads.
+          extraArgs:
+            audit-log-path: "-"
+            # Members sign in with GitHub through Argo CD's Dex, so the API
+            # server and the audit log know each person, as github:<login>
+            # with their teams as github:nca-apprentices:<team>. The Talos
+            # admin certificate stays as the way in when Dex is down.
+            oidc-issuer-url: https://argocd.nca-apprentices.dev/api/dex
+            oidc-client-id: kubernetes
+            oidc-username-claim: preferred_username
+            oidc-username-prefix: "github:"
+            oidc-groups-claim: groups
+            oidc-groups-prefix: "github:"
+          # What people do, and who reads a Secret, without request bodies. The
+          # cluster's own components and service accounts would bury that, so
+          # they stay out: Argo CD's changes are already commits in this
+          # repository.
+          auditPolicy:
+            apiVersion: audit.k8s.io/v1
+            kind: Policy
+            omitStages: [RequestReceived]
+            rules:
+              - level: None
+                userGroups: [system:nodes]
+              - level: Metadata
+                resources: [{ group: "", resources: [secrets] }]
+              - level: None
+                userGroups: [system:serviceaccounts]
+              - level: None
+                users:
+                  - system:kube-controller-manager
+                  - system:kube-scheduler
+                  - system:apiserver
+                  - system:kube-proxy
+              - level: None
+                nonResourceURLs:
+                  - /healthz*
+                  - /livez*
+                  - /readyz*
+                  - /version
+                  - /openapi*
+              - level: Metadata

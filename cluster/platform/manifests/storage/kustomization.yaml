@@ -36,7 +36,8 @@ patches:
                   allowPrivilegeEscalation: false
                   capabilities: { drop: [ALL] }
   # Talos keeps the data disk at /var/mnt/data, and /opt is
-  # read-only there.
+  # read-only there. The helper pod mounts the host's data disk, so its
+  # image is pinned by digest instead of upstream's untagged busybox.
   - patch: |-
       apiVersion: v1
       kind: ConfigMap
@@ -46,6 +47,21 @@ patches:
       data:
         config.json: |-
           {"nodePathMap": [{"node": "DEFAULT_PATH_FOR_NON_LISTED_NODES", "paths": ["/var/mnt/data"]}]}
+        helperPod.yaml: |-
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: helper-pod
+          spec:
+            priorityClassName: system-node-critical
+            tolerations:
+              - key: node.kubernetes.io/disk-pressure
+                operator: Exists
+                effect: NoSchedule
+            containers:
+            - name: helper-pod
+              image: docker.io/library/busybox:1.38.0@sha256:fd7dc98638c8e305f4dc34e979f1c0fdfdcaeb0fbf8fcff77ae834b6da3d7e6e
+              imagePullPolicy: IfNotPresent
   # local-data.yaml holds the only StorageClasses.
   - patch: |-
       $patch: delete
