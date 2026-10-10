@@ -27,5 +27,6 @@ spec:
     - { group: cilium.io, kind: "*" }
     - { group: networking.k8s.io, kind: NetworkPolicy }
     - { group: "", kind: LimitRange }
+    - { group: "", kind: ResourceQuota }
     - { group: traefik.io, kind: "*" }
     - { group: isindir.github.com, kind: SopsSecret }

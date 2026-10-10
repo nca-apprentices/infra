@@ -61,8 +61,8 @@ the app's reach:
   OpenTelemetry Collector, see [Telemetry](#telemetry). In `prod` the backups
   also reach their bucket, and no pod reaches anything else outside the
   cluster.
-- `limits.yaml` holds a ResourceQuota and default requests. Dev also gets a
-  default memory limit.
+- `limits.yaml` holds default requests. Dev also gets a default memory
+  limit.
 - `namespace.yaml` enforces the restricted Pod Security level, so every pod
   runs as non-root, without capabilities, and with seccomp.
 - Prod pods set `priorityClassName: prod`, so they schedule ahead of dev and
@@ -131,8 +131,14 @@ domain.
 When the PR merges, closes, or loses the label, the ApplicationSets delete the
 Applications, and Argo CD deletes the namespace with everything in it: pods,
 Service, Ingress, certificate, and database cluster with its data.
-cert-manager then deletes the TLS secret. Fork PRs get no preview, since their
-CI can't push images.
+cert-manager then deletes the TLS secret.
+
+A labeled PR from a fork gets a preview too, from the fork's chart. The
+`preview-images` admission policy in `platform/manifests/policies/` lets a
+preview's pods run only `ghcr.io/nca-apprentices/jjforge-*` and CloudNativePG
+images, so a fork can't bring an image of its own. A ResourceQuota caps what
+the preview requests and admits no pod with the `prod` or a system priority
+class. Label a fork's PR only after reading its chart and its code.
 
 ### Deployments
 

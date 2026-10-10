@@ -22,3 +22,34 @@ spec:
     - type: Container
       default: { memory: 512Mi }
       defaultRequest: { cpu: 100m, memory: 256Mi }
+---
+# What the whole preview may request: the app, its migration, and its
+# database, with room for a rollout. A PR's chart can't scale itself past the
+# node's spare memory or fill the data disk.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: size
+spec:
+  hard:
+    requests.cpu: "1"
+    requests.memory: 2Gi
+    limits.memory: 4Gi
+    pods: "10"
+    persistentvolumeclaims: "2"
+    requests.storage: 2Gi
+---
+# The PR's chart names its pods' priority class, so a preview could claim
+# prod's or the system's, and evict them. This quota admits no such pod.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: priority
+spec:
+  hard:
+    pods: "0"
+  scopeSelector:
+    matchExpressions:
+      - scopeName: PriorityClass
+        operator: In
+        values: [prod, system-cluster-critical, system-node-critical]
