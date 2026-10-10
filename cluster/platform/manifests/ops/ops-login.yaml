@@ -12,4 +12,5 @@ spec:
     - kind: Rule
       match: HostRegexp(`^(ops|logs|headlamp|redpanda-dev|seaweedfs-dev)\.nca-apprentices\.dev$`) && PathPrefix(`/oauth2/`)
       priority: 1000
+      middlewares: [{ name: real-host }]
       services: [{ name: oauth2-proxy, port: 80 }]
