@@ -37,6 +37,10 @@ spec:
           # The name differs from the apps login's, so neither reads the
           # other's cookie.
           cookie-name: _ops_login
+          # GitHub membership is checked at sign-in only, so a removed member
+          # keeps access until the cookie expires: half a day, not the default
+          # week.
+          cookie-expire: 12h
   destination:
     server: https://kubernetes.default.svc
     namespace: ops
