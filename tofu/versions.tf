@@ -25,17 +25,14 @@ terraform {
     method "aes_gcm" "state" {
       keys = key_provider.pbkdf2.state
     }
-    # Reads the plaintext state on the first apply after encryption. Remove it
-    # once that apply has rewritten the state.
-    method "unencrypted" "migrate" {}
+    # Enforced: tofu refuses to read or write either in plain text.
     state {
-      method = method.aes_gcm.state
-      fallback {
-        method = method.unencrypted.migrate
-      }
+      method   = method.aes_gcm.state
+      enforced = true
     }
     plan {
-      method = method.aes_gcm.state
+      method   = method.aes_gcm.state
+      enforced = true
     }
   }
 
