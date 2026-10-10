@@ -11,13 +11,12 @@ volume:
       maxVolumes: 38
 filer:
   data: { size: 1Gi }
-# The admin UI, served at ops.nca-apprentices.dev/jjforge-dev/seaweedfs behind
-# the GitHub login. Everyone who passes it may change buckets and S3 users.
+# The admin UI, served at seaweedfs-dev.nca-apprentices.dev behind the GitHub
+# login. Everyone who passes it may change buckets and S3 users.
 # It has no password of its own, which the chart refuses on a non-loopback
 # address, so the loopback ip passes the chart and the later -ip wins.
 admin:
   enabled: true
   ip: 127.0.0.1
   extraArgs: [-ip=0.0.0.0, -allowInsecureBind]
-  urlPrefix: /jjforge-dev/seaweedfs
   resources: { requests: { cpu: 10m, memory: 64Mi } }

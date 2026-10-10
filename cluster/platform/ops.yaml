@@ -1,5 +1,6 @@
-# ops.nca-apprentices.dev: Argo CD, Grafana, Headlamp, the logs, and
-# the jjforge-dev stores under one host, each behind a GitHub login.
+# The ops portal at ops.nca-apprentices.dev, and the routes to Argo CD,
+# Grafana, Headlamp, the logs, and the jjforge-dev stores, each on a host of
+# its own behind a GitHub login.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:

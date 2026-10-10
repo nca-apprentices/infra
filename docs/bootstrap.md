@@ -172,15 +172,16 @@ backup-secret metrics-backup-s3 observability platform
 backup-secret logs-backup-s3 observability platform
 ```
 
-The GitHub login of `ops.nca-apprentices.dev`, which Argo CD, Grafana, and
-`oauth2-proxy` share. Create an OAuth 2.0 app at
+The GitHub login of the ops tools, which Argo CD, Grafana, and `oauth2-proxy`
+share. Create an OAuth 2.0 app at
 <https://github.com/organizations/nca-apprentices/settings/applications/new>
 with the homepage `https://ops.nca-apprentices.dev`, add these callback URLs,
 and generate a client secret:
 
-- `https://ops.nca-apprentices.dev/argocd/api/dex/callback`
-- `https://ops.nca-apprentices.dev/grafana/login/github`
-- `https://ops.nca-apprentices.dev/oauth2/callback`
+- `https://argocd.nca-apprentices.dev/api/dex/callback`
+- `https://grafana.nca-apprentices.dev/login/github`
+- `https://nca-apprentices.dev/oauth2`, with **Enable wildcard matching**
+  checked, so each tool's host returns to its own `/oauth2/callback`
 
 ```fish
 read -P 'OAuth client ID: ' id

@@ -211,22 +211,23 @@ manifests change.
 
 ## Ops portal
 
-<https://ops.nca-apprentices.dev> links to the tools below. Only members of
-the `nca-apprentices` organization on GitHub get in, and two of its teams
-grant more:
+<https://ops.nca-apprentices.dev> links to the tools below. Each has a host of
+its own, so a flaw in one tool's pages can't act with a session in another, such
+as Argo CD's. Only members of the `nca-apprentices` organization on GitHub
+get in, and two of its teams grant more:
 
 - `admins`: administrator in Argo CD and Grafana. Every operator belongs here.
 - `dev`: the apprentices. They also sync `jjforge-dev` and `ncaleague-dev` and
   set their Helm parameters in Argo CD.
 
-| Path                     | Tool             | Signs in with        | Everyone else in the organization                           |
+| Host                     | Tool             | Signs in with        | Everyone else in the organization                           |
 | ------------------------ | ---------------- | -------------------- | ----------------------------------------------------------- |
-| `/argocd`                | Argo CD          | Its own GitHub login | Reads                                                       |
-| `/grafana`               | Grafana          | Its own GitHub login | Reads, searches logs and traces in Explore, and sees alerts |
-| `/headlamp`              | Headlamp         | `oauth2-proxy`       | Reads everything except Secrets                             |
-| `/logs`                  | VictoriaLogs     | `oauth2-proxy`       | Searches the logs                                           |
-| `/jjforge-dev/redpanda`  | Redpanda Console | `oauth2-proxy`       | Reads, writes, and deletes topics in `jjforge-dev`          |
-| `/jjforge-dev/seaweedfs` | SeaweedFS        | `oauth2-proxy`       | Changes buckets, files, and S3 users in `jjforge-dev`       |
+| `argocd`                 | Argo CD          | Its own GitHub login | Reads                                                       |
+| `grafana`                | Grafana          | Its own GitHub login | Reads, searches logs and traces in Explore, and sees alerts |
+| `headlamp`               | Headlamp         | `oauth2-proxy`       | Reads everything except Secrets                             |
+| `logs`                   | VictoriaLogs     | `oauth2-proxy`       | Searches the logs                                           |
+| `redpanda-dev`           | Redpanda Console | `oauth2-proxy`       | Reads, writes, and deletes topics in `jjforge-dev`          |
+| `seaweedfs-dev`          | SeaweedFS        | `oauth2-proxy`       | Changes buckets, files, and S3 users in `jjforge-dev`       |
 
 The three logins share one GitHub OAuth app, so GitHub asks once. Grafana and
 the portal's Argo CD link then go to GitHub and back without a click. Only

@@ -60,9 +60,12 @@ patches:
       data:
         controller.diff.server.side: "true"
         controller.sync.timeout.seconds: "900"
-  # Served at ops.nca-apprentices.dev/argocd over plain HTTP behind Traefik,
-  # which ends TLS. Members of the GitHub organization sign in through the
-  # bundled Dex. The admin password is off, and kubectl stays the fallback.
+  # Served at argocd.nca-apprentices.dev over plain HTTP behind Traefik, which
+  # ends TLS. A host of its own keeps the other ops tools' pages out of its
+  # origin, so a flaw in one of them can't act with an admin's Argo CD session.
+  # Members of the GitHub organization sign in through the bundled Dex. The
+  # admin password is off, and kubectl stays the fallback. The root path stays
+  # set, so applying this file replaces the old /argocd.
   - patch: |-
       apiVersion: v1
       kind: ConfigMap
@@ -70,15 +73,15 @@ patches:
         name: argocd-cmd-params-cm
       data:
         server.insecure: "true"
-        server.rootpath: /argocd
-        server.basehref: /argocd
+        server.rootpath: ""
+        server.basehref: /
   - patch: |-
       apiVersion: v1
       kind: ConfigMap
       metadata:
         name: argocd-cm
       data:
-        url: https://ops.nca-apprentices.dev/argocd
+        url: https://argocd.nca-apprentices.dev
         admin.enabled: "false"
         dex.config: |
           connectors:
@@ -110,7 +113,7 @@ patches:
         name: argocd-notifications-cm
       data:
         context: |
-          argocdUrl: https://ops.nca-apprentices.dev/argocd
+          argocdUrl: https://argocd.nca-apprentices.dev
         service.github: |
           appID: $github-appID
           installationID: $github-installationID

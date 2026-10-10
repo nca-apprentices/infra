@@ -1,0 +1,15 @@
+# GitHub returns to the ops login on the host that asked, see
+# oauth2-proxy.yaml, so each tool's host keeps its own cookie. Argo CD and
+# Grafana sign in themselves and aren't listed.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: ops-login
+  namespace: ops
+spec:
+  entryPoints: [websecure]
+  routes:
+    - kind: Rule
+      match: HostRegexp(`^(ops|logs|headlamp|redpanda-dev|seaweedfs-dev)\.nca-apprentices\.dev$`) && PathPrefix(`/oauth2/`)
+      priority: 1000
+      services: [{ name: oauth2-proxy, port: 80 }]

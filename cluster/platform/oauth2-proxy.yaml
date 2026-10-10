@@ -1,5 +1,5 @@
-# The GitHub login in front of ops.nca-apprentices.dev for the tools without
-# one of their own. Traefik asks it about every request, see manifests/ops.
+# The GitHub login in front of the ops portal and the ops tools without one of
+# their own. Traefik asks it about every request, see manifests/ops.
 # The app environments have their own login, see oauth2-proxy-apps.yaml.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -26,10 +26,14 @@ spec:
         extraArgs:
           provider: github
           github-org: nca-apprentices
-          redirect-url: https://ops.nca-apprentices.dev/oauth2/callback
+          # Each tool's host signs in on its own: a redirect URL without a host
+          # returns to the host that asked, see manifests/ops/ops-login.yaml.
+          # The GitHub OAuth app's callback is https://nca-apprentices.dev/oauth2
+          # with wildcard matching.
+          redirect-url: /oauth2/callback
           reverse-proxy: "true"
           skip-provider-button: "true"
-          # The cookie covers the ops host alone, so no app ever receives it.
+          # The cookie covers one tool's host alone, so no app ever receives it.
           # The name differs from the apps login's, so neither reads the
           # other's cookie.
           cookie-name: _ops_login
