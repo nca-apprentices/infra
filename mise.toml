@@ -14,6 +14,10 @@ talhelper = "3.1.17"
 # Follows talosVersion in talos/talconfig.yaml.
 talosctl = "1.12.2"
 yq = "4.53.6"
+# `mise run check` lints the workflows and scans the history for secrets.
+actionlint = "1.7.12"
+gitleaks = "8.30.1"
+zizmor = "1.30.1"
 # `mise run fmt` formats every file. `mise run check` checks the formatting
 # and the prose.
 "github:numtide/treefmt" = "2.6.0"

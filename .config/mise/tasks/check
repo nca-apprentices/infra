@@ -23,6 +23,12 @@ fi
 treefmt --ci
 mise run prose
 
+# Secrets in plain text anywhere in the history, not only in secrets/, and
+# workflows that leak tokens or run unpinned actions.
+gitleaks git --no-banner --redact .
+actionlint
+zizmor --offline .github/workflows
+
 # A data directory of its own, so an operator's initialized backend in
 # tofu/.terraform doesn't make validation ask for state credentials.
 TF_DATA_DIR="$scratch/tofu" tofu -chdir=tofu init -backend=false -input=false >/dev/null
