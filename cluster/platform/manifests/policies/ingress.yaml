@@ -3,8 +3,9 @@
 # cert-manager's challenge Ingress, so no namespace gets a certificate for a
 # host it doesn't own. The hosts follow from the namespace:
 #
-#   jjforge-prod  jjforge.nca-apprentices.dev
-#   jjforge-dev   jjforge-dev.nca-apprentices.dev, jjforge-pr-12.nca-apprentices.dev
+#   jjforge-prod   jjforge.nca-apprentices.dev
+#   jjforge-dev    jjforge-dev.nca-apprentices.dev
+#   jjforge-pr-12  jjforge-pr-12.nca-apprentices.dev
 #
 # A rule without a host, or a default backend, would serve every host. The ops
 # namespace serves the portal and is exempt. IngressRoutes have no field to
@@ -33,14 +34,14 @@ spec:
       expression: >-
         variables.ns.endsWith('-prod')
         ? '^' + variables.ns.substring(0, size(variables.ns) - 5) + r'\.nca-apprentices\.dev$'
-        : variables.ns.endsWith('-dev')
-        ? '^' + variables.ns.substring(0, size(variables.ns) - 4) + r'-(dev|pr-[0-9]+)\.nca-apprentices\.dev$'
+        : variables.ns.endsWith('-dev') || variables.ns.matches('-pr-[0-9]+$')
+        ? '^' + variables.ns + r'\.nca-apprentices\.dev$'
         : '^$'
   validations:
-    - expression: variables.ns.endsWith('-prod') || variables.ns.endsWith('-dev')
+    - expression: variables.hosts != '^$'
       messageExpression: >-
-        'Only app namespaces, named <app>-prod or <app>-dev, hold Ingresses,
-        not ' + variables.ns + '.'
+        'Only app namespaces, named <app>-prod, <app>-dev, or
+        <app>-pr-<number>, hold Ingresses, not ' + variables.ns + '.'
     - expression: "!has(object.spec.defaultBackend)"
       message: A default backend serves every host. Name the host in a rule.
     - expression: >-

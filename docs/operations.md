@@ -24,7 +24,7 @@ are namespaces in it, named `<app>-<env>`.
 | `cluster/apps/<app>/<env>/stores/`    | Helm values of the environment's stores             | Argo CD                                |
 | `cluster/apps/<app>/<env>/network/`   | Helm values of its network policies                 | Argo CD                                |
 | `cluster/apps/<app>/<env>/database/`  | Helm values of its Postgres cluster                 | Argo CD                                |
-| `cluster/apps/jjforge/preview/`       | The ApplicationSet of jjforge's PR previews         | Argo CD                                |
+| `cluster/apps/jjforge/preview/`       | The ApplicationSets of jjforge's PR previews        | Argo CD                                |
 | `secrets/bootstrap/`                  | SOPS-encrypted Secrets Argo CD needs to start       | `mise run bootstrap`                   |
 | `secrets/platform/`                   | SOPS-encrypted platform credentials, as SopsSecrets | Argo CD                                |
 | `secrets/apps/<app>/<env>/`           | SOPS-encrypted app credentials, as SopsSecrets      | Argo CD                                |
@@ -99,20 +99,24 @@ the environment's project, with WAL archiving and a nightly backup where
 volumes go with it. A preview's cluster sets `keep: false`, so it goes with
 the preview.
 
-Every ApplicationSet but the two of jjforge's previews keeps what it deployed when one of
-its Applications disappears, such as after a renamed directory.
+Every ApplicationSet but the three of jjforge's previews keeps what it deployed
+when one of its Applications disappears, such as after a renamed directory.
 
 ### Previews
 
-A jjforge PR with the `preview` label runs next to dev at
+A jjforge PR with the `preview` label runs at
 `https://jjforge-pr-<number>.nca-apprentices.dev`, behind the GitHub login.
 jjforge's CI pushes the images of the head commit of the PR, tagged with
 the commit. The `jjforge-preview` ApplicationSet in `apps/jjforge/preview/` asks
 GitHub for labeled PRs every minute and creates `jjforge-pr-<number>` from the
 chart at that commit. Each new commit on the PR replaces the images in place.
 
-A preview runs in `jjforge-dev` under its project, so it shares dev's
-stores, network policies, `github-login`, and `no-cookies`. The
+A preview runs a PR's code, so it gets a namespace of its own,
+`jjforge-pr-<number>`, and reaches no Secret of dev or of another preview. The
+`jjforge-preview-environment` ApplicationSet creates the namespace from
+`platform/charts/preview`, with its limits, `github-login`, and `no-cookies`,
+and its network policies from `platform/charts/network`, under the platform's
+project. The app and its database run there under jjforge-dev's project. The
 `jjforge-preview-database` ApplicationSet gives it a Postgres cluster of its
 own, `jjforge-pr-<number>-db`, because the chart migrates its database
 before it deploys, and the migrations of a PR must never reach dev's
@@ -123,8 +127,8 @@ from the Ingress. The certificate authority allows 50 per week for the whole
 domain.
 
 When the PR merges, closes, or loses the label, the ApplicationSets delete the
-Applications, and Argo CD deletes their pods, Service, Ingress, certificate,
-and database cluster with its data.
+Applications, and Argo CD deletes the namespace with everything in it: pods,
+Service, Ingress, certificate, and database cluster with its data.
 cert-manager then deletes the TLS secret. Fork PRs get no preview, since their
 CI can't push images.
 

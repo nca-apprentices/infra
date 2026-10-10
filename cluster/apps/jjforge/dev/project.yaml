@@ -1,7 +1,8 @@
 # What jjforge-dev's Applications may deploy: its chart, its stores' charts,
 # its directory here, and the chart of a PR's head commit for a preview, into
-# its own namespace only. The namespace comes from this directory under the
-# platform's project, so the app creates no cluster-scoped objects itself.
+# its own namespace and the previews' jjforge-pr-<number> only. The namespaces
+# come from this directory and ../preview/environment.yaml under the platform's
+# project, so the app creates no cluster-scoped objects itself.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -20,6 +21,8 @@ spec:
   destinations:
     - server: https://kubernetes.default.svc
       namespace: jjforge-dev
+    - server: https://kubernetes.default.svc
+      namespace: jjforge-pr-*
   clusterResourceWhitelist: []
   # The platform's limits on the namespace, which its own Application applies.
   # A chart that shipped one could lift them.

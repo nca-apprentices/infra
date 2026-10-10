@@ -1,0 +1,24 @@
+# Each preview runs a PR's code in a namespace of its own, so it reaches no
+# Secret of dev or of another preview, and the network policies keep it
+# inside. The namespace goes, with all in it, when the preview does.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Release.Namespace }}
+  # The API server rejects any pod that could run as root, escalate its
+  # privileges, keep a capability, or run without seccomp.
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+# What a container gets when it sets nothing, as in dev.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: defaults
+spec:
+  limits:
+    - type: Container
+      default: { memory: 512Mi }
+      defaultRequest: { cpu: 100m, memory: 256Mi }
