@@ -1,5 +1,7 @@
-# Argo CD and Grafana sign in with GitHub themselves, so they need no
-# github-login middleware, and the argocd CLI keeps working.
+# Each tool has a host of its own, so a flaw in one tool's pages can't act
+# with a member's session in another, such as Argo CD's. Argo CD and Grafana
+# sign in with GitHub themselves, so they need no github-login middleware, and
+# the argocd CLI keeps working.
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
@@ -9,7 +11,7 @@ spec:
   entryPoints: [websecure]
   routes:
     - kind: Rule
-      match: Host(`ops.nca-apprentices.dev`) && PathPrefix(`/argocd`)
+      match: Host(`argocd.nca-apprentices.dev`)
       services: [{ name: argocd-server, port: 80 }]
 ---
 apiVersion: traefik.io/v1alpha1
@@ -21,7 +23,7 @@ spec:
   entryPoints: [websecure]
   routes:
     - kind: Rule
-      match: Host(`ops.nca-apprentices.dev`) && PathPrefix(`/grafana`)
+      match: Host(`grafana.nca-apprentices.dev`)
       services: [{ name: observability-grafana, port: 80 }]
 ---
 # VictoriaLogs has no login, and outside /select/ it writes, deletes, and
@@ -35,18 +37,9 @@ spec:
   entryPoints: [websecure]
   routes:
     - kind: Rule
-      match: Host(`ops.nca-apprentices.dev`) && PathPrefix(`/logs/select/`)
-      middlewares: [{ name: github-login }, { name: strip-logs }]
+      match: Host(`logs.nca-apprentices.dev`) && PathPrefix(`/select/`)
+      middlewares: [{ name: github-login }]
       services: [{ name: logs-victoria-logs-single-server, port: 9428 }]
----
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: strip-logs
-  namespace: observability
-spec:
-  stripPrefix:
-    prefixes: [/logs]
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -69,7 +62,7 @@ spec:
   entryPoints: [websecure]
   routes:
     - kind: Rule
-      match: Host(`ops.nca-apprentices.dev`) && PathPrefix(`/headlamp`)
+      match: Host(`headlamp.nca-apprentices.dev`)
       middlewares: [{ name: github-login }]
       services: [{ name: headlamp, port: 80 }]
 ---
@@ -107,9 +100,9 @@ spec:
     matchLabels: { k8s-app: hubble-relay }
   ingress: [{}]
 ---
-# The jjforge-dev stores' UIs have no login, and each serves under its own
-# prefix, see stores/ in apps/jjforge/dev. They are ops tools on the ops host,
-# so the ops login guards them, not the apps login of jjforge-dev's own hosts.
+# The jjforge-dev stores' UIs have no login of their own, see stores/ in
+# apps/jjforge/dev. They are ops tools, so the ops login guards them, not the
+# apps login of jjforge-dev's own hosts.
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
@@ -119,11 +112,11 @@ spec:
   entryPoints: [websecure]
   routes:
     - kind: Rule
-      match: Host(`ops.nca-apprentices.dev`) && PathPrefix(`/jjforge-dev/redpanda`)
+      match: Host(`redpanda-dev.nca-apprentices.dev`)
       middlewares: [{ name: ops-login }]
       services: [{ name: redpanda-console, port: 8080 }]
     - kind: Rule
-      match: Host(`ops.nca-apprentices.dev`) && PathPrefix(`/jjforge-dev/seaweedfs`)
+      match: Host(`seaweedfs-dev.nca-apprentices.dev`)
       middlewares: [{ name: ops-login }]
       services: [{ name: seaweedfs-admin, port: 23646 }]
 ---

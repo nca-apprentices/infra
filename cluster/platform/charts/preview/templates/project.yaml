@@ -1,0 +1,31 @@
+# The preview's own project. A PR's chart can name any namespace in its
+# templates, so the project admits this namespace alone: the app and its
+# database reach neither dev nor another preview. The rest matches
+# jjforge-dev's project, apps/jjforge/dev/project.yaml.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: {{ .Release.Namespace }}
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  description: jjforge, the preview of a PR
+  sourceRepos:
+    - https://github.com/nca-apprentices/jjforge.git
+    - https://github.com/nca-apprentices/infra.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: {{ .Release.Namespace }}
+  clusterResourceWhitelist: []
+  # The platform's limits, network policies, and login, which the PR's chart
+  # mustn't lift or replace. IngressRoutes name hosts the admission policy
+  # can't check. A Role or RoleBinding would let the PR's pods write all of
+  # these through the API server themselves.
+  namespaceResourceBlacklist:
+    - { group: rbac.authorization.k8s.io, kind: "*" }
+    - { group: cilium.io, kind: "*" }
+    - { group: networking.k8s.io, kind: NetworkPolicy }
+    - { group: "", kind: LimitRange }
+    - { group: traefik.io, kind: "*" }
+    - { group: isindir.github.com, kind: SopsSecret }

@@ -3,8 +3,9 @@
 # cert-manager's challenge Ingress, so no namespace gets a certificate for a
 # host it doesn't own. The hosts follow from the namespace:
 #
-#   jjforge-prod  jjforge.nca-apprentices.dev
-#   jjforge-dev   jjforge-dev.nca-apprentices.dev, jjforge-pr-12.nca-apprentices.dev
+#   jjforge-prod   jjforge.nca-apprentices.dev
+#   jjforge-dev    jjforge-dev.nca-apprentices.dev
+#   jjforge-pr-12  jjforge-pr-12.nca-apprentices.dev
 #
 # A rule without a host, or a default backend, would serve every host. The ops
 # namespace serves the portal and is exempt. IngressRoutes have no field to
@@ -33,14 +34,29 @@ spec:
       expression: >-
         variables.ns.endsWith('-prod')
         ? '^' + variables.ns.substring(0, size(variables.ns) - 5) + r'\.nca-apprentices\.dev$'
-        : variables.ns.endsWith('-dev')
-        ? '^' + variables.ns.substring(0, size(variables.ns) - 4) + r'-(dev|pr-[0-9]+)\.nca-apprentices\.dev$'
+        : variables.ns.endsWith('-dev') || variables.ns.matches('-pr-[0-9]+$')
+        ? '^' + variables.ns + r'\.nca-apprentices\.dev$'
         : '^$'
+    # cert-manager's challenge Ingress: port 80, where browsers send no Secure
+    # cookie, and every path a challenge token. Traefik matches paths as
+    # prefixes, and the strict pattern leaves no encoded or dotted path that an
+    # app might read as another.
+    - name: acme
+      expression: >-
+        object.metadata.?annotations[?'traefik.ingress.kubernetes.io/router.entrypoints']
+        .orValue('') == 'web'
+        && object.spec.?rules.orValue([]).exists(r, size(r.?http.paths.orValue([])) > 0)
+        && object.spec.?rules.orValue([]).all(r, r.?http.paths.orValue([]).all(p,
+        p.?path.orValue('').matches(r'^/\.well-known/acme-challenge/[A-Za-z0-9_-]+$')))
+    - name: middlewares
+      expression: >-
+        object.metadata.?annotations[?'traefik.ingress.kubernetes.io/router.middlewares']
+        .orValue('').split(',').map(m, m.trim())
   validations:
-    - expression: variables.ns.endsWith('-prod') || variables.ns.endsWith('-dev')
+    - expression: variables.hosts != '^$'
       messageExpression: >-
-        'Only app namespaces, named <app>-prod or <app>-dev, hold Ingresses,
-        not ' + variables.ns + '.'
+        'Only app namespaces, named <app>-prod, <app>-dev, or
+        <app>-pr-<number>, hold Ingresses, not ' + variables.ns + '.'
     - expression: "!has(object.spec.defaultBackend)"
       message: A default backend serves every host. Name the host in a rule.
     - expression: >-
@@ -49,6 +65,37 @@ spec:
       messageExpression: >-
         'Every host of an Ingress in ' + variables.ns + ' must match ' +
         variables.hosts + '.'
+    # Port 443 requires Cloudflare's client certificate through the default
+    # TLS options, see platform/traefik.yaml, and port 80 checks none. So an
+    # Ingress names no TLS options, and only ACME challenges serve on port 80.
+    - expression: >-
+        !object.metadata.?annotations[?'traefik.ingress.kubernetes.io/router.tls.options'].hasValue()
+      message: >-
+        An Ingress may not name TLS options, which would drop the client
+        certificate check.
+    - expression: >-
+        object.metadata.?annotations[?'traefik.ingress.kubernetes.io/router.entrypoints']
+        .orValue('websecure') == 'websecure'
+        || variables.acme
+      message: >-
+        Only ACME challenges may serve on an entry point other than websecure,
+        since port 80 has no client certificate check.
+    # Dev and previews sit behind the GitHub login, and a preview, which runs
+    # a PR's code, also drops the login's cookie. The app's own chart writes
+    # its Ingress, so the policy checks that it names both.
+    - expression: >-
+        variables.acme
+        || !(variables.ns.endsWith('-dev') || variables.ns.matches('-pr-[0-9]+$'))
+        || variables.middlewares.exists(m, m == variables.ns + '-github-login@kubernetescrd')
+      messageExpression: >-
+        'An Ingress in ' + variables.ns + ' must name the middleware ' +
+        variables.ns + '-github-login@kubernetescrd.'
+    - expression: >-
+        variables.acme || !variables.ns.matches('-pr-[0-9]+$')
+        || variables.middlewares.exists(m, m == variables.ns + '-no-cookies@kubernetescrd')
+      messageExpression: >-
+        'An Ingress in ' + variables.ns + ' must name the middleware ' +
+        variables.ns + '-no-cookies@kubernetescrd.'
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding

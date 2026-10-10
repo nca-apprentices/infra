@@ -2,6 +2,7 @@
 # oauth2-proxy-apps.yaml. Only the hosts behind the login answer it, so a link
 # can't plant the cookie on a public prod host. The priority puts it ahead of
 # each app's own Ingress, so the app never sees the callback or its code.
+# real-host, below, ignores a client-sent X-Forwarded-Host.
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
@@ -13,4 +14,18 @@ spec:
     - kind: Rule
       match: HostRegexp(`^(ncaleague-dev|jjforge-dev|jjforge-pr-[0-9]+)\.nca-apprentices\.dev$`) && PathPrefix(`/apps-oauth2/`)
       priority: 1000
+      middlewares: [{ name: real-host }]
       services: [{ name: oauth2-proxy-apps, port: 80 }]
+---
+# Cloudflare passes a client's own X-Forwarded-Host, and Traefik keeps it from
+# Cloudflare's addresses. Removing it makes the login build its callback from
+# the Host the request came to, so a client can't name another host.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: real-host
+  namespace: ops
+spec:
+  headers:
+    customRequestHeaders:
+      X-Forwarded-Host: ""

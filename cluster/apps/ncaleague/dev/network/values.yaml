@@ -1,3 +1,4 @@
 # The network policies of ncaleague-dev, from cluster/platform/charts/network.
 client: app
-restoreDrill: true
+# Set true only while a restore drill runs: any pod here may claim the label.
+restoreDrill: false

@@ -1,0 +1,51 @@
+# The namespace of each jjforge preview, jjforge-pr-<number>, with its limits,
+# its login, and its network policies, from the charts in platform/charts. It
+# runs under the platform's project, since the app projects may create neither
+# namespaces nor network policies. It follows the same PRs as
+# applicationset.yaml, and deleting it deletes the namespace and everything
+# the preview ran in it.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: jjforge-preview-environment
+  namespace: argocd
+  annotations:
+    # The Argo CD diff on infra PRs lacks the App's key to list PRs.
+    argocd-diff-preview/render: never
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - pullRequest:
+        github:
+          owner: nca-apprentices
+          repo: jjforge
+          labels: [preview]
+          appSecretName: infra-repo
+        requeueAfterSeconds: 60
+  template:
+    metadata:
+      name: "jjforge-pr-{{ .number }}-environment"
+    spec:
+      project: default
+      sources:
+        - repoURL: https://github.com/nca-apprentices/infra.git
+          targetRevision: main
+          path: cluster/platform/charts/preview
+          helm:
+            releaseName: preview
+        # As in jjforge-dev, without the restore drill.
+        - repoURL: https://github.com/nca-apprentices/infra.git
+          targetRevision: main
+          path: cluster/platform/charts/network
+          helm:
+            releaseName: network
+            valuesObject:
+              client: server
+              databaseClients: [migrate]
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "jjforge-pr-{{ .number }}"
+      syncPolicy:
+        automated: { prune: true, selfHeal: true }
+        syncOptions: [ServerSideApply=true]

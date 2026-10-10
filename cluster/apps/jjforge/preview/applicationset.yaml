@@ -1,7 +1,8 @@
 # One Application per open jjforge PR with the preview label, named
 # jjforge-pr-<number> and served at jjforge-pr-<number>.nca-apprentices.dev
 # behind the GitHub login. It runs the chart and images of the PR's head commit
-# in jjforge-dev, next to dev, with dev's stores and network policies.
+# in a namespace of its own, see environment.yaml, so the PR's code reaches no
+# Secret of dev.
 # jjforge's CI pushes the images, tagged with the commit. Its database comes
 # from database.yaml, so its migrations never touch dev's.
 #
@@ -37,7 +38,7 @@ spec:
         # A GitHub deployment per head commit, see cluster/bootstrap/.
         notifications.argoproj.io/subscribe.deployment.github: ""
     spec:
-      project: jjforge-dev
+      project: "jjforge-pr-{{ .number }}"
       source:
         repoURL: https://github.com/nca-apprentices/jjforge.git
         targetRevision: "{{ .head_sha }}"
@@ -68,7 +69,7 @@ spec:
               environment: "pr-{{ .number }}"
       destination:
         server: https://kubernetes.default.svc
-        namespace: jjforge-dev
+        namespace: "jjforge-pr-{{ .number }}"
       syncPolicy:
         automated: { prune: true, selfHeal: true }
         syncOptions: [ServerSideApply=true]

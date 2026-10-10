@@ -15,11 +15,11 @@ spec:
     helm:
       releaseName: headlamp
       valuesObject:
-        # Served at ops.nca-apprentices.dev/headlamp behind the GitHub login in
+        # Served at headlamp.nca-apprentices.dev behind the GitHub login in
         # manifests/ops. Everyone who passes it acts as Headlamp's own account,
         # which reads everything except Secrets.
         config:
-          baseURL: /headlamp
+          baseURL: ""
           unsafeUseServiceAccountToken: true
         clusterRoleBinding: { clusterRoleName: view }
         ingress: { enabled: false }

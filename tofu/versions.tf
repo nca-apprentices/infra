@@ -29,6 +29,10 @@ terraform {
       source  = "aminueza/minio"
       version = "3.43.0"
     }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "4.4.1"
+    }
   }
 }
 

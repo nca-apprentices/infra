@@ -1,0 +1,4 @@
+apiVersion: v2
+name: preview
+description: The namespace of a preview environment, with its limits and login
+version: 0.1.0

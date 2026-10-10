@@ -1,5 +1,6 @@
 # Traefik picks a certificate by the name the browser asks for, from all it
-# has loaded, so every route on the hosts below serves this one.
+# has loaded, so every route on the hosts below serves this one, the tools'
+# routes in routes.yaml included.
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -7,7 +8,15 @@ metadata:
   namespace: ops
 spec:
   secretName: ops-tls
-  dnsNames: [ops.nca-apprentices.dev, nca-apprentices.dev]
+  dnsNames:
+    - ops.nca-apprentices.dev
+    - nca-apprentices.dev
+    - argocd.nca-apprentices.dev
+    - grafana.nca-apprentices.dev
+    - logs.nca-apprentices.dev
+    - headlamp.nca-apprentices.dev
+    - redpanda-dev.nca-apprentices.dev
+    - seaweedfs-dev.nca-apprentices.dev
   issuerRef: { kind: ClusterIssuer, name: letsencrypt }
 ---
 # Asks oauth2-proxy about every request. A visitor without a session goes to
@@ -43,9 +52,6 @@ metadata:
 spec:
   entryPoints: [websecure]
   routes:
-    - kind: Rule
-      match: Host(`ops.nca-apprentices.dev`) && PathPrefix(`/oauth2/`)
-      services: [{ name: oauth2-proxy, port: 80 }]
     - kind: Rule
       match: Host(`ops.nca-apprentices.dev`)
       middlewares: [{ name: github-login }]
@@ -95,15 +101,15 @@ data:
       <h2>Cluster</h2>
       <ul>
         <!-- Starts the Argo CD login, which GitHub completes without a click. -->
-        <li><a href="/argocd/auth/login?return_url=https%3A%2F%2Fops.nca-apprentices.dev%2Fargocd%2Fapplications"><strong>Argo CD</strong><span>Deploys the cluster from the <code>nca-apprentices/infra</code> repository on GitHub and shows whether each app matches it.</span><small>admins: everything. dev: syncs jjforge-dev and ncaleague-dev and sets their images. Others: read.</small></a></li>
-        <li><a href="/grafana/"><strong>Grafana</strong><span>Dashboards of the metrics. Explore queries metrics and logs.</span><small>admins: edit. Others: view and Explore.</small></a></li>
-        <li><a href="/logs/select/vmui/"><strong>VictoriaLogs</strong><span>Searches the logs of every pod.</span><small>Everyone: search.</small></a></li>
-        <li><a href="/headlamp/"><strong>Headlamp</strong><span>Shows the Kubernetes objects in the cluster.</span><small>Everyone: read, except Secrets.</small></a></li>
+        <li><a href="https://argocd.nca-apprentices.dev/auth/login?return_url=https%3A%2F%2Fargocd.nca-apprentices.dev%2Fapplications"><strong>Argo CD</strong><span>Deploys the cluster from the <code>nca-apprentices/infra</code> repository on GitHub and shows whether each app matches it.</span><small>admins: everything. dev: syncs jjforge-dev and ncaleague-dev and sets their images. Others: read.</small></a></li>
+        <li><a href="https://grafana.nca-apprentices.dev/"><strong>Grafana</strong><span>Dashboards of the metrics. Explore queries metrics and logs.</span><small>admins: edit. Others: view and Explore.</small></a></li>
+        <li><a href="https://logs.nca-apprentices.dev/select/vmui/"><strong>VictoriaLogs</strong><span>Searches the logs of every pod.</span><small>Everyone: search.</small></a></li>
+        <li><a href="https://headlamp.nca-apprentices.dev/"><strong>Headlamp</strong><span>Shows the Kubernetes objects in the cluster.</span><small>Everyone: read, except Secrets.</small></a></li>
       </ul>
       <h2>jjforge-dev</h2>
       <ul>
-        <li><a href="/jjforge-dev/redpanda/"><strong>Redpanda Console</strong><span>Topics, messages, and consumer groups of the dev Redpanda.</span><small>Everyone: read, write, and delete.</small></a></li>
-        <li><a href="/jjforge-dev/seaweedfs/"><strong>SeaweedFS</strong><span>Buckets, files, and S3 users of the dev SeaweedFS.</span><small>Everyone: read, write, and delete.</small></a></li>
+        <li><a href="https://redpanda-dev.nca-apprentices.dev/"><strong>Redpanda Console</strong><span>Topics, messages, and consumer groups of the dev Redpanda.</span><small>Everyone: read, write, and delete.</small></a></li>
+        <li><a href="https://seaweedfs-dev.nca-apprentices.dev/"><strong>SeaweedFS</strong><span>Buckets, files, and S3 users of the dev SeaweedFS.</span><small>Everyone: read, write, and delete.</small></a></li>
       </ul>
     </main>
     </html>

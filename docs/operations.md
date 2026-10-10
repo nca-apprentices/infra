@@ -24,7 +24,7 @@ are namespaces in it, named `<app>-<env>`.
 | `cluster/apps/<app>/<env>/stores/`    | Helm values of the environment's stores             | Argo CD                                |
 | `cluster/apps/<app>/<env>/network/`   | Helm values of its network policies                 | Argo CD                                |
 | `cluster/apps/<app>/<env>/database/`  | Helm values of its Postgres cluster                 | Argo CD                                |
-| `cluster/apps/jjforge/preview/`       | The ApplicationSet of jjforge's PR previews         | Argo CD                                |
+| `cluster/apps/jjforge/preview/`       | The ApplicationSets of jjforge's PR previews        | Argo CD                                |
 | `secrets/bootstrap/`                  | SOPS-encrypted Secrets Argo CD needs to start       | `mise run bootstrap`                   |
 | `secrets/platform/`                   | SOPS-encrypted platform credentials, as SopsSecrets | Argo CD                                |
 | `secrets/apps/<app>/<env>/`           | SOPS-encrypted app credentials, as SopsSecrets      | Argo CD                                |
@@ -99,20 +99,26 @@ the environment's project, with WAL archiving and a nightly backup where
 volumes go with it. A preview's cluster sets `keep: false`, so it goes with
 the preview.
 
-Every ApplicationSet but the two of jjforge's previews keeps what it deployed when one of
-its Applications disappears, such as after a renamed directory.
+Every ApplicationSet but the three of jjforge's previews keeps what it deployed
+when one of its Applications disappears, such as after a renamed directory.
 
 ### Previews
 
-A jjforge PR with the `preview` label runs next to dev at
+A jjforge PR with the `preview` label runs at
 `https://jjforge-pr-<number>.nca-apprentices.dev`, behind the GitHub login.
 jjforge's CI pushes the images of the head commit of the PR, tagged with
 the commit. The `jjforge-preview` ApplicationSet in `apps/jjforge/preview/` asks
 GitHub for labeled PRs every minute and creates `jjforge-pr-<number>` from the
 chart at that commit. Each new commit on the PR replaces the images in place.
 
-A preview runs in `jjforge-dev` under its project, so it shares dev's
-stores, network policies, `github-login`, and `no-cookies`. The
+A preview runs the code of a PR, so it gets a namespace of its own,
+`jjforge-pr-<number>`, and reaches no Secret of dev or of another preview. The
+`jjforge-preview-environment` ApplicationSet creates the namespace from
+`platform/charts/preview`, with its limits, `github-login`, and `no-cookies`,
+and its network policies from `platform/charts/network`, under the platform's
+project. The app and its database run there under a project of their own,
+which admits that namespace alone and forbids `traefik.io` objects, so the chart of
+the PR can neither reach another namespace nor replace its login. The
 `jjforge-preview-database` ApplicationSet gives it a Postgres cluster of its
 own, `jjforge-pr-<number>-db`, because the chart migrates its database
 before it deploys, and the migrations of a PR must never reach dev's
@@ -123,8 +129,8 @@ from the Ingress. The certificate authority allows 50 per week for the whole
 domain.
 
 When the PR merges, closes, or loses the label, the ApplicationSets delete the
-Applications, and Argo CD deletes their pods, Service, Ingress, certificate,
-and database cluster with its data.
+Applications, and Argo CD deletes the namespace with everything in it: pods,
+Service, Ingress, certificate, and database cluster with its data.
 cert-manager then deletes the TLS secret. Fork PRs get no preview, since their
 CI can't push images.
 
@@ -211,22 +217,23 @@ manifests change.
 
 ## Ops portal
 
-<https://ops.nca-apprentices.dev> links to the tools below. Only members of
-the `nca-apprentices` organization on GitHub get in, and two of its teams
-grant more:
+<https://ops.nca-apprentices.dev> links to the tools below. Each has a host of
+its own, so a flaw in one tool's pages can't act with a session in another, such
+as Argo CD's. Only members of the `nca-apprentices` organization on GitHub
+get in, and two of its teams grant more:
 
 - `admins`: administrator in Argo CD and Grafana. Every operator belongs here.
 - `dev`: the apprentices. They also sync `jjforge-dev` and `ncaleague-dev` and
   set their Helm parameters in Argo CD.
 
-| Path                     | Tool             | Signs in with        | Everyone else in the organization                           |
+| Host                     | Tool             | Signs in with        | Everyone else in the organization                           |
 | ------------------------ | ---------------- | -------------------- | ----------------------------------------------------------- |
-| `/argocd`                | Argo CD          | Its own GitHub login | Reads                                                       |
-| `/grafana`               | Grafana          | Its own GitHub login | Reads, searches logs and traces in Explore, and sees alerts |
-| `/headlamp`              | Headlamp         | `oauth2-proxy`       | Reads everything except Secrets                             |
-| `/logs`                  | VictoriaLogs     | `oauth2-proxy`       | Searches the logs                                           |
-| `/jjforge-dev/redpanda`  | Redpanda Console | `oauth2-proxy`       | Reads, writes, and deletes topics in `jjforge-dev`          |
-| `/jjforge-dev/seaweedfs` | SeaweedFS        | `oauth2-proxy`       | Changes buckets, files, and S3 users in `jjforge-dev`       |
+| `argocd`                 | Argo CD          | Its own GitHub login | Reads                                                       |
+| `grafana`                | Grafana          | Its own GitHub login | Reads, searches logs and traces in Explore, and sees alerts |
+| `headlamp`               | Headlamp         | `oauth2-proxy`       | Reads everything except Secrets                             |
+| `logs`                   | VictoriaLogs     | `oauth2-proxy`       | Searches the logs                                           |
+| `redpanda-dev`           | Redpanda Console | `oauth2-proxy`       | Reads, writes, and deletes topics in `jjforge-dev`          |
+| `seaweedfs-dev`          | SeaweedFS        | `oauth2-proxy`       | Changes buckets, files, and S3 users in `jjforge-dev`       |
 
 The three logins share one GitHub OAuth app, so GitHub asks once. Grafana and
 the portal's Argo CD link then go to GitHub and back without a click. Only

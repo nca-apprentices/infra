@@ -8,12 +8,11 @@ resources:
     container: { min: 512Mi, max: 1Gi }
     redpanda: { memory: 448Mi, reserveMemory: 0Mi }
 storage: { persistentVolume: { size: 5Gi } }
-# Served at ops.nca-apprentices.dev/jjforge-dev/redpanda behind the GitHub
-# login. Everyone who passes it may read and delete topics. The schema
-# rejects the chart's empty className and targetPort.
+# Served at redpanda-dev.nca-apprentices.dev behind the GitHub login. Everyone
+# who passes it may read and delete topics. The schema rejects the chart's
+# empty className and targetPort.
 console:
   enabled: true
-  console: { config: { server: { basePath: /jjforge-dev/redpanda } } }
   service: { targetPort: 8080 }
   ingress: { className: "" }
   # The chart's v2.8.0 ignores basePath for its scripts, so the page stays
