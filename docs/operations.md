@@ -305,7 +305,7 @@ The cluster key needs no escrow of its own. Its private half is in
 | Variable                           | What it is                                                                   |
 | ---------------------------------- | ---------------------------------------------------------------------------- |
 | `TF_VAR_hcloud_token`              | Hetzner Cloud API token with read and write access                           |
-| `TF_VAR_cloudflare_api_token`      | Cloudflare API token that edits the zone, its DNS, its settings, and its WAF |
+| `TF_VAR_cloudflare_api_token`      | Cloudflare API token that edits the zone, its DNS, settings, WAF, and SSL    |
 | `TF_VAR_cloudflare_account_id`     | ID of the Cloudflare account                                                 |
 | `TF_VAR_operator_cidrs`            | Where talosctl and kubectl run from, as a list                               |
 | `AWS_ACCESS_KEY_ID`                | Object Storage key for the tofu state and buckets                            |
@@ -482,6 +482,13 @@ The rules live in `cluster/platform/manifests/alerts/`, next to the scrapes and
 the `nca overview` dashboard in Grafana. Every alert except the info alerts
 opens an issue labeled `alert` in this repository, and the issue closes when
 the alert resolves. Watch the repository to get the notifications.
+
+Cloudflare shows the node a client certificate from a CA that tofu creates,
+see `tofu/origin-pulls.tf`, and the ingress refuses HTTPS without it, so no
+other Cloudflare account reaches the node. The ingress drops a TLS option it
+can't load and serves without the check, so `blackbox-exporter` tries a request
+without the certificate every minute, and `OriginWithoutClientCert` fires when
+it gets an answer.
 
 <https://status.nca-apprentices.dev> shows the uptime of the production
 apps and of the alert pipeline. A Cloudflare Worker in

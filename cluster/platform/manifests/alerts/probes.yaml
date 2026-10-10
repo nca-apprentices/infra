@@ -1,0 +1,18 @@
+# Tries Traefik without Cloudflare's client certificate every minute, so a
+# TLS option Traefik dropped, which it logs and then ignores, alerts instead
+# of leaving the node open to every Cloudflare account. See
+# blackbox-exporter.yaml for the module.
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMProbe
+metadata:
+  name: origin-client-cert
+  namespace: observability
+spec:
+  module: no_client_cert
+  interval: 1m
+  vmProberSpec:
+    url: blackbox-exporter-prometheus-blackbox-exporter.observability.svc:9115
+  targets:
+    staticConfig:
+      targets: [https://traefik.traefik.svc:443]
+      labels: { check: origin-client-cert }

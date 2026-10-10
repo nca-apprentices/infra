@@ -1,0 +1,41 @@
+# Probes from inside the cluster that the scrapes can't give, see
+# manifests/alerts/probes.yaml.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: blackbox-exporter
+  namespace: argocd
+  finalizers: [resources-finalizer.argocd.argoproj.io]
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: prometheus-blackbox-exporter
+    targetRevision: "11.19.1"
+    helm:
+      releaseName: blackbox-exporter
+      valuesObject:
+        config:
+          modules:
+            # An HTTPS request without a client certificate. Traefik must
+            # refuse it, see platform/traefik.yaml, so success means it serves
+            # without Cloudflare's check. Under TLS 1.3 the refusal arrives
+            # after the handshake, so only a request shows it. Any answer
+            # counts, since no route serves the Service's own name.
+            no_client_cert:
+              prober: http
+              timeout: 5s
+              http:
+                no_follow_redirects: true
+                valid_status_codes:
+                  [200, 301, 302, 303, 307, 308, 401, 403, 404]
+                tls_config:
+                  server_name: ops.nca-apprentices.dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ServerSideApply=true]
