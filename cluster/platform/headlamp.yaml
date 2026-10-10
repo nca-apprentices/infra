@@ -32,9 +32,22 @@ spec:
         # Headlamp's own account needs no roles any more.
         clusterRoleBinding: { create: false, clusterRoleName: view }
         ingress: { enabled: false }
+        # The restricted Pod Security level, on top of the chart's non-root
+        # user.
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities: { drop: [ALL] }
+          seccompProfile: { type: RuntimeDefault }
+        resources:
+          requests: { cpu: 5m, memory: 32Mi }
+          limits: { memory: 256Mi }
   destination:
     server: https://kubernetes.default.svc
     namespace: headlamp
   syncPolicy:
     automated: { prune: true, selfHeal: true }
     syncOptions: [CreateNamespace=true, ServerSideApply=true]
+    # Every pod here passes the restricted level, so a new one must too.
+    managedNamespaceMetadata:
+      labels:
+        pod-security.kubernetes.io/enforce: restricted

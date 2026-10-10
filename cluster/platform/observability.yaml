@@ -18,6 +18,13 @@ spec:
         grafana:
           enabled: true
           plugins: [victoriametrics-logs-datasource]
+          resources:
+            requests: { cpu: 20m, memory: 160Mi }
+            limits: { memory: 512Mi }
+          sidecar:
+            resources:
+              requests: { cpu: 5m, memory: 96Mi }
+              limits: { memory: 256Mi }
           # Served at grafana.nca-apprentices.dev. Members of the GitHub
           # organization sign in, the admins team as Admin and everyone else
           # as Viewer. Viewers may use Explore, which searches the logs.

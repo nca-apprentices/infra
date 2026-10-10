@@ -23,6 +23,11 @@ spec:
           fields: { headers: { names: { Cf-Connecting-Ip: keep } } }
         # Every prod app depends on the ingress, so no app may evict it.
         priorityClassName: system-cluster-critical
+        # Requests near what it uses. The limit ends a leak in Traefik
+        # before it takes the node's memory from everything else.
+        resources:
+          requests: { cpu: 50m, memory: 64Mi }
+          limits: { memory: 512Mi }
         # One Traefik per node, bound to the node's ports 80 and 443. Plain
         # Hetzner servers hand out no LoadBalancer addresses, and giving the
         # Service the node's own IP makes Cilium drop every other port on it,
