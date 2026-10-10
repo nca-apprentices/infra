@@ -318,6 +318,7 @@ The cluster key needs no escrow of its own. Its private half is in
 | `AWS_SECRET_ACCESS_KEY`            | Object Storage secret for the tofu state and buckets                         |
 | `TF_VAR_object_storage_project_id` | Numeric ID of the Hetzner project                                            |
 | `TF_VAR_backup_keys`               | Access key per backup bucket, as `{"metrics"="...", ...}`                    |
+| `TF_VAR_state_passphrase`          | Encrypts the tofu state and plans, at least 16 characters                    |
 
 ### Secrets that must exist before the first sync
 
