@@ -1,5 +1,5 @@
 # Traefik picks a certificate by the name the browser asks for, from all it
-# has loaded, so every route on the host below serves this one.
+# has loaded, so every route on the hosts below serves this one.
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -7,7 +7,7 @@ metadata:
   namespace: ops
 spec:
   secretName: ops-tls
-  dnsNames: [ops.nca-apprentices.dev]
+  dnsNames: [ops.nca-apprentices.dev, nca-apprentices.dev]
   issuerRef: { kind: ClusterIssuer, name: letsencrypt }
 ---
 # Asks oauth2-proxy about every request. A visitor without a session goes to
@@ -22,6 +22,18 @@ spec:
   forwardAuth:
     address: http://oauth2-proxy.ops.svc.cluster.local/
     trustForwardHeader: true
+---
+# The bare domain serves nothing of its own, so it sends visitors to the
+# portal. The redirect stays temporary in case the domain gets a page later.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: to-portal
+  namespace: ops
+spec:
+  redirectRegex:
+    regex: .*
+    replacement: https://ops.nca-apprentices.dev/
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -41,6 +53,11 @@ spec:
     - kind: Rule
       match: Host(`ops.nca-apprentices.dev`)
       middlewares: [{ name: github-login }]
+      services: [{ name: portal, port: 80 }]
+    # The middleware answers, so the service never sees a request.
+    - kind: Rule
+      match: Host(`nca-apprentices.dev`)
+      middlewares: [{ name: to-portal }]
       services: [{ name: portal, port: 80 }]
   tls: { secretName: ops-tls }
 ---
