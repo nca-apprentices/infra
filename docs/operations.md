@@ -262,6 +262,33 @@ Argo CD reads its settings from `cluster/bootstrap/`, so a change there takes
 when it starts, so a change to it also takes
 `kubectl -n argocd rollout restart deployment argocd-server`.
 
+## kubectl
+
+`cluster/kubeconfig.yaml` signs you in to the Kubernetes API with GitHub,
+through Argo CD's Dex. The API server knows you as `github:<login>`, so the
+audit log in VictoriaLogs names you. Your GitHub teams give you your roles,
+from `platform/manifests/access/`:
+
+| Team     | Roles                                                                   |
+| -------- | ----------------------------------------------------------------------- |
+| `admins` | Everything                                                              |
+| `dev`    | Reads everything but Secrets. Changes `jjforge-dev` and `ncaleague-dev` |
+
+```fish
+cd ~/bb/infra
+set -x KUBECONFIG cluster/kubeconfig.yaml
+kubectl get pods -A
+```
+
+The first command opens GitHub in the browser, and `kubectl oidc-login` keeps
+the token until it expires. The node's firewall admits the operator addresses
+only, see `tofu/firewall.tf`.
+
+`mise.toml` still points `KUBECONFIG` at the Talos certificate with full
+access in `talos/clusterconfig/kubeconfig`, which the `mise` tasks need and
+which works when the GitHub sign-in is down. The audit log names it `admin`,
+so use it for those cases alone.
+
 ## First install
 
 Run the tasks from the repository root.
