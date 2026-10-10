@@ -15,9 +15,6 @@ console:
   enabled: true
   service: { targetPort: 8080 }
   ingress: { className: "" }
-  # The chart's v2.8.0 ignores basePath for its scripts, so the page stays
-  # blank. v2.8.3 fixed it.
-  image: { tag: v2.8.16 }
   resources: { requests: { cpu: 10m, memory: 64Mi } }
   # Pod Security restricted, as the image's user, which the chart already
   # sets.
