@@ -269,10 +269,10 @@ through Argo CD's Dex. The API server knows you as `github:<login>`, so the
 audit log in VictoriaLogs names you. Your GitHub teams give you your roles,
 from `platform/manifests/access/`:
 
-| Team     | Roles                                                                   |
-| -------- | ----------------------------------------------------------------------- |
-| `admins` | Everything                                                              |
-| `dev`    | Reads everything but Secrets. Changes `jjforge-dev` and `ncaleague-dev` |
+| Team     | Roles                                                                                                                                              |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `admins` | Everything                                                                                                                                         |
+| `dev`    | Reads everything but Secrets. In `jjforge-dev` and `ncaleague-dev`, reads logs, runs `exec` and `port-forward`, restarts and scales, and runs Jobs |
 
 ```fish
 cd ~/bb/infra
@@ -329,9 +329,10 @@ The cluster key needs no escrow of its own. Its private half is in
    half in `keys` and every rule of `.sops.yaml`.
 2. The tofu state bucket `nca-tofu` in Hetzner Object Storage, `nbg1`.
 3. `secrets/tofu.enc.env`, a dotenv file with the variables below,
-   encrypted with `sops --encrypt --in-place`.
-4. The Talos cluster secrets: `talhelper gensecret >
-   talos/talsecret.sops.yaml`, then encrypt it the same way.
+   created with `sops edit`, which never writes it in plain text.
+4. The Talos cluster secrets: `talhelper gensecret`, piped through
+   `sops encrypt` into `talos/talsecret.sops.yaml`, as
+   [bootstrap.md](bootstrap.md#4-generate-the-talos-secrets) shows.
 5. One Object Storage key per backup bucket in [Backups](#backups), in the
    same project as `nca-tofu`. Hetzner has no API for keys.
 
@@ -382,13 +383,14 @@ the same name, with the cluster key.
 To change a secret, `sops edit` its file, then commit and push. The operator
 updates the Secret as soon as Argo CD syncs the file. A pod that reads the Secret as
 environment variables needs a restart. To add one, convert the Secret and
-encrypt it:
+encrypt it before it reaches the file, so the plain text never sits in the
+repository:
 
 ```sh
 kubectl -n <namespace> create secret generic <name> --from-literal <key>=<value> \
-  --dry-run=client -o yaml | yq --from-file secrets/sopssecret.yq \
+  --dry-run=client -o yaml | yq --from-file secrets/sopssecret.yq |
+  sops encrypt --filename-override secrets/<dir>/<name>.enc.yaml /dev/stdin \
   > secrets/<dir>/<name>.enc.yaml
-sops --encrypt --in-place secrets/<dir>/<name>.enc.yaml
 ```
 
 If the operator can't decrypt a file, the Secret keeps its last data, and the
