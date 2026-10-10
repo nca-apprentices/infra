@@ -3,7 +3,7 @@
 # makes a node replaceable rather than repairable.
 clusterName: nca
 talosVersion: v1.12.2
-kubernetesVersion: v1.35.1
+kubernetesVersion: v1.37.1
 endpoint: https://10.0.1.2:6443
 
 cniConfig:
