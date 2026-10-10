@@ -13,7 +13,7 @@ address=10.0.1.2
 # talos/clusterconfig is ignored.
 talosctl gen config nca "https://$address:6443" \
   --with-secrets "$1" \
-  --talos-version "$(yq .talos talos/versions.yaml)" \
+  --talos-version "$(yq .format talos/versions.yaml)" \
   --kubernetes-version "$(yq .kubernetes talos/versions.yaml)" \
   --config-patch @talos/patch.yaml \
   --output-types controlplane,talosconfig \

@@ -5,8 +5,10 @@ set -euo pipefail
 ip=$(sops exec-env secrets/tofu.enc.env "tofu -chdir=tofu output -raw node_ipv4")
 export TALOSCONFIG=${TALOSCONFIG:-talos/clusterconfig/talosconfig}
 
-# The image's schematic is empty, so the stock installer matches it. With one
-# node, every app is down until the node returns.
+# The stock installer, from the empty Image Factory schematic that
+# apply:image uses. Since 1.14 Talos publishes no installer to ghcr.io. With
+# one node, every app is down until the node returns.
+schematic=376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba
 talosctl -e "$ip" -n "$ip" upgrade \
-  --image "ghcr.io/siderolabs/installer:$(yq .talos talos/versions.yaml)"
+  --image "factory.talos.dev/metal-installer/$schematic:$(yq .talos talos/versions.yaml)"
 talosctl -e "$ip" -n "$ip" health --k8s-endpoint "https://$ip:6443"

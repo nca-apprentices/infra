@@ -1,5 +1,9 @@
 # The releases the node runs. `mise run upgrade:talos` and
 # `upgrade:kubernetes` move the node to them, and every generated
 # configuration names them.
-talos: v1.13.11
+talos: v1.14.2
 kubernetes: v1.36.5
+# The machine configuration's format. Talos 1.14 moves most of the v1alpha1
+# fields into documents of their own and still accepts the 1.13 format, so
+# the release and the format can change one at a time.
+format: v1.13
