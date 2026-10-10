@@ -232,23 +232,24 @@ get in, and two of its teams grant more:
 - `dev`: the apprentices. They also sync `jjforge-dev` and `ncaleague-dev` and
   set their Helm parameters in Argo CD.
 
-| Host                     | Tool             | Signs in with        | Everyone else in the organization                           |
-| ------------------------ | ---------------- | -------------------- | ----------------------------------------------------------- |
-| `argocd`                 | Argo CD          | Its own GitHub login | Reads                                                       |
-| `grafana`                | Grafana          | Its own GitHub login | Reads, searches logs and traces in Explore, and sees alerts |
-| `headlamp`               | Headlamp         | `oauth2-proxy`       | Reads everything except Secrets                             |
-| `logs`                   | VictoriaLogs     | `oauth2-proxy`       | Searches the logs                                           |
-| `redpanda-dev`           | Redpanda Console | `oauth2-proxy`       | Reads, writes, and deletes topics in `jjforge-dev`          |
-| `seaweedfs-dev`          | SeaweedFS        | `oauth2-proxy`       | Changes buckets, files, and S3 users in `jjforge-dev`       |
+| Host            | Tool             | Signs in with                      | Everyone else in the organization                           |
+| --------------- | ---------------- | ---------------------------------- | ----------------------------------------------------------- |
+| `argocd`        | Argo CD          | Its own GitHub login               | Reads                                                       |
+| `grafana`       | Grafana          | Its own GitHub login               | Reads, searches logs and traces in Explore, and sees alerts |
+| `headlamp`      | Headlamp         | `oauth2-proxy`, then GitHub as you | What your Kubernetes roles allow                            |
+| `logs`          | VictoriaLogs     | `oauth2-proxy`                     | Searches the logs                                           |
+| `redpanda-dev`  | Redpanda Console | `oauth2-proxy`                     | Reads, writes, and deletes topics in `jjforge-dev`          |
+| `seaweedfs-dev` | SeaweedFS        | `oauth2-proxy`                     | Changes buckets, files, and S3 users in `jjforge-dev`       |
 
 The three logins share one GitHub OAuth app, so GitHub asks once. Grafana and
 the portal's Argo CD link then go to GitHub and back without a click. Only
 members of `admins` silence alerts, under Alerting in Grafana.
 The prod stores have no UI.
 
-Headlamp acts as its own account for everyone, bound to the `view` role. For
-more, use kubectl. Argo CD has no administrator password, so kubectl is also the way
-in when the GitHub login fails.
+Headlamp signs each person in to the Kubernetes API with GitHub, as kubectl
+does, so it shows what their roles allow, see [kubectl](#kubectl). Argo CD has
+no administrator password, so the Talos certificate is the way in when the
+GitHub login fails.
 
 To see the flows the network policies drop, run `cilium hubble port-forward`,
 then `hubble observe --verdict DROPPED`.
@@ -408,8 +409,8 @@ Four limits keep the cluster key from reaching more than the cluster holds:
   annotation, and the app projects deny the kind.
 - The `sops` namespace accepts no connections and reaches the API server
   alone.
-- Only `admins` read Secrets in `sops`. Headlamp hides Secrets, and Argo CD
-  masks their data.
+- Only `admins` read Secrets in `sops`. Headlamp shows each person
+  what their roles allow, and Argo CD masks Secrets' data.
 
 Replace the cluster key when it leaks or an operator leaves:
 
