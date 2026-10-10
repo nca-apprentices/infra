@@ -21,7 +21,7 @@ metadata:
 spec:
   forwardAuth:
     address: http://oauth2-proxy.ops.svc.cluster.local/
-    trustForwardHeader: true
+    trustForwardHeader: false
 ---
 # The bare domain serves nothing of its own, so it sends visitors to the
 # portal. The redirect stays temporary in case the domain gets a page later.

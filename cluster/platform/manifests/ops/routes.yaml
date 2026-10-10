@@ -56,7 +56,7 @@ metadata:
 spec:
   forwardAuth:
     address: http://oauth2-proxy.ops.svc.cluster.local/
-    trustForwardHeader: true
+    trustForwardHeader: false
 ---
 # Headlamp acts as its own account for whoever reaches it, so only Traefik,
 # after the GitHub login, may.
@@ -81,7 +81,7 @@ metadata:
 spec:
   forwardAuth:
     address: http://oauth2-proxy.ops.svc.cluster.local/
-    trustForwardHeader: true
+    trustForwardHeader: false
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy

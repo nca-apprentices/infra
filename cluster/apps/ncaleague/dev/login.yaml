@@ -1,5 +1,7 @@
 # The GitHub login, for members of nca-apprentices only. The chart's Ingress
 # names it in ingress.middlewares, see application.yaml.
+# Traefik sets X-Forwarded-Host from the request itself, so a client can't
+# name another host for the login to return to.
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
@@ -8,4 +10,4 @@ metadata:
 spec:
   forwardAuth:
     address: http://oauth2-proxy-apps.ops.svc.cluster.local/
-    trustForwardHeader: true
+    trustForwardHeader: false
