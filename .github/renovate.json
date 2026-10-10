@@ -44,19 +44,27 @@
       "commitMessageSuffix": "in prod"
     },
     {
-      "description": "The node's Talos and the talosctl that upgrades it move together.",
+      "description": "The node's Talos and the talosctl that upgrades it move together. One PR per minor version, since a node upgrades one minor at a time.",
       "matchDepNames": ["siderolabs/talos", "talosctl"],
-      "groupName": "Talos"
+      "groupName": "Talos",
+      "separateMultipleMinor": true
     },
     {
-      "description": "Kubernetes and kubectl move together.",
+      "description": "Kubernetes and kubectl move together. One PR per minor version, since a node upgrades one minor at a time.",
       "matchDepNames": ["kubernetes/kubernetes", "kubectl"],
-      "groupName": "Kubernetes"
+      "groupName": "Kubernetes",
+      "separateMultipleMinor": true
     },
     {
       "description": "The installed Argo CD and the chart the diff renders with move together.",
       "matchDepNames": ["argoproj/argo-cd", "argo-cd"],
       "groupName": "Argo CD"
+    },
+    {
+      "description": "A new Postgres major needs a migration, not a new image, so only minors and patches arrive.",
+      "matchDepNames": ["ghcr.io/cloudnative-pg/postgresql"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
     }
   ],
   "customManagers": [
@@ -94,6 +102,26 @@
       "datasourceTemplate": "helm",
       "registryUrlTemplate": "https://argoproj.github.io/argo-helm",
       "depNameTemplate": "argo-cd"
+    },
+    {
+      "customType": "regex",
+      "description": "The Postgres image of every database cluster.",
+      "managerFilePatterns": [
+        "/^cluster/platform/charts/database/templates/cluster\\.yaml$/"
+      ],
+      "matchStrings": [
+        "imageName: (?<depName>ghcr\\.io/cloudnative-pg/postgresql):(?<currentValue>\\d+\\.\\d+)"
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "Images with a fixed tag in the mise tasks, such as rclone in restore.",
+      "managerFilePatterns": ["/^\\.config/mise/tasks/[^/]+$/"],
+      "matchStrings": [
+        "image: (?<depName>[a-z0-9./-]+):(?<currentValue>\\d+\\.\\d+\\.\\d+)\\s"
+      ],
+      "datasourceTemplate": "docker"
     }
   ]
 }

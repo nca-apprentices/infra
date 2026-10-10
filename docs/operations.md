@@ -111,14 +111,14 @@ the commit. The `jjforge-preview` ApplicationSet in `apps/jjforge/preview/` asks
 GitHub for labeled PRs every minute and creates `jjforge-pr-<number>` from the
 chart at that commit. Each new commit on the PR replaces the images in place.
 
-A preview runs a PR's code, so it gets a namespace of its own,
+A preview runs the code of a PR, so it gets a namespace of its own,
 `jjforge-pr-<number>`, and reaches no Secret of dev or of another preview. The
 `jjforge-preview-environment` ApplicationSet creates the namespace from
 `platform/charts/preview`, with its limits, `github-login`, and `no-cookies`,
 and its network policies from `platform/charts/network`, under the platform's
 project. The app and its database run there under a project of their own,
-which admits that namespace alone and forbids `traefik.io` objects, so the PR's
-chart can neither reach another namespace nor replace its login. The
+which admits that namespace alone and forbids `traefik.io` objects, so the chart of
+the PR can neither reach another namespace nor replace its login. The
 `jjforge-preview-database` ApplicationSet gives it a Postgres cluster of its
 own, `jjforge-pr-<number>-db`, because the chart migrates its database
 before it deploys, and the migrations of a PR must never reach dev's
