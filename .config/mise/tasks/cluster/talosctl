@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#MISE description="Run talosctl against the node, such as `mise run cluster:talosctl dashboard`"
+set -euo pipefail
+
+# The generated talosconfig names the node's private address, which only the
+# cloud network reaches. The public one comes from the tofu state.
+ip=$(sops exec-env secrets/tofu.enc.env "tofu -chdir=tofu output -raw node_ipv4")
+export TALOSCONFIG=${TALOSCONFIG:-talos/clusterconfig/talosconfig}
+
+exec talosctl -e "$ip" -n "$ip" "$@"

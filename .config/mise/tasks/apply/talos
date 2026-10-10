@@ -6,7 +6,7 @@ ip=$(sops exec-env secrets/tofu.enc.env "tofu -chdir=tofu output -raw node_ipv4"
 export TALOSCONFIG=talos/clusterconfig/talosconfig
 
 # The node config only, in a scratch directory, so the talosconfig that
-# `mise run apply` generated stays as it is.
+# `mise run apply:cloud` generated stays as it is.
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 

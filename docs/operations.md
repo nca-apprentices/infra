@@ -11,24 +11,24 @@ jjforge PR is the one exception.
 One cluster runs every app. An app's environments, such as `dev` and `prod`,
 are namespaces in it, named `<app>-<env>`.
 
-| Path                                  | What it is                                          | Applied by                             |
-| ------------------------------------- | --------------------------------------------------- | -------------------------------------- |
-| `tofu/`                               | Network, firewall, volume, node, DNS roots          | `mise run apply`                       |
-| `talos/`                              | Machine configuration, as talhelper input           | `mise run apply`                       |
-| `cluster/bootstrap/`                  | Argo CD and the root Application                    | `mise run bootstrap`                   |
-| `cluster/platform/`                   | One Argo CD Application per platform component      | Argo CD                                |
-| `cluster/platform/manifests/`         | Plain manifests a platform Application points at    | Argo CD                                |
-| `cluster/platform/charts/`            | Helm charts every environment renders               | Argo CD                                |
-| `cluster/apps/<app>/<env>/`           | The namespace, AppProject, and Applications         | Argo CD                                |
-| `cluster/apps/<app>/<env>/manifests/` | Plain manifests an app Application points at        | Argo CD                                |
-| `cluster/apps/<app>/<env>/stores/`    | Helm values of the environment's stores             | Argo CD                                |
-| `cluster/apps/<app>/<env>/network/`   | Helm values of its network policies                 | Argo CD                                |
-| `cluster/apps/<app>/<env>/database/`  | Helm values of its Postgres cluster                 | Argo CD                                |
-| `cluster/apps/jjforge/preview/`       | The ApplicationSets of jjforge's PR previews        | Argo CD                                |
-| `secrets/bootstrap/`                  | SOPS-encrypted Secrets Argo CD needs to start       | `mise run bootstrap`                   |
-| `secrets/platform/`                   | SOPS-encrypted platform credentials, as SopsSecrets | Argo CD                                |
-| `secrets/apps/<app>/<env>/`           | SOPS-encrypted app credentials, as SopsSecrets      | Argo CD                                |
-| `secrets/tofu.enc.env`                | SOPS-encrypted cloud credentials                    | `mise run apply`, `mise run bootstrap` |
+| Path                                  | What it is                                          | Applied by                                         |
+| ------------------------------------- | --------------------------------------------------- | -------------------------------------------------- |
+| `tofu/`                               | Network, firewall, volume, node, DNS roots          | `mise run apply:cloud`                             |
+| `talos/`                              | Machine configuration, as talhelper input           | `mise run apply:cloud`                             |
+| `cluster/bootstrap/`                  | Argo CD and the root Application                    | `mise run apply:bootstrap`                         |
+| `cluster/platform/`                   | One Argo CD Application per platform component      | Argo CD                                            |
+| `cluster/platform/manifests/`         | Plain manifests a platform Application points at    | Argo CD                                            |
+| `cluster/platform/charts/`            | Helm charts every environment renders               | Argo CD                                            |
+| `cluster/apps/<app>/<env>/`           | The namespace, AppProject, and Applications         | Argo CD                                            |
+| `cluster/apps/<app>/<env>/manifests/` | Plain manifests an app Application points at        | Argo CD                                            |
+| `cluster/apps/<app>/<env>/stores/`    | Helm values of the environment's stores             | Argo CD                                            |
+| `cluster/apps/<app>/<env>/network/`   | Helm values of its network policies                 | Argo CD                                            |
+| `cluster/apps/<app>/<env>/database/`  | Helm values of its Postgres cluster                 | Argo CD                                            |
+| `cluster/apps/jjforge/preview/`       | The ApplicationSets of jjforge's PR previews        | Argo CD                                            |
+| `secrets/bootstrap/`                  | SOPS-encrypted Secrets Argo CD needs to start       | `mise run apply:bootstrap`                         |
+| `secrets/platform/`                   | SOPS-encrypted platform credentials, as SopsSecrets | Argo CD                                            |
+| `secrets/apps/<app>/<env>/`           | SOPS-encrypted app credentials, as SopsSecrets      | Argo CD                                            |
+| `secrets/tofu.enc.env`                | SOPS-encrypted cloud credentials                    | `mise run apply:cloud`, `mise run apply:bootstrap` |
 
 The root Application syncs the files in `platform/`. Among them, the `apps`
 ApplicationSet creates one Application per directory in `apps/<app>/`, named
@@ -173,7 +173,7 @@ installation on each repository.
    `cluster/apps/jjforge/dev/`, names `github-login, no-cookies`, and adds its
    host to `platform/manifests/ops/apps-login.yaml`.
 4. Add the environment's secrets under `secrets/apps/<app>/<env>/`, then run
-   `mise run bootstrap` to apply them.
+   `mise run apply:bootstrap` to apply them.
 5. Merge. Argo CD picks the directory up without any other change.
 
 A chart in a private registry needs a repository secret in `argocd` per
@@ -191,31 +191,23 @@ can use it.
 - **An app release:** bump `targetRevision` in `dev/application.yaml`, then in
   `prod/application.yaml` once `dev` works. Renovate opens those PRs when a new
   chart is published.
-- **Cloud:** edit `tofu/`, then `mise run apply`.
-- **Talos configuration:** edit `talos/talconfig.yaml`, then `mise run talos`.
+- **Cloud:** edit `tofu/`, then `mise run apply:cloud`.
+- **Talos configuration:** edit `talos/talconfig.yaml`, then `mise run apply:talos`.
   It shows how the node's running configuration would change and applies it
-  once you confirm. `mise run apply` doesn't reach the node: tofu ignores
+  once you confirm. `mise run apply:cloud` doesn't reach the node: tofu ignores
   changes to the user data, which only a new node boots from.
 - **Talos release:** set `talosVersion` in `talconfig.yaml`, then run
-  `mise run image` for the next rebuild, and upgrade the node. The upgrade
-  reboots it, and with one node every app is down until it returns. The
-  image's schematic is empty, so the stock installer matches it:
-
-  ```fish
-  set -x TALOSCONFIG talos/clusterconfig/talosconfig
-  set ip (sops exec-env secrets/tofu.enc.env "tofu -chdir=tofu output -raw node_ipv4")
-  talosctl -e $ip -n $ip upgrade --image ghcr.io/siderolabs/installer:(yq .talosVersion talos/talconfig.yaml)
-  ```
-
+  `mise run apply:image` for the next rebuild, and `mise run upgrade:talos`. The
+  upgrade reboots the node, and with one node every app is down until it
+  returns. Talos moves one minor version at a time.
 - **Kubernetes release:** after the Talos release that supports it, set
-  `kubernetesVersion` in `talconfig.yaml`, then, with `TALOSCONFIG` and `ip`
-  set as in the Talos release step:
+  `kubernetesVersion` in `talconfig.yaml`, then run
+  `mise run upgrade:kubernetes`. It updates the control plane and the node
+  agent one component at a time, and moves one minor version at a time too.
 
-  ```fish
-  talosctl -e $ip -n $ip upgrade-k8s --to (yq .kubernetesVersion talos/talconfig.yaml)
-  ```
-
-  It updates the control plane and the node agent one component at a time.
+`mise run cluster:health` lists what isn't healthy: the node, pods, databases, and
+Argo CD Applications. `mise run cluster:talosctl <command>` runs talosctl against the
+node's public address, such as `mise run cluster:talosctl dashboard`.
 
 `mise run check` validates all of it without credentials, and CI runs it on
 every PR. CI also comments on every PR how each Argo CD Application's rendered
@@ -259,7 +251,7 @@ stays until someone removes it. Git still sets the chart version and values.
 The `apps` ApplicationSet grants that to `dev` directories only.
 
 Argo CD reads its settings from `cluster/bootstrap/`, so a change there takes
-`mise run bootstrap`, not a merge. The server reads `argocd-cmd-params-cm` only
+`mise run apply:bootstrap`, not a merge. The server reads `argocd-cmd-params-cm` only
 when it starts, so a change to it also takes
 `kubectl -n argocd rollout restart deployment argocd-server`.
 
@@ -295,9 +287,9 @@ so use it for those cases alone.
 Run the tasks from the repository root.
 
 ```text
-mise run image      # upload the Talos release as a Hetzner snapshot
-mise run apply      # generate the node config, create network, firewall, volume and node
-mise run bootstrap  # bootstrap etcd, install Cilium, apply secrets, install Argo CD
+mise run apply:image      # upload the Talos release as a Hetzner snapshot
+mise run apply:cloud      # generate the node config, create network, firewall, volume and node
+mise run apply:bootstrap  # bootstrap etcd, install Cilium, apply secrets, install Argo CD
 ```
 
 Argo CD owns the cluster after that. [bootstrap.md](bootstrap.md) walks
@@ -351,7 +343,7 @@ The cluster key needs no escrow of its own. Its private half is in
 
 ### Secrets that must exist before the first sync
 
-`mise run bootstrap` applies each file in `secrets/bootstrap/`. It also creates
+`mise run apply:bootstrap` applies each file in `secrets/bootstrap/`. It also creates
 every namespace a file under `secrets/` names, since the `secrets` Application
 syncs before the Applications that own most of them.
 
@@ -360,7 +352,7 @@ syncs before the Applications that own most of them.
 | `infra-repo` | `argocd`  | GitHub App key Argo CD reads this repository with          |
 | `sops-age`   | `sops`    | The cluster key, which decrypts the secrets in the cluster |
 
-To change one, `sops edit` the file and run `mise run bootstrap`.
+To change one, `sops edit` the file and run `mise run apply:bootstrap`.
 
 ### In the cluster
 
@@ -426,7 +418,7 @@ Replace the cluster key when it leaks or an operator leaves:
    end
    ```
 
-3. Run `mise run bootstrap`, then commit and push. Until the push, the
+3. Run `mise run apply:bootstrap`, then commit and push. Until the push, the
    operator fails on the old files and keeps the Secrets as they are.
 
 ## Backups
@@ -478,8 +470,8 @@ scale it down right after its nightly backup, delete its volume, and let it
 come back.
 
 A store that collected since the loss can't take the copy, as it would replace
-what the store holds. `mise run restore metrics <until>` and
-`mise run restore logs` merge the backup into the running store through its
+what the store holds. `mise run apply:restore metrics <until>` and
+`mise run apply:restore logs` merge the backup into the running store through its
 API instead, which takes hours per gigabyte. `until` is when the store started
 collecting, so nothing arrives twice.
 

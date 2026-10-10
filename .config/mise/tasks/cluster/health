@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+#MISE description="List what isn't healthy: the node, pods, databases, and Argo CD applications"
+set -euo pipefail
+
+kubectl get nodes -o wide
+
+# A pod counts when it isn't running or completed, or runs with a container
+# that isn't ready, such as 0/1.
+echo
+echo "Pods:"
+kubectl get pods -A --no-headers |
+  awk '($4 != "Running" && $4 != "Completed") || ($4 == "Running" && $3 ~ /^0\//)'
+
+echo
+echo "Databases:"
+kubectl get clusters.postgresql.cnpg.io -A --no-headers |
+  grep -v 'Cluster in healthy state' || true
+
+echo
+echo "Applications:"
+kubectl -n argocd get applications --no-headers |
+  awk '$2 != "Synced" || $3 != "Healthy"'

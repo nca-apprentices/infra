@@ -21,7 +21,7 @@ if ((plaintext)); then
 fi
 
 treefmt --ci
-mise run prose
+mise run check:prose
 
 # Secrets in plain text anywhere in the history, not only in secrets/, and
 # workflows that leak tokens or run unpinned actions.
