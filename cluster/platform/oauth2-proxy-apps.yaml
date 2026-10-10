@@ -24,6 +24,9 @@ spec:
           existingSecret: oauth2-proxy-apps
           # Answers 202 to a signed-in request, which Traefik then passes on.
           upstreams: ["static://202"]
+        resources:
+          requests: { cpu: 5m, memory: 16Mi }
+          limits: { memory: 128Mi }
         extraArgs:
           provider: github
           github-org: nca-apprentices
@@ -50,3 +53,7 @@ spec:
   syncPolicy:
     automated: { prune: true, selfHeal: true }
     syncOptions: [CreateNamespace=true, ServerSideApply=true]
+    # Every pod here passes the restricted level, so a new one must too.
+    managedNamespaceMetadata:
+      labels:
+        pod-security.kubernetes.io/enforce: restricted

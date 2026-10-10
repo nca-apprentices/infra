@@ -20,9 +20,24 @@ spec:
         # A deleted Certificate takes its secret along, so a closed preview
         # leaves no TLS secret behind.
         enableCertificateOwnerRef: true
+        resources:
+          requests: { cpu: 10m, memory: 48Mi }
+          limits: { memory: 256Mi }
+        webhook:
+          resources:
+            requests: { cpu: 5m, memory: 32Mi }
+            limits: { memory: 128Mi }
+        cainjector:
+          resources:
+            requests: { cpu: 10m, memory: 64Mi }
+            limits: { memory: 256Mi }
   destination:
     server: https://kubernetes.default.svc
     namespace: cert-manager
   syncPolicy:
     automated: { prune: true, selfHeal: true }
     syncOptions: [CreateNamespace=true, ServerSideApply=true]
+    # Every pod here passes the restricted level, so a new one must too.
+    managedNamespaceMetadata:
+      labels:
+        pod-security.kubernetes.io/enforce: restricted

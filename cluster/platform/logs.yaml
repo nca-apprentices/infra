@@ -17,6 +17,10 @@ spec:
       valuesObject:
         server:
           retentionPeriod: 30d
+          # A large query can take several times the memory it idles at.
+          resources:
+            requests: { cpu: 20m, memory: 256Mi }
+            limits: { memory: 1Gi }
           persistentVolume: { storageClassName: local-data }
           # An empty volume, as on a new node, takes every day's partition
           # from the backup first, so the store serves its history before it
