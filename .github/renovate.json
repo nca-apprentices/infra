@@ -10,8 +10,8 @@
   },
   "packageRules": [
     {
-      "description": "Images in our manifests pin a digest, so a moved tag changes nothing until a PR says so. Argo CD charts keep their version, which targetRevision can't hold as a digest.",
-      "matchManagers": ["kubernetes"],
+      "description": "Images in our manifests and Dockerfiles pin a digest, so a moved tag changes nothing until a PR says so. Argo CD charts keep their version, which targetRevision can't hold as a digest.",
+      "matchManagers": ["kubernetes", "dockerfile"],
       "pinDigests": true
     },
     {
