@@ -232,23 +232,24 @@ get in, and two of its teams grant more:
 - `dev`: the apprentices. They also sync `jjforge-dev` and `ncaleague-dev` and
   set their Helm parameters in Argo CD.
 
-| Host                     | Tool             | Signs in with        | Everyone else in the organization                           |
-| ------------------------ | ---------------- | -------------------- | ----------------------------------------------------------- |
-| `argocd`                 | Argo CD          | Its own GitHub login | Reads                                                       |
-| `grafana`                | Grafana          | Its own GitHub login | Reads, searches logs and traces in Explore, and sees alerts |
-| `headlamp`               | Headlamp         | `oauth2-proxy`       | Reads everything except Secrets                             |
-| `logs`                   | VictoriaLogs     | `oauth2-proxy`       | Searches the logs                                           |
-| `redpanda-dev`           | Redpanda Console | `oauth2-proxy`       | Reads, writes, and deletes topics in `jjforge-dev`          |
-| `seaweedfs-dev`          | SeaweedFS        | `oauth2-proxy`       | Changes buckets, files, and S3 users in `jjforge-dev`       |
+| Host            | Tool             | Signs in with                      | Everyone else in the organization                           |
+| --------------- | ---------------- | ---------------------------------- | ----------------------------------------------------------- |
+| `argocd`        | Argo CD          | Its own GitHub login               | Reads                                                       |
+| `grafana`       | Grafana          | Its own GitHub login               | Reads, searches logs and traces in Explore, and sees alerts |
+| `headlamp`      | Headlamp         | `oauth2-proxy`, then GitHub as you | What your Kubernetes roles allow                            |
+| `logs`          | VictoriaLogs     | `oauth2-proxy`                     | Searches the logs                                           |
+| `redpanda-dev`  | Redpanda Console | `oauth2-proxy`                     | Reads, writes, and deletes topics in `jjforge-dev`          |
+| `seaweedfs-dev` | SeaweedFS        | `oauth2-proxy`                     | Changes buckets, files, and S3 users in `jjforge-dev`       |
 
 The three logins share one GitHub OAuth app, so GitHub asks once. Grafana and
 the portal's Argo CD link then go to GitHub and back without a click. Only
 members of `admins` silence alerts, under Alerting in Grafana.
 The prod stores have no UI.
 
-Headlamp acts as its own account for everyone, bound to the `view` role. For
-more, use kubectl. Argo CD has no administrator password, so kubectl is also the way
-in when the GitHub login fails.
+Headlamp signs each person in to the Kubernetes API with GitHub, as kubectl
+does, so it shows what their roles allow, see [kubectl](#kubectl). Argo CD has
+no administrator password, so the Talos certificate is the way in when the
+GitHub login fails.
 
 To see the flows the network policies drop, run `cilium hubble port-forward`,
 then `hubble observe --verdict DROPPED`.
@@ -269,10 +270,10 @@ through Argo CD's Dex. The API server knows you as `github:<login>`, so the
 audit log in VictoriaLogs names you. Your GitHub teams give you your roles,
 from `platform/manifests/access/`:
 
-| Team     | Roles                                                                   |
-| -------- | ----------------------------------------------------------------------- |
-| `admins` | Everything                                                              |
-| `dev`    | Reads everything but Secrets. Changes `jjforge-dev` and `ncaleague-dev` |
+| Team     | Roles                                                                                                                                              |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `admins` | Everything                                                                                                                                         |
+| `dev`    | Reads everything but Secrets. In `jjforge-dev` and `ncaleague-dev`, reads logs, runs `exec` and `port-forward`, restarts and scales, and runs Jobs |
 
 ```fish
 cd ~/bb/infra
@@ -329,9 +330,10 @@ The cluster key needs no escrow of its own. Its private half is in
    half in `keys` and every rule of `.sops.yaml`.
 2. The tofu state bucket `nca-tofu` in Hetzner Object Storage, `nbg1`.
 3. `secrets/tofu.enc.env`, a dotenv file with the variables below,
-   encrypted with `sops --encrypt --in-place`.
-4. The Talos cluster secrets: `talhelper gensecret >
-   talos/talsecret.sops.yaml`, then encrypt it the same way.
+   created with `sops edit`, which never writes it in plain text.
+4. The Talos cluster secrets: `talhelper gensecret`, piped through
+   `sops encrypt` into `talos/talsecret.sops.yaml`, as
+   [bootstrap.md](bootstrap.md#4-generate-the-talos-secrets) shows.
 5. One Object Storage key per backup bucket in [Backups](#backups), in the
    same project as `nca-tofu`. Hetzner has no API for keys.
 
@@ -382,13 +384,14 @@ the same name, with the cluster key.
 To change a secret, `sops edit` its file, then commit and push. The operator
 updates the Secret as soon as Argo CD syncs the file. A pod that reads the Secret as
 environment variables needs a restart. To add one, convert the Secret and
-encrypt it:
+encrypt it before it reaches the file, so the plain text never sits in the
+repository:
 
 ```sh
 kubectl -n <namespace> create secret generic <name> --from-literal <key>=<value> \
-  --dry-run=client -o yaml | yq --from-file secrets/sopssecret.yq \
+  --dry-run=client -o yaml | yq --from-file secrets/sopssecret.yq |
+  sops encrypt --filename-override secrets/<dir>/<name>.enc.yaml /dev/stdin \
   > secrets/<dir>/<name>.enc.yaml
-sops --encrypt --in-place secrets/<dir>/<name>.enc.yaml
 ```
 
 If the operator can't decrypt a file, the Secret keeps its last data, and the
@@ -406,8 +409,8 @@ Four limits keep the cluster key from reaching more than the cluster holds:
   annotation, and the app projects deny the kind.
 - The `sops` namespace accepts no connections and reaches the API server
   alone.
-- Only `admins` read Secrets in `sops`. Headlamp hides Secrets, and Argo CD
-  masks their data.
+- Only `admins` read Secrets in `sops`. Headlamp shows each person
+  what their roles allow, and Argo CD masks Secrets' data.
 
 Replace the cluster key when it leaks or an operator leaves:
 

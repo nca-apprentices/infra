@@ -16,10 +16,11 @@ set server 167807597  # Hetzner server ID
 ## 1. Create the age keys
 
 The escrow key recovers everything. Your own key is the one you work with.
-`age-keygen` prints each public key.
+`age-keygen` prints each public key. Neither private key goes inside the
+repository, where a `git add` could publish it.
 
 ```fish
-age-keygen -o escrow.age.txt
+age-keygen -o ~/escrow.age.txt
 mkdir -p ~/.config/sops/age
 age-keygen -o ~/.config/sops/age/nca.txt
 set -x SOPS_AGE_KEY_FILE ~/.config/sops/age/nca.txt
@@ -27,8 +28,8 @@ set -x SOPS_AGE_KEY_FILE ~/.config/sops/age/nca.txt
 
 In `.sops.yaml`, put the two public keys in `keys`, the escrow key first, each
 anchored under a name, and in every rule. Put
-`escrow.age.txt` in escrow as [operations.md](operations.md#escrow) describes,
-then delete the local copy.
+`~/escrow.age.txt` in escrow as [operations.md](operations.md#escrow)
+describes, then delete the local copy.
 
 ## 2. Create the accounts and credentials
 
@@ -50,12 +51,12 @@ the status page's Worker on `status.nca-apprentices.dev`.
 
 ## 3. Write the tofu credentials
 
-Write the file, then encrypt it before anything else reads the directory.
+`sops edit` creates the file encrypted and keeps the plain text you type
+outside the repository.
 
 ```fish
 mkdir -p secrets
-$EDITOR secrets/tofu.enc.env
-sops --encrypt --in-place secrets/tofu.enc.env
+sops edit secrets/tofu.enc.env
 ```
 
 ```sh
@@ -76,9 +77,15 @@ encrypts the tofu state, so generate it with `openssl rand -base64 32`.
 
 ## 4. Generate the Talos secrets
 
+Every secret from here on goes through `encrypt-to`, which encrypts what it
+reads before it writes the file, so no plain text reaches the disk:
+
 ```fish
-talhelper gensecret >talos/talsecret.sops.yaml
-sops --encrypt --in-place talos/talsecret.sops.yaml
+function encrypt-to -a path
+    sops encrypt --filename-override $path /dev/stdin >$path
+end
+
+talhelper gensecret | encrypt-to talos/talsecret.sops.yaml
 ```
 
 ## 5. Create the cluster secrets
@@ -107,9 +114,10 @@ mkdir -p secrets/bootstrap secrets/platform secrets/apps/jjforge/prod \
     secrets/apps/jjforge/dev secrets/apps/ncaleague/prod
 age-keygen 2>/dev/null |
     kubectl create secret generic sops-age --namespace sops \
-        --from-file keys.txt=/dev/stdin --dry-run=client -o yaml \
-    >secrets/bootstrap/sops-age.enc.yaml
-yq '.data["keys.txt"]' secrets/bootstrap/sops-age.enc.yaml | base64 -d | age-keygen -y
+        --from-file keys.txt=/dev/stdin --dry-run=client -o yaml |
+    encrypt-to secrets/bootstrap/sops-age.enc.yaml
+sops decrypt secrets/bootstrap/sops-age.enc.yaml |
+    yq '.data["keys.txt"]' | base64 -d | age-keygen -y
 ```
 
 ```fish
@@ -126,14 +134,15 @@ kubectl create secret generic infra-repo --namespace argocd \
     --from-literal githubAppInstallationID=$installation_id \
     --from-file githubAppPrivateKey=$app_key \
     --dry-run=client -o yaml |
-    kubectl label --local -f - argocd.argoproj.io/secret-type=repository -o yaml \
-    >secrets/bootstrap/infra-repo.enc.yaml
+    kubectl label --local -f - argocd.argoproj.io/secret-type=repository -o yaml |
+    encrypt-to secrets/bootstrap/infra-repo.enc.yaml
 kubectl create secret generic argocd-notifications-secret --namespace argocd \
     --from-literal github-appID=$app_id \
     --from-literal github-installationID=$installation_id \
     --from-file github-privateKey=$app_key \
     --dry-run=client -o yaml |
-    yq --from-file secrets/sopssecret.yq >secrets/platform/argocd-notifications-secret.enc.yaml
+    yq --from-file secrets/sopssecret.yq |
+    encrypt-to secrets/platform/argocd-notifications-secret.enc.yaml
 ```
 
 The SeaweedFS S3 identities, one set per environment. Every S3 request needs a
@@ -148,7 +157,8 @@ for env in prod dev
         kubectl create secret generic seaweedfs-s3-config --namespace jjforge-$env \
             --from-file seaweedfs_s3_config=/dev/stdin \
             --dry-run=client -o yaml |
-        yq --from-file secrets/sopssecret.yq >secrets/apps/jjforge/$env/seaweedfs-s3-config.enc.yaml
+        yq --from-file secrets/sopssecret.yq |
+        encrypt-to secrets/apps/jjforge/$env/seaweedfs-s3-config.enc.yaml
 end
 set -e ak sk
 ```
@@ -164,7 +174,8 @@ function backup-secret -a name namespace dir
         --from-literal AWS_SECRET_ACCESS_KEY=$secret \
         --from-literal AWS_REGION=fsn1 \
         --dry-run=client -o yaml |
-        yq --from-file secrets/sopssecret.yq >secrets/$dir/$name.enc.yaml
+        yq --from-file secrets/sopssecret.yq |
+        encrypt-to secrets/$dir/$name.enc.yaml
 end
 
 backup-secret jjforge-backup-s3 jjforge-prod apps/jjforge/prod
@@ -195,20 +206,23 @@ kubectl create secret generic argocd-github --namespace argocd \
     --from-literal clientSecret=$secret \
     --dry-run=client -o yaml |
     kubectl label --local -f - app.kubernetes.io/part-of=argocd -o yaml |
-    yq --from-file secrets/sopssecret.yq >secrets/platform/argocd-github.enc.yaml
+    yq --from-file secrets/sopssecret.yq |
+    encrypt-to secrets/platform/argocd-github.enc.yaml
 
 kubectl create secret generic grafana-github --namespace observability \
     --from-literal clientID=$id \
     --from-literal clientSecret=$secret \
     --dry-run=client -o yaml |
-    yq --from-file secrets/sopssecret.yq >secrets/platform/grafana-github.enc.yaml
+    yq --from-file secrets/sopssecret.yq |
+    encrypt-to secrets/platform/grafana-github.enc.yaml
 
 kubectl create secret generic oauth2-proxy --namespace ops \
     --from-literal client-id=$id \
     --from-literal client-secret=$secret \
     --from-literal cookie-secret=(openssl rand -hex 16) \
     --dry-run=client -o yaml |
-    yq --from-file secrets/sopssecret.yq >secrets/platform/oauth2-proxy.enc.yaml
+    yq --from-file secrets/sopssecret.yq |
+    encrypt-to secrets/platform/oauth2-proxy.enc.yaml
 ```
 
 The GitHub login of the app environments has an OAuth 2.0 app of its own, so
@@ -226,16 +240,14 @@ kubectl create secret generic oauth2-proxy-apps --namespace ops \
     --from-literal client-secret=$secret \
     --from-literal cookie-secret=(openssl rand -hex 16) \
     --dry-run=client -o yaml |
-    yq --from-file secrets/sopssecret.yq >secrets/platform/oauth2-proxy-apps.enc.yaml
+    yq --from-file secrets/sopssecret.yq |
+    encrypt-to secrets/platform/oauth2-proxy-apps.enc.yaml
 ```
 
-Encrypt them all, remove the plain-text key, and commit `.sops.yaml`,
-`secrets/`, and `talos/talsecret.sops.yaml`:
+Remove the GitHub App's plain-text key, and commit `.sops.yaml`, `secrets/`,
+and `talos/talsecret.sops.yaml`:
 
 ```fish
-for f in secrets/**.enc.yaml
-    sops --encrypt --in-place $f
-end
 rm $app_key
 set -e secret
 ```

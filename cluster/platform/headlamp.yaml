@@ -16,12 +16,21 @@ spec:
       releaseName: headlamp
       valuesObject:
         # Served at headlamp.nca-apprentices.dev behind the GitHub login in
-        # manifests/ops. Everyone who passes it acts as Headlamp's own account,
-        # which reads everything except Secrets.
+        # manifests/ops. Each person then signs in to the Kubernetes API with
+        # GitHub through Argo CD's Dex, as kubectl does, so Headlamp acts with
+        # their own roles and the audit log names them, see
+        # platform/manifests/access. The client is public, with PKCE.
         config:
           baseURL: ""
-          unsafeUseServiceAccountToken: true
-        clusterRoleBinding: { clusterRoleName: view }
+          unsafeUseServiceAccountToken: false
+          oidc:
+            clientID: kubernetes
+            issuerURL: https://argocd.nca-apprentices.dev/api/dex
+            scopes: profile,email,groups
+            callbackURL: https://headlamp.nca-apprentices.dev/oidc-callback
+            usePKCE: true
+        # Headlamp's own account needs no roles any more.
+        clusterRoleBinding: { create: false, clusterRoleName: view }
         ingress: { enabled: false }
   destination:
     server: https://kubernetes.default.svc
