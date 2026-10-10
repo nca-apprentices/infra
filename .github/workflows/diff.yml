@@ -18,11 +18,11 @@ jobs:
     name: Render
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           path: head
           persist-credentials: false
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           ref: main
           path: base
@@ -42,7 +42,7 @@ jobs:
             -e ARGOCD_CHART_VERSION=9.4.9 \
             -e MAX_DIFF_LENGTH=65000 \
             dagandersen/argocd-diff-preview:v0.2.15@sha256:01c4712f945f9183ef1eacbaf5974ced42624b8bdfc6dab876a07ab89bd0cd83
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: diff
           path: output/diff.md
@@ -56,7 +56,7 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: diff
       # One comment per PR, found by its marker and edited on each push.

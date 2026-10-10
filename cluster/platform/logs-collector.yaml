@@ -18,9 +18,10 @@ spec:
       valuesObject:
         remoteWrite:
           - url: http://logs-victoria-logs-single-server.observability:9428
-        # Traefik's access log has no message field of its own, so its
-        # entries show the request path instead of "missing _msg field".
-        collector: { msgField: [message, msg, log, RequestPath] }
+        # Traefik's access log and the API server's audit events have no message
+        # field of their own, so their entries show the request path instead of
+        # "missing _msg field".
+        collector: { msgField: [message, msg, log, RequestPath, requestURI] }
   # The collector reads container logs from host paths, so it runs in
   # node-agents, see manifests/policies/node-agents.yaml.
   destination:

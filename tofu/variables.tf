@@ -50,6 +50,12 @@ variable "s3_secret_key" {
   sensitive = true
 }
 
+variable "state_passphrase" {
+  type        = string
+  sensitive   = true
+  description = "Encrypts the state and plans. At least 16 characters."
+}
+
 variable "object_storage_project_id" {
   type        = string
   description = "Numeric ID of the Hetzner project the buckets live in, as bucket policies name it."

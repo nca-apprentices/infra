@@ -61,8 +61,8 @@ the app's reach:
   OpenTelemetry Collector, see [Telemetry](#telemetry). In `prod` the backups
   also reach their bucket, and no pod reaches anything else outside the
   cluster.
-- `limits.yaml` holds a ResourceQuota and default requests. Dev also gets a
-  default memory limit.
+- `limits.yaml` holds default requests. Dev also gets a default memory
+  limit.
 - `namespace.yaml` enforces the restricted Pod Security level, so every pod
   runs as non-root, without capabilities, and with seccomp.
 - Prod pods set `priorityClassName: prod`, so they schedule ahead of dev and
@@ -131,8 +131,14 @@ domain.
 When the PR merges, closes, or loses the label, the ApplicationSets delete the
 Applications, and Argo CD deletes the namespace with everything in it: pods,
 Service, Ingress, certificate, and database cluster with its data.
-cert-manager then deletes the TLS secret. Fork PRs get no preview, since their
-CI can't push images.
+cert-manager then deletes the TLS secret.
+
+A labeled PR from a fork gets a preview too, from the fork's chart. The
+`preview-images` admission policy in `platform/manifests/policies/` lets a
+preview's pods run only `ghcr.io/nca-apprentices/jjforge-*` and CloudNativePG
+images, so a fork can't bring an image of its own. A ResourceQuota caps what
+the preview requests and admits no pod with the `prod` or a system priority
+class. Label a fork's PR only after reading its chart and its code.
 
 ### Deployments
 
@@ -305,13 +311,14 @@ The cluster key needs no escrow of its own. Its private half is in
 | Variable                           | What it is                                                                   |
 | ---------------------------------- | ---------------------------------------------------------------------------- |
 | `TF_VAR_hcloud_token`              | Hetzner Cloud API token with read and write access                           |
-| `TF_VAR_cloudflare_api_token`      | Cloudflare API token that edits the zone, its DNS, its settings, and its WAF |
+| `TF_VAR_cloudflare_api_token`      | Cloudflare API token that edits the zone, its DNS, settings, WAF, and SSL    |
 | `TF_VAR_cloudflare_account_id`     | ID of the Cloudflare account                                                 |
 | `TF_VAR_operator_cidrs`            | Where talosctl and kubectl run from, as a list                               |
 | `AWS_ACCESS_KEY_ID`                | Object Storage key for the tofu state and buckets                            |
 | `AWS_SECRET_ACCESS_KEY`            | Object Storage secret for the tofu state and buckets                         |
 | `TF_VAR_object_storage_project_id` | Numeric ID of the Hetzner project                                            |
 | `TF_VAR_backup_keys`               | Access key per backup bucket, as `{"metrics"="...", ...}`                    |
+| `TF_VAR_state_passphrase`          | Encrypts the tofu state and plans, at least 16 characters                    |
 
 ### Secrets that must exist before the first sync
 
@@ -482,6 +489,13 @@ The rules live in `cluster/platform/manifests/alerts/`, next to the scrapes and
 the `nca overview` dashboard in Grafana. Every alert except the info alerts
 opens an issue labeled `alert` in this repository, and the issue closes when
 the alert resolves. Watch the repository to get the notifications.
+
+Cloudflare shows the node a client certificate from a CA that tofu creates,
+see `tofu/origin-pulls.tf`, and the ingress refuses HTTPS without it, so no
+other Cloudflare account reaches the node. The ingress drops a TLS option it
+can't load and serves without the check, so `blackbox-exporter` tries a request
+without the certificate every minute, and `OriginWithoutClientCert` fires when
+it gets an answer.
 
 <https://status.nca-apprentices.dev> shows the uptime of the production
 apps and of the alert pipeline. A Cloudflare Worker in

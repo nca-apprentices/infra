@@ -67,10 +67,12 @@ AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 TF_VAR_object_storage_project_id=...
 TF_VAR_backup_keys={"jjforge-prod-db"="...","ncaleague-prod-db"="...","jjforge-prod-seaweedfs"="...","jjforge-prod-redpanda"="...","metrics"="...","logs"="..."}
+TF_VAR_state_passphrase=...
 ```
 
 `TF_VAR_backup_keys` names each backup key by its access key only. The secret
-halves go into the cluster secrets in step 5.
+halves go into the cluster secrets in step 5. `TF_VAR_state_passphrase`
+encrypts the tofu state, so generate it with `openssl rand -base64 32`.
 
 ## 4. Generate the Talos secrets
 

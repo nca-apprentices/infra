@@ -1,0 +1,45 @@
+# A preview runs a PR's chart, and a PR from a fork writes that chart too. So
+# a preview's pods run only the app's own images, which its CI builds from
+# branches of the app's repository, and CloudNativePG's for the database:
+#
+#   jjforge-pr-12   ghcr.io/nca-apprentices/jjforge-*, ghcr.io/cloudnative-pg/*
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: preview-images
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods, pods/ephemeralcontainers]
+  matchConditions:
+    - name: preview
+      expression: request.namespace.matches('-pr-[0-9]+$')
+  variables:
+    - name: app
+      expression: request.namespace.substring(0, request.namespace.lastIndexOf('-pr-'))
+    - name: images
+      expression: >-
+        object.spec.?initContainers.orValue([]).map(c, c.image)
+        + object.spec.containers.map(c, c.image)
+        + object.spec.?ephemeralContainers.orValue([]).map(c, c.image)
+  validations:
+    - expression: >-
+        variables.images.all(i,
+        i.startsWith('ghcr.io/nca-apprentices/' + variables.app + '-')
+        || i.startsWith('ghcr.io/cloudnative-pg/'))
+      messageExpression: >-
+        'A pod in ' + request.namespace + ' runs only images from
+        ghcr.io/nca-apprentices/' + variables.app + '-* or
+        ghcr.io/cloudnative-pg/.'
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: preview-images
+spec:
+  policyName: preview-images
+  validationActions: [Deny]
