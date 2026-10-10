@@ -1,8 +1,8 @@
 # What jjforge-dev's Applications may deploy: its chart, its stores' charts,
-# its directory here, and the chart of a PR's head commit for a preview, into
-# its own namespace and the previews' jjforge-pr-<number> only. The namespaces
-# come from this directory and ../preview/environment.yaml under the platform's
-# project, so the app creates no cluster-scoped objects itself.
+# and its directory here, into its own namespace only. The namespace comes from
+# this directory under the platform's project, so the app creates no
+# cluster-scoped objects itself. Each preview has a project of its own, see
+# platform/charts/preview.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -14,15 +14,12 @@ spec:
   description: jjforge, development
   sourceRepos:
     - oci://ghcr.io/nca-apprentices/charts/jjforge
-    - https://github.com/nca-apprentices/jjforge.git
     - https://github.com/nca-apprentices/infra.git
     - https://charts.redpanda.com
     - https://seaweedfs.github.io/seaweedfs/helm
   destinations:
     - server: https://kubernetes.default.svc
       namespace: jjforge-dev
-    - server: https://kubernetes.default.svc
-      namespace: jjforge-pr-*
   clusterResourceWhitelist: []
   # The platform's limits on the namespace, which its own Application applies.
   # A chart that shipped one could lift them.
@@ -31,8 +28,10 @@ spec:
     - { group: networking.k8s.io, kind: NetworkPolicy }
     - { group: "", kind: LimitRange }
     # An IngressRoute's host is a string in its rule, which the ingress-hosts
-    # admission policy can't check. Apps serve through an Ingress instead.
-    - { group: traefik.io, kind: "IngressRoute*" }
+    # admission policy can't check, so apps serve through an Ingress instead.
+    # The Middlewares are the login in front of the app, which its own chart
+    # mustn't replace.
+    - { group: traefik.io, kind: "*" }
     # The secrets Application alone creates SopsSecrets, see
     # cluster/platform/manifests/policies/sops.yaml.
     - { group: isindir.github.com, kind: SopsSecret }

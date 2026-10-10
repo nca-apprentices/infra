@@ -25,7 +25,7 @@ spec:
     metadata:
       name: "jjforge-pr-{{ .number }}-postgres"
     spec:
-      project: jjforge-dev
+      project: "jjforge-pr-{{ .number }}"
       source:
         repoURL: https://github.com/nca-apprentices/infra.git
         targetRevision: main
@@ -46,7 +46,8 @@ spec:
       syncPolicy:
         automated: { prune: true, selfHeal: true }
         syncOptions: [ServerSideApply=true]
-        # The namespace comes from environment.yaml, which may sync later.
+        # The namespace and the project come from environment.yaml, which may
+        # sync later.
         retry:
           limit: 10
           backoff: { duration: 30s, factor: 2, maxDuration: 5m }
