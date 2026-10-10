@@ -43,6 +43,11 @@ controlPlane:
     - |-
       machine:
         kubelet:
+          # The kubelet asks the cluster CA for its serving certificate, which
+          # kubelet-serving-cert-approver approves, so clients such as
+          # metrics-server can verify it.
+          extraArgs:
+            rotate-server-certificates: true
           extraMounts:
             - destination: /var/mnt/data
               type: bind

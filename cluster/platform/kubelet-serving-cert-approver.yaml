@@ -1,0 +1,25 @@
+# Approves the kubelet's requests for a serving certificate from the cluster
+# CA, which Talos asks for with rotate-server-certificates, see
+# talos/talconfig.yaml. metrics-server then verifies the kubelet like any other
+# server, instead of trusting whatever certificate it shows.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kubelet-serving-cert-approver
+  namespace: argocd
+  finalizers: [resources-finalizer.argocd.argoproj.io]
+  annotations:
+    # Before metrics-server, which needs the certificates it approves.
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/alex1989hu/kubelet-serving-cert-approver.git
+    targetRevision: v0.12.1
+    path: deploy/standalone
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kubelet-serving-cert-approver
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ServerSideApply=true]
