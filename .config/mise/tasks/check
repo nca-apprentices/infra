@@ -5,6 +5,21 @@ set -euo pipefail
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 
+# Every secret is SOPS-encrypted, so a plaintext one fails here before it
+# merges. A YAML file carries sops.mac, a dotenv file sops_mac.
+plaintext=0
+while IFS= read -r file; do
+  case $file in
+  *.env) grep -q '^sops_mac=' "$file" && continue ;;
+  *) yq -e '.sops.mac' "$file" >/dev/null 2>&1 && continue ;;
+  esac
+  echo "not encrypted: $file" >&2
+  plaintext=1
+done < <(find secrets talos -type f \( -name '*.enc.*' -o -name '*.sops.*' -o -path 'secrets/*' \) ! -name sopssecret.yq)
+if ((plaintext)); then
+  exit 1
+fi
+
 treefmt --ci
 mise run prose
 
