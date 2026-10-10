@@ -7,7 +7,7 @@ namespace: argocd
 
 resources:
   - namespace.yaml
-  - https://raw.githubusercontent.com/argoproj/argo-cd/v3.3.2/manifests/install.yaml
+  - https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.3/manifests/install.yaml
   - root.yaml
 
 # Sync waves order the child Applications only if Argo CD can tell when a child

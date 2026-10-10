@@ -10,7 +10,7 @@ spec:
   source:
     repoURL: https://victoriametrics.github.io/helm-charts
     chart: victoria-metrics-k8s-stack
-    targetRevision: "0.62.0"
+    targetRevision: "0.95.0"
     helm:
       releaseName: observability
       valuesObject:
@@ -156,7 +156,7 @@ spec:
             # which is why it runs only when nothing is there.
             initContainers:
               - name: restore
-                image: victoriametrics/vmrestore:v1.128.0
+                image: victoriametrics/vmrestore:v1.153.0@sha256:f5f2adfbad3e7ec0552636bfb8a60d1c1ad76ad544c03f0f73fae561da648f8e
                 command: [sh, -c]
                 args:
                   - |

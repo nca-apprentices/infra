@@ -21,7 +21,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: receiver
-          image: ghcr.io/nca-apprentices/alertmanager-github-receiver:v0.11@sha256:716439438587e4f9d764de4410c12baa46a996e6c41dc649b2114b6a9c2fe1c2
+          image: ghcr.io/nca-apprentices/alertmanager-github-receiver:v0.11@sha256:d98ae8371182b27d1f2269adc5063b0e79192839415c0708eda0de2803237e5f
           args:
             - -authtoken-file=/token/token
             - -org=nca-apprentices
