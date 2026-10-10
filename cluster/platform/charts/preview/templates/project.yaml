@@ -20,8 +20,10 @@ spec:
   clusterResourceWhitelist: []
   # The platform's limits, network policies, and login, which the PR's chart
   # mustn't lift or replace. IngressRoutes name hosts the admission policy
-  # can't check.
+  # can't check. A Role or RoleBinding would let the PR's pods write all of
+  # these through the API server themselves.
   namespaceResourceBlacklist:
+    - { group: rbac.authorization.k8s.io, kind: "*" }
     - { group: cilium.io, kind: "*" }
     - { group: networking.k8s.io, kind: NetworkPolicy }
     - { group: "", kind: LimitRange }
