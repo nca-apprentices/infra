@@ -27,18 +27,18 @@ spec:
         extraArgs:
           provider: github
           github-org: nca-apprentices
-          # The ops login holds /oauth2/ on the ops host, so this one answers
-          # GitHub under its own prefix there, see manifests/ops/portal.yaml.
+          # Each app host signs in on its own: GitHub returns to the host's
+          # /apps-oauth2/callback, see manifests/ops/apps-login.yaml, and the
+          # cookie covers that host alone. A public prod app never receives
+          # it, so it can't replay a member's session into dev or a preview.
+          # The GitHub OAuth app's callback is https://nca-apprentices.dev/apps-oauth2
+          # with wildcard matching, so it admits every host's callback.
           proxy-prefix: /apps-oauth2
-          redirect-url: https://ops.nca-apprentices.dev/apps-oauth2/callback
           reverse-proxy: "true"
           skip-provider-button: "true"
-          # One sign-in for every app host. The cookie covers them all, and
-          # the callback may return to any of them. jjforge removes it, see
-          # apps/jjforge/*/cookies.yaml. ncaleague keeps its own cookies, so
-          # it sees the sign-in's cookie too.
+          # jjforge also removes the cookie before the app, see
+          # apps/jjforge/*/cookies.yaml, since a preview runs a branch's code.
           cookie-name: _apps_login
-          cookie-domain: .nca-apprentices.dev
           whitelist-domain: .nca-apprentices.dev
   destination:
     server: https://kubernetes.default.svc

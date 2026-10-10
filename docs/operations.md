@@ -71,14 +71,19 @@ the app's reach:
 Every dev environment admits members of the GitHub organization only. Its
 `login.yaml` holds `github-login`, which asks `oauth2-proxy-apps` about every
 request, and `application.yaml` names it in the chart's `ingress.middlewares`.
-One sign-in covers every host under the domain. The ops portal has its own
+Each host signs in on its own, and the sign-in's cookie covers that host
+alone, so a public prod app never receives it and can't replay a member's
+session into dev. GitHub returns to the host's `/apps-oauth2/callback`, which
+`platform/manifests/ops/apps-login.yaml` routes for the hosts behind the
+login only. The ops portal has its own
 sign-in, `oauth2-proxy`, with its own cookie on the ops host alone, so an app
 that reads its cookie can't open the portal. Every jjforge environment's
 `cookies.yaml` holds `no-cookies`, which removes the sign-in's cookie before a
 request reaches the app, so code from a branch never reads a member's
 session. Dev names it after `github-login`, and the public `jjforge-prod`
 names it alone. ncaleague has none: the middleware removes every cookie, and
-ncaleague needs its own, so its environments see the sign-in's cookie.
+ncaleague needs its own, so ncaleague-dev sees the sign-in's cookie for its
+host.
 
 Each environment runs its own Redpanda and SeaweedFS, so no environment
 reaches the topics and buckets of another. A file in the environment's
@@ -153,7 +158,8 @@ installation on each repository.
    the pods that use the database and Redpanda. Every environment keeps
    `cookies.yaml`. An environment for the public names `no-cookies` alone in
    `application.yaml`. Any other also takes `login.yaml` from
-   `cluster/apps/jjforge/dev/`, and names `github-login, no-cookies`.
+   `cluster/apps/jjforge/dev/`, names `github-login, no-cookies`, and adds its
+   host to `platform/manifests/ops/apps-login.yaml`.
 4. Add the environment's secrets under `secrets/apps/<app>/<env>/`, then run
    `mise run bootstrap` to apply them.
 5. Merge. Argo CD picks the directory up without any other change.

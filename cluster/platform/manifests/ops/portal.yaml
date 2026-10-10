@@ -46,10 +46,6 @@ spec:
     - kind: Rule
       match: Host(`ops.nca-apprentices.dev`) && PathPrefix(`/oauth2/`)
       services: [{ name: oauth2-proxy, port: 80 }]
-    # GitHub returns here from the apps login, see oauth2-proxy-apps.yaml.
-    - kind: Rule
-      match: Host(`ops.nca-apprentices.dev`) && PathPrefix(`/apps-oauth2/`)
-      services: [{ name: oauth2-proxy-apps, port: 80 }]
     - kind: Rule
       match: Host(`ops.nca-apprentices.dev`)
       middlewares: [{ name: github-login }]

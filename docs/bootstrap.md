@@ -208,9 +208,10 @@ kubectl create secret generic oauth2-proxy --namespace ops \
 ```
 
 The GitHub login of the app environments has an OAuth 2.0 app of its own, so
-its cookie, which every app host receives, never opens the ops portal. Create
-a second app the same way, with the homepage `https://ops.nca-apprentices.dev`
-and the callback URL `https://ops.nca-apprentices.dev/apps-oauth2/callback`:
+its cookie, which the dev hosts receive, never opens the ops portal. Create a
+second app the same way, with the homepage `https://ops.nca-apprentices.dev`,
+the callback URL `https://nca-apprentices.dev/apps-oauth2`, and **Enable
+wildcard matching** checked, so each dev host's own callback matches:
 
 ```fish
 read -P 'OAuth client ID: ' id

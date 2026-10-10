@@ -1,0 +1,16 @@
+# GitHub returns to the apps login on the host that asked, see
+# oauth2-proxy-apps.yaml. Only the hosts behind the login answer it, so a link
+# can't plant the cookie on a public prod host. The priority puts it ahead of
+# each app's own Ingress, so the app never sees the callback or its code.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: apps-login
+  namespace: ops
+spec:
+  entryPoints: [websecure]
+  routes:
+    - kind: Rule
+      match: HostRegexp(`^(ncaleague-dev|jjforge-dev|jjforge-pr-[0-9]+)\.nca-apprentices\.dev$`) && PathPrefix(`/apps-oauth2/`)
+      priority: 1000
+      services: [{ name: oauth2-proxy-apps, port: 80 }]
