@@ -1,5 +1,6 @@
 [Aa]pplications?
 CAs
+PRs
 [Cc]loud
 [Dd]ev
 dotenv

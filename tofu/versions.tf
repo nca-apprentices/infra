@@ -1,5 +1,5 @@
 terraform {
-  required_version = "1.16.5"
+  required_version = ">= 1.10"
 
   # State lives in Hetzner Object Storage. The bucket is created once by hand,
   # and the credentials come from AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.

@@ -31,7 +31,7 @@ spec:
       sources:
         - repoURL: https://charts.redpanda.com
           chart: redpanda
-          targetRevision: "26.2.4"
+          targetRevision: "5.10.7"
           helm:
             releaseName: redpanda
             valueFiles:
