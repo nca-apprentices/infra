@@ -2,8 +2,8 @@
 # this file is the entire contract with the operating system, which is what
 # makes a node replaceable rather than repairable.
 clusterName: nca
-talosVersion: v1.12.2
-kubernetesVersion: v1.35.1
+talosVersion: v1.13.11
+kubernetesVersion: v1.36.5
 endpoint: https://10.0.1.2:6443
 
 cniConfig:
