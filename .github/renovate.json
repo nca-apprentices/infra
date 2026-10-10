@@ -81,6 +81,25 @@
       "matchDepNames": ["ghcr.io/cloudnative-pg/postgresql"],
       "matchUpdateTypes": ["major"],
       "enabled": false
+    },
+    {
+      "description": "required_version in tofu/ constrains OpenTofu, which mise.toml pins, not Terraform, whose versions Renovate would write there.",
+      "matchDepNames": ["hashicorp/terraform"],
+      "enabled": false
+    },
+    {
+      "description": "Cilium upgrades to the latest patch of its minor version first, then one minor at a time, each in a PR of its own.",
+      "matchDepNames": ["cilium"],
+      "groupName": null,
+      "separateMinorPatch": true,
+      "separateMultipleMinor": true
+    },
+    {
+      "description": "Redpanda can't skip a feature release, and since chart 25.1 the chart's minor version is Redpanda's. Each minor arrives as its own PR, to merge oldest first.",
+      "matchDepNames": ["redpanda"],
+      "groupName": null,
+      "separateMultipleMajor": true,
+      "separateMultipleMinor": true
     }
   ],
   "customManagers": [
