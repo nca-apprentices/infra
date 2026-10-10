@@ -42,6 +42,58 @@
       "matchFileNames": ["cluster/apps/*/prod/**"],
       "additionalBranchPrefix": "prod-",
       "commitMessageSuffix": "in prod"
+    },
+    {
+      "description": "The node's Talos and the talosctl that upgrades it move together.",
+      "matchDepNames": ["siderolabs/talos", "talosctl"],
+      "groupName": "Talos"
+    },
+    {
+      "description": "Kubernetes and kubectl move together.",
+      "matchDepNames": ["kubernetes/kubernetes", "kubectl"],
+      "groupName": "Kubernetes"
+    },
+    {
+      "description": "The installed Argo CD and the chart the diff renders with move together.",
+      "matchDepNames": ["argoproj/argo-cd", "argo-cd"],
+      "groupName": "Argo CD"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "The Talos version the node runs.",
+      "managerFilePatterns": ["/^talos/talconfig\\.yaml$/"],
+      "matchStrings": ["talosVersion: (?<currentValue>v[\\d.]+)"],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "siderolabs/talos"
+    },
+    {
+      "customType": "regex",
+      "description": "The Kubernetes version the node runs.",
+      "managerFilePatterns": ["/^talos/talconfig\\.yaml$/"],
+      "matchStrings": ["kubernetesVersion: (?<currentValue>v[\\d.]+)"],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "kubernetes/kubernetes"
+    },
+    {
+      "customType": "regex",
+      "description": "The Argo CD that bootstrap installs.",
+      "managerFilePatterns": ["/^cluster/bootstrap/kustomization\\.yaml$/"],
+      "matchStrings": [
+        "argoproj/argo-cd/(?<currentValue>v[\\d.]+)/manifests/install\\.yaml"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "argoproj/argo-cd"
+    },
+    {
+      "customType": "regex",
+      "description": "The Argo CD chart the PR diff renders with.",
+      "managerFilePatterns": ["/^\\.github/workflows/diff\\.yml$/"],
+      "matchStrings": ["ARGOCD_CHART_VERSION=(?<currentValue>[\\d.]+)"],
+      "datasourceTemplate": "helm",
+      "registryUrlTemplate": "https://argoproj.github.io/argo-helm",
+      "depNameTemplate": "argo-cd"
     }
   ]
 }
