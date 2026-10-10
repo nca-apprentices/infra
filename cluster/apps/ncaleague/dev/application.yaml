@@ -10,7 +10,7 @@ spec:
   project: ncaleague-dev
   source:
     repoURL: oci://ghcr.io/nca-apprentices/charts/ncaleague
-    targetRevision: 2.0.2
+    targetRevision: 2.1.0
     path: .
     helm:
       valuesObject:

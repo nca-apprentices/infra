@@ -73,6 +73,42 @@ spec:
             # needs no second hostname or port.
             http:
               tls: { enabled: true }
+        # Port 443 admits only Cloudflare's client certificate for this zone,
+        # see tofu/origin-pulls.tf, so another Cloudflare account that points
+        # a zone at the node gets no answer.
+        tlsOptions:
+          default:
+            clientAuth:
+              secretNames: [origin-pull-ca]
+              clientAuthType: RequireAndVerifyClientCert
+        # The CA's certificate is public, from `tofu output origin_pull_ca`.
+        extraObjects:
+          - apiVersion: v1
+            kind: Secret
+            metadata:
+              name: origin-pull-ca
+              namespace: traefik
+            stringData:
+              ca.crt: |
+                -----BEGIN CERTIFICATE-----
+                MIIDHjCCAgagAwIBAgIQfT4oilJh2fK9u1av9/dCfDANBgkqhkiG9w0BAQsFADAp
+                MScwJQYDVQQDEx5uY2EtYXBwcmVudGljZXMgb3JpZ2luIHB1bGwgQ0EwHhcNMjYx
+                MDEwMTgzMDExWhcNMzYxMDA3MTgzMDExWjApMScwJQYDVQQDEx5uY2EtYXBwcmVu
+                dGljZXMgb3JpZ2luIHB1bGwgQ0EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK
+                AoIBAQDMWkhCx8uPAKIj+kgVav4fNmVVrINjAa745ZZ3rxoxPjIp3GoJLSXM9FPY
+                0KN0Kv1R8nnX08KDo/61K966jk5qOODydT5w89UannvPf1UY5+dnDcvnPFRjR9qH
+                qknlmYMalW29cptcUKGI96vYI/UUI8VsTX7XNPxCQL3pU0XruqvlbHYMZNhC48R8
+                WLU8DOpMoCTI1PcYYC3UMv99XHw8NeZmgyMYw9I76C/3azpcHP5FVjSt0zWjkdcm
+                eCCQWxCMw3A0vH6v9yWqUPM9JHm4v/ypwW9ENCbje0ffrvJePShDByFSd3+m6k/+
+                hpAQyDK+b0wA/qFGa1a9VzxUo6JDAgMBAAGjQjBAMA4GA1UdDwEB/wQEAwICBDAP
+                BgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBRXKViROyER0aFXAx4139LMI1qHdzAN
+                BgkqhkiG9w0BAQsFAAOCAQEAgzig8q/A5RGtwY51m+eCwhNYjl1/3wUTtrvhpLn1
+                TUPLKv3I9bE2khApNE4bg7+IaAzyB+TdR7h57qihETj2xIcsbrh+KQQlaTewSC3X
+                YetUdchIm3p7JWCE78/2N6Qbh8PMUZSXw5VJ5/Y0MHwtg9DP3BKvx4gYLsBDAVx+
+                n/2M7cJH6NsffxLyGEg/rWNIOS0v21UK6zESsSDgUDJVj41TJskiHAmbvxEZPZXU
+                xjjga7Q8rISPtHIIeEbsndldAhKI7mwWhdljh0diWmtKeQDv3w/WPsKNm5Y1cu74
+                4L5hkOxLMq3PAsOt4TYPhR6Gwv8/E7XVyBybVibYnGIODg==
+                -----END CERTIFICATE-----
         providers:
           kubernetesIngress:
             enabled: true
