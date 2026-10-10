@@ -96,7 +96,9 @@ spec:
         # Every alert goes to GitHub, see manifests/alerts/github.yaml, except
         # the always-firing Watchdog and the info alerts. Watchdog goes to the
         # status page every minute instead, which shows the alert pipeline
-        # down when it stops, see nca-apprentices/status.
+        # down when it stops, see nca-apprentices/status. A failing receiver
+        # stops Watchdog too, since its own alert would go to GitHub through
+        # that same receiver.
         alertmanager:
           spec:
             # Mounted at /etc/vm/secrets/<name>/.
@@ -126,6 +128,9 @@ spec:
                     http_config:
                       authorization:
                         credentials_file: /etc/vm/secrets/status-heartbeat/token
+            inhibit_rules:
+              - source_matchers: ['alertname="AlertmanagerFailedToSendAlerts"']
+                target_matchers: ['alertname="Watchdog"']
         vmsingle:
           spec:
             retentionPeriod: "90d"

@@ -171,18 +171,3 @@ spec:
       toPorts:
         - ports: [{ port: "443", protocol: TCP }]
 {{- end }}
-{{- if .Values.restoreDrill }}
----
-# The restore drill reads the production backups from here.
-apiVersion: cilium.io/v2
-kind: CiliumNetworkPolicy
-metadata:
-  name: restore-drill
-spec:
-  endpointSelector:
-    matchLabels: { restore-drill: "true" }
-  egress:
-    - toFQDNs: [{ matchName: {{ $s3 }} }]
-      toPorts:
-        - ports: [{ port: "443", protocol: TCP }]
-{{- end }}

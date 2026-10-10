@@ -9,6 +9,9 @@ metadata:
   # privileges, keep a capability, or run without seccomp.
   labels:
     pod-security.kubernetes.io/enforce: restricted
+    # Denies all traffic until the network chart's policies allow it, see
+    # platform/manifests/policies/environments.yaml.
+    nca-apprentices.dev/environment: preview
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
 ---
@@ -38,18 +41,5 @@ spec:
     pods: "10"
     persistentvolumeclaims: "2"
     requests.storage: 2Gi
----
-# The PR's chart names its pods' priority class, so a preview could claim
-# prod's or the system's, and evict them. This quota admits no such pod.
-apiVersion: v1
-kind: ResourceQuota
-metadata:
-  name: priority
-spec:
-  hard:
-    pods: "0"
-  scopeSelector:
-    matchExpressions:
-      - scopeName: PriorityClass
-        operator: In
-        values: [prod, system-cluster-critical, system-node-critical]
+    # local-data keeps its volumes after the preview goes.
+    local-data.storageclass.storage.k8s.io/persistentvolumeclaims: "0"

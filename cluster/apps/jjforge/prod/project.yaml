@@ -1,7 +1,7 @@
-# What jjforge-prod's Applications may deploy: its chart, its stores' charts,
-# and its directory here, into its own namespace only. The namespace comes
-# from this directory under the platform's project, so the app creates no
-# cluster-scoped objects itself.
+# What jjforge-prod's Applications may deploy: its chart and its directory
+# here, into its own namespace only. The namespace comes from this directory
+# under the platform's project, so the app creates no cluster-scoped objects
+# itself. Its stores run under platform/stores.yaml's project.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -14,8 +14,6 @@ spec:
   sourceRepos:
     - oci://ghcr.io/nca-apprentices/charts/jjforge
     - https://github.com/nca-apprentices/infra.git
-    - https://charts.redpanda.com
-    - https://seaweedfs.github.io/seaweedfs/helm
   destinations:
     - server: https://kubernetes.default.svc
       namespace: jjforge-prod
@@ -23,6 +21,9 @@ spec:
   # The platform's limits on the namespace, which its own Application applies.
   # A chart that shipped one could lift them.
   namespaceResourceBlacklist:
+    # A Role or RoleBinding would let the app's pods write the rest of
+    # these through the API server themselves.
+    - { group: rbac.authorization.k8s.io, kind: "*" }
     - { group: cilium.io, kind: "*" }
     - { group: networking.k8s.io, kind: NetworkPolicy }
     - { group: "", kind: LimitRange }

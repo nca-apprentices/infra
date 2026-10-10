@@ -1,4 +1,6 @@
-# Serves the metrics.k8s.io API that Headlamp and kubectl top read.
+# Serves the metrics.k8s.io API that Headlamp and kubectl top read. It verifies
+# the kubelet's certificate, which the cluster CA signs, see
+# kubelet-serving-cert-approver.yaml.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -15,11 +17,6 @@ spec:
     targetRevision: "3.14.0"
     helm:
       releaseName: metrics-server
-      valuesObject:
-        # The kubelet serves a certificate from the cluster CA, see
-        # kubelet-serving-cert-approver.yaml, so metrics-server verifies it.
-        # An empty list, not a removed key, so root's apply drops the old flag.
-        args: []
   destination:
     server: https://kubernetes.default.svc
     namespace: kube-system

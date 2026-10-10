@@ -105,6 +105,11 @@ patches:
                 - http://localhost:8000
                 - http://localhost:18000
                 - https://headlamp.nca-apprentices.dev/oidc-callback
+          # GitHub teams are read at sign-in and on each refresh, so a member
+          # removed from a team keeps its roles until the token expires: half a
+          # day, as with oauth2-proxy's cookies, not the default day.
+          expiry:
+            idTokens: 12h
   # Each synced revision of an Application becomes a GitHub deployment in the
   # repository it comes from, in an environment named after the Application
   # without the app- prefix, such as jjforge-prod or jjforge-pr-12:

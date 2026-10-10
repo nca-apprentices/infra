@@ -42,8 +42,10 @@ then what runs on them, then the apps.
 
 Each environment of an app gets its own AppProject, such as `jjforge-prod`.
 The project admits the app's chart and this repository as sources, the
-environment's namespace as the only destination, and no cluster-scoped
-objects. A `dev` Application can't deploy into `prod`. The namespace itself
+environment's namespace as the only destination, and neither cluster-scoped
+objects nor Roles and RoleBindings. A `dev` Application can't deploy into
+`prod`. Redpanda and SeaweedFS run under the `stores` project instead, since
+Redpanda's chart needs Roles. The namespace itself
 lives in the environment's directory, where the `apps` ApplicationSet applies
 it under the platform's project.
 
@@ -66,7 +68,9 @@ the app's reach:
 - `namespace.yaml` enforces the restricted Pod Security level, so every pod
   runs as non-root, without capabilities, and with seccomp.
 - Prod pods set `priorityClassName: prod`, so they schedule ahead of dev and
-  outlast it when the node runs short of memory.
+  outlast it when the node runs short of memory. The `app-priority` admission
+  policy admits `prod` in prod namespaces alone, `preview` in previews, and no
+  class in dev.
 
 Every dev environment admits members of the GitHub organization only. Its
 `login.yaml` holds `github-login`, which asks `oauth2-proxy-apps` about every
@@ -119,7 +123,7 @@ and its network policies from `platform/charts/network`, under the platform's
 project. The app and its database run there under a project of their own,
 which admits that namespace alone and forbids `traefik.io` objects, so the chart of
 the PR can neither reach another namespace nor replace its login. The
-`jjforge-preview-database` ApplicationSet gives it a Postgres cluster of its
+environment also holds a Postgres cluster of its
 own, `jjforge-pr-<number>-db`, because the chart migrates its database
 before it deploys, and the migrations of a PR must never reach dev's
 database. Its pods
@@ -161,13 +165,17 @@ installation on each repository.
 ### Add an app or an environment
 
 1. Copy `cluster/apps/jjforge/prod/` to `cluster/apps/<app>/<env>/`.
-2. Replace `jjforge-prod` with `<app>-<env>` in every file, and point
-   `application.yaml` at the app's chart and version. The host is
+2. Replace `jjforge-prod` with `<app>-<env>` in every file, set the
+   `nca-apprentices.dev/environment` label in `namespace.yaml` to `<env>`, and
+   point `application.yaml` at the app's chart and version. The host is
    `<app>.<domain>` in `prod` and `<app>-<env>.<domain>` elsewhere, which the
    wildcard DNS record already covers.
 3. Keep only the stores the environment needs, and `database/` if it needs
-   Postgres. In `network/values.yaml`, set `client` to the component label of
-   the pods that use the database and Redpanda. Every environment keeps
+   Postgres. Stores run in `dev` and `prod` namespaces only, see
+   `platform/stores.yaml`. Every environment keeps `network/values.yaml`,
+   since its namespace denies all traffic until those policies allow it. Set
+   `client` there to the component label of the pods that use the database and
+   Redpanda. Every environment keeps
    `cookies.yaml`. An environment for the public names `no-cookies` alone in
    `application.yaml`. Any other also takes `login.yaml` from
    `cluster/apps/jjforge/dev/`, names `github-login, no-cookies`, and adds its
@@ -235,8 +243,11 @@ get in, and two of its teams grant more:
 
 The three logins share one GitHub OAuth app, so GitHub asks once. Grafana and
 the portal's Argo CD link then go to GitHub and back without a click. Only
-members of `admins` silence alerts, under Alerting in Grafana.
-The prod stores have no UI.
+members of `admins` silence alerts, in Alertmanager's own UI: run
+`kubectl -n observability port-forward svc/vmalertmanager-metrics 9093` and open
+<http://localhost:9093>. Grafana only reads from the stores, since every
+viewer can send any request through its data source proxy. The prod stores
+have no UI.
 
 Headlamp signs each person in to the Kubernetes API with GitHub, as kubectl
 does, so it shows what their roles allow, see [kubectl](#kubectl). Argo CD has
@@ -262,10 +273,10 @@ through Argo CD's Dex. The API server knows you as `github:<login>`, so the
 audit log in VictoriaLogs names you. Your GitHub teams give you your roles,
 from `platform/manifests/access/`:
 
-| Team     | Roles                                                                                                                                              |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `admins` | Everything                                                                                                                                         |
-| `dev`    | Reads everything but Secrets. In `jjforge-dev` and `ncaleague-dev`, reads logs, runs `exec` and `port-forward`, restarts and scales, and runs Jobs |
+| Team     | Roles                                                                                                                                                                                                               |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `admins` | Everything                                                                                                                                                                                                          |
+| `dev`    | Reads everything but Secrets. In `jjforge-dev` and `ncaleague-dev`, reads logs, runs `exec`, `kubectl debug`, and `port-forward`, restarts and scales, and runs Jobs. Exec and Jobs reach those namespaces' Secrets |
 
 ```fish
 cd ~/bb/infra
@@ -536,7 +547,8 @@ repository. Alertmanager reads the file on each send, so it needs no
 restart.
 
 `github-alerts` holds a fine-grained token that expires. When it expires, alerts
-stop opening issues without any error in Grafana. To renew it:
+stop opening issues, and Alertmanager's failed sends stop `Watchdog`, so the
+status page shows the alert pipeline down. To renew it:
 
 1. As an organization owner, create a fine-grained token on GitHub with
    `nca-apprentices` as the resource owner, access to `infra` only, and

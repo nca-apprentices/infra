@@ -21,6 +21,9 @@ spec:
   # The platform's limits on the namespace, which its own Application applies.
   # A chart that shipped one could lift them.
   namespaceResourceBlacklist:
+    # A Role or RoleBinding would let the app's pods write the rest of
+    # these through the API server themselves.
+    - { group: rbac.authorization.k8s.io, kind: "*" }
     - { group: cilium.io, kind: "*" }
     - { group: networking.k8s.io, kind: NetworkPolicy }
     - { group: "", kind: LimitRange }
