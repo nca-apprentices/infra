@@ -50,6 +50,21 @@ spec:
       messageExpression: >-
         'Every host of an Ingress in ' + variables.ns + ' must match ' +
         variables.hosts + '.'
+    # Port 443 requires Cloudflare's client certificate through the default
+    # TLS options, see platform/traefik.yaml, and port 80 checks none. So an
+    # Ingress names no TLS options, and only ACME challenges serve on port 80.
+    - expression: >-
+        !object.metadata.?annotations[?'traefik.ingress.kubernetes.io/router.tls.options'].hasValue()
+      message: >-
+        An Ingress may not name TLS options, which would drop the client
+        certificate check.
+    - expression: >-
+        !object.metadata.?annotations[?'traefik.ingress.kubernetes.io/router.entrypoints'].hasValue()
+        || object.spec.?rules.orValue([]).all(r, r.?http.paths.orValue([]).all(p,
+        p.?path.orValue('').startsWith('/.well-known/acme-challenge/')))
+      message: >-
+        Only ACME challenges may name an entry point, since port 80 has no
+        client certificate check.
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding
