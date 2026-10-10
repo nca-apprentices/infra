@@ -1,9 +1,9 @@
 # The namespace of each jjforge preview, jjforge-pr-<number>, with its limits,
-# its login, and its network policies, from the charts in platform/charts. It
-# runs under the platform's project, since the app projects may create neither
-# namespaces nor network policies. It follows the same PRs as
-# applicationset.yaml, and deleting it deletes the namespace and everything
-# the preview ran in it.
+# its login, its network policies, and its Postgres cluster, from the charts
+# in platform/charts. It runs under the platform's project, since the app
+# projects may create neither namespaces nor network policies. It follows the
+# same PRs as applicationset.yaml, and deleting it deletes the namespace and
+# everything the preview ran in it.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -43,6 +43,21 @@ spec:
             valuesObject:
               client: server
               databaseClients: [migrate]
+        # A preview migrates its own database, jjforge-pr-<number>-db, so a
+        # PR's migrations never reach dev's.
+        - repoURL: https://github.com/nca-apprentices/infra.git
+          targetRevision: main
+          path: cluster/platform/charts/database
+          helm:
+            releaseName: database
+            valuesObject:
+              name: "jjforge-pr-{{ .number }}"
+              keep: false
+              # A preview holds test data only.
+              priorityClassName: preview
+              resources:
+                requests: { cpu: 10m, memory: 128Mi }
+                limits: { memory: 256Mi }
       destination:
         server: https://kubernetes.default.svc
         namespace: "jjforge-pr-{{ .number }}"
