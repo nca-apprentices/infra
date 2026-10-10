@@ -17,3 +17,8 @@ output "dnssec_ds" {
     digest      = cloudflare_zone_dnssec.main.digest
   }
 }
+
+output "origin_pull_ca" {
+  description = "CA of Cloudflare's client certificate, which Traefik checks. It goes in cluster/platform/manifests/origin-pull-ca.yaml."
+  value       = tls_self_signed_cert.origin_pull_ca.cert_pem
+}

@@ -1,8 +1,8 @@
-# Phase B: the ruleset for dedicated hardware behind Hetzner Robot. There is no
-# SSH rule because Talos has no SSH daemon -- the only management surfaces are
-# the Talos and Kubernetes APIs, reachable from the operator's address only.
-# Cloudflare proxies every name on the node, see dns.tf, so the web ports take
-# Cloudflare's addresses alone. Nobody reaches the node around its protection.
+# The node's firewall. There is no SSH rule because Talos has no SSH daemon:
+# the only management surfaces are the Talos and Kubernetes APIs, reachable
+# from the operator's address only. Cloudflare proxies every name on the node,
+# see dns.tf, so the web ports take Cloudflare's addresses alone, and port 443
+# also wants this zone's client certificate, see origin-pulls.tf.
 data "cloudflare_ip_ranges" "main" {}
 
 locals {
@@ -31,13 +31,6 @@ resource "hcloud_firewall" "node" {
     protocol   = "tcp"
     port       = "80"
     source_ips = local.cloudflare_cidrs
-  }
-
-  rule {
-    direction  = "in"
-    protocol   = "udp"
-    port       = "51820"
-    source_ips = var.operator_cidrs
   }
 
   # Talos API and Kubernetes API, until Tailscale is in the image.
