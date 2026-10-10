@@ -9,7 +9,7 @@ every tool the steps use.
 
 ```fish
 mise install
-set ip 2.28.199.18    # public IPv4 of the node
+set ip 203.0.113.10   # public IPv4 of the node, from the Hetzner Console
 set server 167807597  # Hetzner server ID
 ```
 
@@ -395,11 +395,13 @@ Kubernetes kubeconfig with full access.
    mkdir -p ~/.talos talos/clusterconfig
    age -d -i $SOPS_AGE_KEY_FILE -o ~/.talos/nca alice.talosconfig.age
    set -x TALOSCONFIG ~/.talos/nca
-   talosctl config endpoint 2.28.199.18
-   talosctl config node 2.28.199.18
+   set ip (sops exec-env secrets/tofu.enc.env \
+       "tofu -chdir=tofu init -input=false >/dev/null && tofu -chdir=tofu output -raw node_ipv4")
+   talosctl config endpoint $ip
+   talosctl config node $ip
 
    talosctl kubeconfig talos/clusterconfig/kubeconfig
-   kubectl config set-cluster nca --server https://2.28.199.18:6443
+   kubectl config set-cluster nca --server https://$ip:6443
    ```
 
 ### Remove an operator
