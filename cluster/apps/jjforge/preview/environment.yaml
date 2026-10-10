@@ -34,7 +34,7 @@ spec:
           path: cluster/platform/charts/preview
           helm:
             releaseName: preview
-        # As in jjforge-dev, without the restore drill.
+        # As in jjforge-dev.
         - repoURL: https://github.com/nca-apprentices/infra.git
           targetRevision: main
           path: cluster/platform/charts/network

@@ -254,8 +254,9 @@ set -e secret
 
 ## 6. Set the domain and publish the release
 
-Set `domain` in `tofu/terraform.tfvars`, and replace `example.com` in
-every `cluster/apps/*/*/application.yaml` with it.
+Set `domain` in `tofu/terraform.tfvars`. The manifests under `cluster/` name
+`nca-apprentices.dev` throughout, so another domain means replacing it there
+too.
 
 Argo CD deploys the chart version in each `cluster/apps/<app>/*/application.yaml`,
 so that version must exist before the first sync. If a release is missing, tag

@@ -19,6 +19,6 @@ output "dnssec_ds" {
 }
 
 output "origin_pull_ca" {
-  description = "CA of Cloudflare's client certificate, which Traefik checks. It goes in cluster/platform/manifests/origin-pull-ca.yaml."
+  description = "CA of Cloudflare's client certificate, which Traefik checks. It goes in cluster/platform/traefik.yaml."
   value       = tls_self_signed_cert.origin_pull_ca.cert_pem
 }
