@@ -56,12 +56,7 @@
       "separateMultipleMinor": true
     },
     {
-      "description": "talhelper 3.1.17, its last release, can't generate a Talos 1.14 config. Talos stays on 1.13 until talhelper is replaced.",
-      "matchDepNames": ["siderolabs/talos", "talosctl"],
-      "allowedVersions": "<1.14"
-    },
-    {
-      "description": "Talos 1.13 runs Kubernetes up to 1.36.",
+      "description": "Cilium 1.19, cert-manager 1.21, Argo CD 3.5, and CloudNativePG 1.30 test Kubernetes up to 1.36.",
       "matchDepNames": ["kubernetes/kubernetes", "kubectl"],
       "allowedVersions": "<1.37"
     },
