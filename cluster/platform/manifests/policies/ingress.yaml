@@ -37,6 +37,18 @@ spec:
         : variables.ns.endsWith('-dev') || variables.ns.matches('-pr-[0-9]+$')
         ? '^' + variables.ns + r'\.nca-apprentices\.dev$'
         : '^$'
+    # cert-manager's challenge Ingress: every path is a challenge token. The
+    # strict pattern leaves no encoded or dotted path that an app might read
+    # as another.
+    - name: acme
+      expression: >-
+        object.spec.?rules.orValue([]).exists(r, size(r.?http.paths.orValue([])) > 0)
+        && object.spec.?rules.orValue([]).all(r, r.?http.paths.orValue([]).all(p,
+        p.?path.orValue('').matches(r'^/\.well-known/acme-challenge/[A-Za-z0-9_-]+$')))
+    - name: middlewares
+      expression: >-
+        object.metadata.?annotations[?'traefik.ingress.kubernetes.io/router.middlewares']
+        .orValue('').split(',').map(m, m.trim())
   validations:
     - expression: variables.hosts != '^$'
       messageExpression: >-
@@ -60,11 +72,26 @@ spec:
         certificate check.
     - expression: >-
         !object.metadata.?annotations[?'traefik.ingress.kubernetes.io/router.entrypoints'].hasValue()
-        || object.spec.?rules.orValue([]).all(r, r.?http.paths.orValue([]).all(p,
-        p.?path.orValue('').startsWith('/.well-known/acme-challenge/')))
+        || variables.acme
       message: >-
         Only ACME challenges may name an entry point, since port 80 has no
         client certificate check.
+    # Dev and previews sit behind the GitHub login, and a preview, which runs
+    # a PR's code, also drops the login's cookie. The app's own chart writes
+    # its Ingress, so the policy checks that it names both.
+    - expression: >-
+        variables.acme
+        || !(variables.ns.endsWith('-dev') || variables.ns.matches('-pr-[0-9]+$'))
+        || variables.middlewares.exists(m, m == variables.ns + '-github-login@kubernetescrd')
+      messageExpression: >-
+        'An Ingress in ' + variables.ns + ' must name the middleware ' +
+        variables.ns + '-github-login@kubernetescrd.'
+    - expression: >-
+        variables.acme || !variables.ns.matches('-pr-[0-9]+$')
+        || variables.middlewares.exists(m, m == variables.ns + '-no-cookies@kubernetescrd')
+      messageExpression: >-
+        'An Ingress in ' + variables.ns + ' must name the middleware ' +
+        variables.ns + '-no-cookies@kubernetescrd.'
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding
