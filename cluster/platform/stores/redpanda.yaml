@@ -7,6 +7,11 @@ resources:
 # sidecar and init containers included.
 statefulset:
   replicas: 1
+  # Chart 25.1.3 passes the sidecar --selector, which its default operator
+  # v25.1.3 rejects, so the sidecar exits. Operator v2.4.6, which chart 5.10
+  # ran, takes the same arguments. Drop this once a chart's default accepts it.
+  sideCars:
+    image: { tag: v2.4.6 }
   podTemplate:
     spec:
       securityContext: &pod
