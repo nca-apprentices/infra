@@ -15,6 +15,11 @@
       "pinDigests": true
     },
     {
+      "description": "docker.redpanda.com serves Docker Hub's redpandadata images but no release dates, so with minimumReleaseAge no tag ever qualified. Lookups go to Docker Hub, and the manifests keep the docker.redpanda.com name.",
+      "matchPackageNames": ["docker.redpanda.com/redpandadata/**"],
+      "overridePackageName": "{{{replace 'docker.redpanda.com/' '' packageName}}}"
+    },
+    {
       "description": "Everything else arrives as one PR per schedule window.",
       "matchPackageNames": ["*"],
       "groupName": "dependencies",
@@ -100,9 +105,10 @@
       "separateMultipleMinor": true
     },
     {
-      "description": "Redpanda can't skip a feature release, and since chart 25.1 the chart's minor version is Redpanda's. Each minor arrives as its own PR, to merge oldest first.",
-      "matchDepNames": ["redpanda"],
-      "groupName": null,
+      "description": "Redpanda can't skip a feature release, and since chart 25.1 the chart's minor version is Redpanda's. Each minor arrives as its own PR, to merge oldest first, with the broker image the restore Job runs rpk from.",
+      "matchDepNames": ["redpanda", "docker.redpanda.com/redpandadata/redpanda"],
+      "groupName": "Redpanda",
+      "separateMajorMinor": true,
       "separateMultipleMajor": true,
       "separateMultipleMinor": true
     }
@@ -176,11 +182,52 @@
     {
       "customType": "regex",
       "description": "Images with a fixed tag in the mise tasks, such as rclone in restore.",
-      "managerFilePatterns": ["/^\\.config/mise/tasks/[^/]+$/"],
+      "managerFilePatterns": ["/^\\.config/mise/tasks/.+$/"],
       "matchStrings": [
         "image: (?<depName>[a-z0-9./-]+):(?<currentValue>\\d+\\.\\d+\\.\\d+)\\s"
       ],
       "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "Images a workflow starts with docker run, pinned to their digest.",
+      "managerFilePatterns": ["/^\\.github/workflows/.+\\.yml$/"],
+      "matchStrings": [
+        "\\s(?<depName>[a-z0-9./-]+):(?<currentValue>v?\\d+\\.\\d+\\.\\d+)@(?<currentDigest>sha256:[0-9a-f]{64})"
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "The upstream release the receiver image builds, pinned to its commit.",
+      "managerFilePatterns": [
+        "/^cluster/platform/images/alertmanager-github-receiver/Dockerfile$/"
+      ],
+      "matchStrings": [
+        "The commit the (?<currentValue>v[\\d.]+) tag points at[^\\n]*\\nARG COMMIT=(?<currentDigest>[0-9a-f]{40})"
+      ],
+      "datasourceTemplate": "github-tags",
+      "depNameTemplate": "m-lab/alertmanager-github-receiver"
+    },
+    {
+      "customType": "regex",
+      "description": "The tag the receiver image is pushed under, which names the upstream release it builds.",
+      "managerFilePatterns": ["/^\\.github/workflows/images\\.yml$/"],
+      "matchStrings": [
+        "/alertmanager-github-receiver:(?<currentValue>v[\\d.]+)\\s"
+      ],
+      "datasourceTemplate": "github-tags",
+      "depNameTemplate": "m-lab/alertmanager-github-receiver"
+    },
+    {
+      "customType": "regex",
+      "description": "The Vale style package that check:prose lints against.",
+      "managerFilePatterns": ["/^\\.config/vale/vale\\.ini$/"],
+      "matchStrings": [
+        "errata-ai/Google/releases/download/(?<currentValue>v[\\d.]+)/"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "errata-ai/Google"
     }
   ]
 }
