@@ -123,7 +123,7 @@ and its network policies from `platform/charts/network`, under the platform's
 project. The app and its database run there under a project of their own,
 which admits that namespace alone and forbids `traefik.io` objects, so the chart of
 the PR can neither reach another namespace nor replace its login. The
-`jjforge-preview-database` ApplicationSet gives it a Postgres cluster of its
+environment also holds a Postgres cluster of its
 own, `jjforge-pr-<number>-db`, because the chart migrates its database
 before it deploys, and the migrations of a PR must never reach dev's
 database. Its pods
@@ -165,13 +165,17 @@ installation on each repository.
 ### Add an app or an environment
 
 1. Copy `cluster/apps/jjforge/prod/` to `cluster/apps/<app>/<env>/`.
-2. Replace `jjforge-prod` with `<app>-<env>` in every file, and point
-   `application.yaml` at the app's chart and version. The host is
+2. Replace `jjforge-prod` with `<app>-<env>` in every file, set the
+   `nca-apprentices.dev/environment` label in `namespace.yaml` to `<env>`, and
+   point `application.yaml` at the app's chart and version. The host is
    `<app>.<domain>` in `prod` and `<app>-<env>.<domain>` elsewhere, which the
    wildcard DNS record already covers.
 3. Keep only the stores the environment needs, and `database/` if it needs
-   Postgres. In `network/values.yaml`, set `client` to the component label of
-   the pods that use the database and Redpanda. Every environment keeps
+   Postgres. Stores run in `dev` and `prod` namespaces only, see
+   `platform/stores.yaml`. Every environment keeps `network/values.yaml`,
+   since its namespace denies all traffic until those policies allow it. Set
+   `client` there to the component label of the pods that use the database and
+   Redpanda. Every environment keeps
    `cookies.yaml`. An environment for the public names `no-cookies` alone in
    `application.yaml`. Any other also takes `login.yaml` from
    `cluster/apps/jjforge/dev/`, names `github-login, no-cookies`, and adds its

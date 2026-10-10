@@ -4,7 +4,7 @@
 # in a namespace of its own, see environment.yaml, so the PR's code reaches no
 # Secret of dev.
 # jjforge's CI pushes the images, tagged with the commit. Its database comes
-# from database.yaml, so its migrations never touch dev's.
+# from environment.yaml, so its migrations never touch dev's.
 #
 # Once the PR merges, closes, or loses the label, the generator drops the
 # Application, and Argo CD deletes everything it deployed. Unlike the apps

@@ -9,6 +9,9 @@ metadata:
   # privileges, keep a capability, or run without seccomp.
   labels:
     pod-security.kubernetes.io/enforce: restricted
+    # Denies all traffic until the network chart's policies allow it, see
+    # platform/manifests/policies/environments.yaml.
+    nca-apprentices.dev/environment: preview
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
 ---
