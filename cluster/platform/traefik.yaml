@@ -74,10 +74,6 @@ spec:
                 - 2405:8100::/32
                 - 2a06:98c0::/29
                 - 2c0f:f248::/32
-            # gRPC and HTTP share :443 and are separated by ALPN, so the client
-            # needs no second hostname or port.
-            http:
-              tls: { enabled: true }
         # Port 443 admits only Cloudflare's client certificate for this zone,
         # see tofu/origin-pulls.tf, so another Cloudflare account that points
         # a zone at the node gets no answer.
