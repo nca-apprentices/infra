@@ -224,7 +224,9 @@ manifests change.
 
 ## Ops portal
 
-<https://ops.nca-apprentices.dev> links to the tools below. Each has a host of
+<https://ops.nca-apprentices.dev> links to the tools below and to a diagram
+of the cluster, `platform/manifests/ops/architecture.html`. Update the diagram
+in the change that alters what it shows. Each tool has a host of
 its own, so a flaw in one tool's pages can't act with a session in another, such
 as Argo CD's. Only members of the `nca-apprentices` organization on GitHub
 get in, and two of its teams grant more:

@@ -1,0 +1,481 @@
+<!doctype html>
+<!--
+  The cluster's architecture, served by the ops portal at /architecture.html.
+  Update it in the change that alters what it shows.
+
+  The diagram is plain SVG on a 1240 x 960 canvas. The CSS below sets every
+  color and font, so markup names a role only:
+
+  - A box is <g class="box ROLE" transform="translate(X Y)"> around a rect of
+    its size, with text centered at half its width. ROLE is cloud, service,
+    app, store, guard, alert, or ext.
+  - A flow is <path class="flow KIND">. KIND is request, gitops, signin,
+    telemetry, alerting, backup, or ops. A bus has no arrowhead.
+  - Flows come first, so boxes drawn later sit on top of them.
+-->
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nca architecture</title>
+<style>
+  :root {
+    --bg: #020617; --panel: rgba(15, 23, 42, .5); --line: #1e293b;
+    --text: #fff; --muted: #94a3b8; --faint: #64748b; --node: #cbd5e1;
+    --cyan: #22d3ee; --emerald: #34d399; --violet: #a78bfa; --amber: #fbbf24;
+    --rose: #fb7185; --orange: #fb923c; --slate: #94a3b8;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 ui-monospace, "JetBrains Mono", SFMono-Regular, Menlo, Consolas, monospace; }
+  main { max-width: 78rem; margin: 0 auto; padding: 2rem 1rem; }
+  h1 { margin: 0; font-size: 1.4rem; }
+  header p { margin: .25rem 0 1.5rem; color: var(--muted); font-size: .85rem; }
+  a { color: var(--cyan); }
+  .diagram { overflow-x: auto; padding: 1.5rem; background: var(--panel); border: 1px solid var(--line); border-radius: 1rem; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+  .card { padding: 1.25rem; background: var(--panel); border: 1px solid var(--line); border-radius: .75rem; }
+  .card h2 { margin: 0 0 .75rem; font-size: .9rem; }
+  .card h2::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: .5rem; border-radius: 50%; background: var(--dot); }
+  .card ul { margin: 0; padding-left: 1rem; color: var(--muted); font-size: .75rem; }
+  .card li { margin-bottom: .375rem; }
+  footer { margin-top: 1.5rem; color: var(--faint); font-size: .75rem; text-align: center; }
+
+  svg { display: block; width: 100%; min-width: 900px; }
+  svg text { font-family: inherit; }
+  .grid { fill: none; stroke: var(--line); stroke-width: .5; }
+
+  .region, .firewall, .node, .group { fill: none; stroke-width: 1; }
+  .region { fill: rgba(251, 191, 36, .04); stroke: var(--amber); stroke-dasharray: 8 4; rx: 12px; }
+  .firewall { stroke: var(--rose); stroke-dasharray: 4 4; rx: 8px; }
+  .node { fill: rgba(30, 41, 59, .25); stroke: #475569; stroke-dasharray: 6 3; rx: 10px; }
+  .group { stroke: #334155; stroke-dasharray: 4 3; rx: 8px; }
+  .label { font-size: 8px; fill: var(--muted); }
+  .label.region-name { font-size: 10px; font-weight: 600; fill: var(--amber); }
+  .label.firewall-name { fill: var(--rose); }
+  .label.node-name { font-size: 9px; font-weight: 600; fill: var(--node); }
+  .end { text-anchor: end; }
+
+  .box rect { stroke-width: 1.5; rx: 6px; }
+  .box text { text-anchor: middle; font-size: 8px; fill: var(--muted); }
+  .box .name { font-size: 11px; font-weight: 600; fill: var(--text); }
+  .box .big { font-size: 9px; }
+  .box .left { text-anchor: start; }
+  .cloud rect { fill: rgba(120, 53, 15, .3); stroke: var(--amber); }
+  .service rect { fill: rgba(6, 78, 59, .4); stroke: var(--emerald); }
+  .app rect { fill: rgba(8, 51, 68, .4); stroke: var(--cyan); }
+  .store rect { fill: rgba(76, 29, 149, .4); stroke: var(--violet); }
+  .guard rect { fill: rgba(136, 19, 55, .4); stroke: var(--rose); }
+  .alert rect { fill: rgba(251, 146, 60, .3); stroke: var(--orange); }
+  .ext rect { fill: rgba(30, 41, 59, .5); stroke: var(--slate); }
+  .ephemeral rect { stroke-dasharray: 5 3; }
+  svg text.is-cyan { fill: var(--cyan); }
+  svg text.is-violet { fill: var(--violet); }
+  svg text.is-amber { fill: var(--amber); }
+  svg text.is-rose { fill: var(--rose); }
+
+  .flow { fill: none; stroke-width: 1.5; marker-end: url(#arrow); }
+  .flow.bus { marker-end: none; }
+  .flow.request { stroke: var(--cyan); }
+  .flow.gitops { stroke: var(--emerald); marker-start: url(#arrow); }
+  .flow.signin { stroke: var(--rose); stroke-width: 1.2; stroke-dasharray: 5 4; }
+  .flow.telemetry { stroke: var(--violet); }
+  .flow.otlp { stroke: var(--emerald); }
+  .flow.alerting { stroke: var(--orange); }
+  .flow.heartbeat { stroke: var(--orange); stroke-width: 1.2; stroke-dasharray: 5 4; }
+  .flow.backup { stroke: var(--amber); stroke-dasharray: 6 3; }
+  .flow.ops { stroke: var(--slate); }
+  .flow-label { font-size: 8px; fill: var(--muted); }
+  .flow-label.is-small { font-size: 7px; }
+  .note { font-size: 8px; fill: var(--faint); }
+
+  .legend-title { font-size: 10px; font-weight: 600; fill: var(--text); }
+  .legend text { font-size: 8px; fill: var(--muted); }
+  .legend .box rect { stroke-width: 1; rx: 2px; }
+  .legend .flow { marker-end: none; }
+</style>
+<main>
+  <header>
+    <h1>Cluster architecture</h1>
+    <p>One Talos node on Hetzner, behind Cloudflare, kept in sync by Argo CD from nca-apprentices/infra. <a href="/">Back to the portal</a></p>
+  </header>
+
+  <div class="diagram">
+    <svg viewBox="0 0 1240 960" role="img" aria-labelledby="diagram-title">
+      <title id="diagram-title">Cloudflare in front of the one node on Hetzner, with the platform, the app namespaces, observability, and the backups in Object Storage</title>
+      <defs>
+        <marker id="arrow" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="6" refX="7.5" refY="3" orient="auto-start-reverse">
+          <polygon points="0 0, 8 3, 0 6" fill="context-stroke"/>
+        </marker>
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path class="grid" d="M 40 0 L 0 0 0 40"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#grid)"/>
+
+      <!-- Boundaries -->
+      <rect class="region" x="220" y="20" width="960" height="120"/>
+      <text class="label region-name" x="232" y="37">CLOUDFLARE</text>
+      <text class="label end" x="1168" y="37">zone nca-apprentices.dev · every name on the node is proxied</text>
+
+      <rect class="region" x="220" y="170" width="960" height="740"/>
+      <text class="label region-name" x="232" y="187">HETZNER CLOUD</text>
+      <text class="label end" x="1168" y="187">node in nbg1 · private network 10.0.0.0/16 · Object Storage in nbg1 and fsn1</text>
+
+      <rect class="firewall" x="240" y="196" width="920" height="600"/>
+      <text class="label firewall-name" x="252" y="210">hcloud firewall</text>
+      <text class="label firewall-name end" x="1150" y="210">443, 80 ← Cloudflare IPs only · 6443, 50000 ← operator CIDRs · no SSH</text>
+
+      <rect class="node" x="255" y="220" width="890" height="564"/>
+      <text class="label node-name" x="267" y="235">node nca-1</text>
+      <text class="label end" x="1135" y="235">cax31 ARM · Talos · Kubernetes · 100 GB volume for every PV</text>
+
+      <rect class="group" x="280" y="590" width="860" height="182"/>
+      <text class="label" x="292" y="603">observability</text>
+
+      <!-- Flows -->
+      <path class="flow request" d="M 190 85 H 238"/>
+      <path class="flow request" d="M 410 126 V 248"/>
+      <text class="flow-label" x="418" y="158">HTTPS :443 + origin-pull client cert · HTTP-01 on :80</text>
+
+      <path class="flow ops" d="M 190 228 H 253"/>
+
+      <path class="flow request" d="M 440 282 H 458"/>
+
+      <path class="flow signin bus" d="M 190 329 H 535"/>
+      <path class="flow signin" d="M 535 329 V 316"/>
+      <path class="flow signin" d="M 390 329 V 338"/>
+      <text class="flow-label is-small is-rose" x="400" y="325">GitHub OAuth</text>
+
+      <path class="flow gitops" d="M 192 372 H 288"/>
+      <text class="flow-label is-small" x="196" y="367">Git + charts</text>
+
+      <path class="flow request bus" d="M 290 282 H 275 V 424 H 1070"/>
+      <path class="flow request" d="M 385 424 V 442"/>
+      <path class="flow request" d="M 580 424 V 442"/>
+      <path class="flow request" d="M 765 424 V 442"/>
+      <path class="flow request" d="M 930 424 V 442"/>
+      <path class="flow request" d="M 1070 424 V 442"/>
+      <text class="flow-label" x="300" y="418">routes by Host · dev and previews pass github-login first</text>
+
+      <path class="flow otlp" d="M 510 544 V 610"/>
+      <text class="flow-label" x="516" y="582">OTLP</text>
+
+      <path class="flow backup" d="M 290 525 H 272 V 810"/>
+
+      <path class="flow otlp" d="M 420 640 H 438"/>
+
+      <path class="flow telemetry bus" d="M 510 668 V 686 H 945"/>
+      <path class="flow telemetry" d="M 665 686 V 670"/>
+      <path class="flow telemetry" d="M 810 686 V 670"/>
+      <path class="flow telemetry" d="M 945 686 V 670"/>
+
+      <path class="flow alerting" d="M 460 729 H 442"/>
+      <path class="flow alerting" d="M 290 729 H 192"/>
+      <text class="flow-label is-small" x="198" y="724">alert issues</text>
+
+      <path class="flow heartbeat" d="M 545 754 V 763 H 1215 V 86 H 1162"/>
+      <text class="flow-label" x="1226" y="430" text-anchor="middle" transform="rotate(90 1226 430)">Watchdog heartbeat · every minute</text>
+
+      <!-- Outside the cluster -->
+      <g class="box ext" transform="translate(20 55)">
+        <rect width="170" height="60"/>
+        <text class="name" x="85" y="24">Users</text>
+        <text class="big" x="85" y="39">public visitors</text>
+        <text x="85" y="51">org members (dev, admins)</text>
+      </g>
+      <g class="box ext" transform="translate(20 180)">
+        <rect width="170" height="80"/>
+        <text class="name" x="85" y="22">Operators</text>
+        <text class="big" x="85" y="37">mise run apply:*</text>
+        <text x="85" y="51">tofu · talosctl · kubectl</text>
+        <text x="85" y="64">:50000 Talos · :6443 K8s</text>
+      </g>
+      <g class="box ext" transform="translate(20 290)">
+        <rect width="170" height="470"/>
+        <text class="name" x="85" y="24">GitHub</text>
+        <text class="big" x="85" y="40">nca-apprentices</text>
+        <text class="name left big" x="12" y="70">infra repo</text>
+        <text class="left" x="12" y="83">GitOps source of truth</text>
+        <text class="name left big" x="12" y="108">ghcr.io</text>
+        <text class="left" x="12" y="121">charts + images (OCI)</text>
+        <text class="name left big" x="12" y="146">OAuth apps · teams</text>
+        <text class="left" x="12" y="159">admins · dev</text>
+        <text class="name left big" x="12" y="184">Deployments</text>
+        <text class="left" x="12" y="197">written by Argo CD</text>
+        <text class="name left big" x="12" y="222">Issues</text>
+        <text class="left" x="12" y="235">one per firing alert</text>
+        <text class="name left big" x="12" y="260">Actions · Renovate</text>
+        <text class="left" x="12" y="273">check · PR diffs · bumps</text>
+        <text class="name left big" x="12" y="298">Pages</text>
+        <text class="left" x="12" y="311">jjforge-docs (DNS only)</text>
+        <text class="name left big" x="12" y="336">status repo</text>
+        <text class="left" x="12" y="349">source of the Worker</text>
+      </g>
+
+      <!-- Cloudflare -->
+      <g class="box cloud" transform="translate(240 46)">
+        <rect width="200" height="80"/>
+        <text class="name" x="100" y="18">Edge proxy</text>
+        <text x="100" y="34">apex + *.domain → node</text>
+        <text x="100" y="47">TLS ≥ 1.2 · strict · HSTS</text>
+        <text x="100" y="60">rate limit 1000 / 10 s per IP</text>
+      </g>
+      <g class="box cloud" transform="translate(460 46)">
+        <rect width="200" height="80"/>
+        <text class="name" x="100" y="18">DNS zone</text>
+        <text x="100" y="34">nca-apprentices.dev</text>
+        <text x="100" y="47">DNSSEC · SPF/DMARC reject</text>
+        <text x="100" y="60">registrar: Porkbun</text>
+      </g>
+      <g class="box guard" transform="translate(680 46)">
+        <rect width="240" height="80"/>
+        <text class="name" x="120" y="18">Authenticated origin pulls</text>
+        <text x="120" y="34">client cert from a tofu-made CA</text>
+        <text x="120" y="47">Traefik rejects any other caller</text>
+        <text x="120" y="60">blocks other Cloudflare accounts</text>
+      </g>
+      <g class="box cloud" transform="translate(960 46)">
+        <rect width="200" height="80"/>
+        <text class="name" x="100" y="18">Status Worker</text>
+        <text x="100" y="34">status.nca-apprentices.dev</text>
+        <text x="100" y="47">probes prod apps every 10 s</text>
+        <text x="100" y="60">up when the node is down</text>
+      </g>
+
+      <!-- Node, edge and access -->
+      <g class="box service" transform="translate(290 250)">
+        <rect width="150" height="64"/>
+        <text class="name" x="75" y="20">Traefik</text>
+        <text x="75" y="35">ingress · mTLS origin check</text>
+        <text x="75" y="48">HTTP-01 only on :80</text>
+      </g>
+      <g class="box guard" transform="translate(460 250)">
+        <rect width="150" height="64"/>
+        <text class="name" x="75" y="20">oauth2-proxy-apps</text>
+        <text x="75" y="35">github-login middleware</text>
+        <text x="75" y="48">dev hosts + previews</text>
+      </g>
+      <g class="box guard" transform="translate(630 250)">
+        <rect width="150" height="64"/>
+        <text class="name" x="75" y="20">oauth2-proxy</text>
+        <text x="75" y="35">ops login via Argo CD's Dex</text>
+        <text x="75" y="48">cookie on each ops host</text>
+      </g>
+      <g class="box service" transform="translate(800 250)">
+        <rect width="150" height="64"/>
+        <text class="name" x="75" y="20">cert-manager</text>
+        <text x="75" y="35">Let's Encrypt HTTP-01</text>
+        <text x="75" y="48">a cert per Ingress host</text>
+      </g>
+      <g class="box app" transform="translate(970 250)">
+        <rect width="160" height="64"/>
+        <text class="name" x="80" y="18">Ops portal</text>
+        <text class="is-cyan" x="80" y="32">ops.nca-apprentices.dev</text>
+        <text x="80" y="44">Argo CD · Grafana · Headlamp</text>
+        <text x="80" y="56">VictoriaLogs · dev store UIs</text>
+      </g>
+
+      <!-- Node, control -->
+      <g class="box service" transform="translate(290 340)">
+        <rect width="200" height="64"/>
+        <text class="name" x="100" y="18">Argo CD</text>
+        <text x="100" y="32">root → an App per platform/ file</text>
+        <text x="100" y="44">ApplicationSets: apps, previews</text>
+        <text x="100" y="56">Dex: kubectl + ops login</text>
+      </g>
+      <g class="box guard" transform="translate(510 340)">
+        <rect width="150" height="64"/>
+        <text class="name" x="75" y="20">sops-secrets-op</text>
+        <text x="75" y="35">SopsSecret → Secret</text>
+        <text x="75" y="48">cluster age key</text>
+      </g>
+      <g class="box guard" transform="translate(680 340)">
+        <rect width="150" height="64"/>
+        <text class="name" x="75" y="20">Cilium</text>
+        <text x="75" y="35">CNI · NetworkPolicies</text>
+        <text x="75" y="48">default deny · Hubble</text>
+      </g>
+      <g class="box guard" transform="translate(850 340)">
+        <rect width="150" height="64"/>
+        <text class="name" x="75" y="20">Admission policies</text>
+        <text x="75" y="35">hosts · owners · priority</text>
+        <text x="75" y="48">preview images · SopsSecrets</text>
+      </g>
+      <g class="box store" transform="translate(1020 340)">
+        <rect width="110" height="64"/>
+        <text class="name" x="55" y="20">CloudNativePG</text>
+        <text x="55" y="35">Postgres operator</text>
+        <text x="55" y="48">+ Barman Cloud</text>
+      </g>
+
+      <!-- Node, app namespaces -->
+      <g class="box app" transform="translate(290 444)">
+        <rect width="190" height="100"/>
+        <text class="name" x="95" y="20">jjforge-prod</text>
+        <text class="big" x="95" y="36">jjforge · server + vcs</text>
+        <text class="is-violet" x="95" y="51">Postgres · Redpanda · SeaweedFS</text>
+        <text class="is-cyan" x="95" y="65">public · no-cookies · prod priority</text>
+        <text class="is-amber" x="95" y="79">backed up to fsn1</text>
+      </g>
+      <g class="box app" transform="translate(500 444)">
+        <rect width="160" height="100"/>
+        <text class="name" x="80" y="20">jjforge-dev</text>
+        <text class="big" x="80" y="36">jjforge chart</text>
+        <text class="is-violet" x="80" y="51">Postgres · Redpanda · SeaweedFS</text>
+        <text class="is-rose" x="80" y="65">github-login · no-cookies</text>
+        <text x="80" y="79">dev team: exec, sync</text>
+      </g>
+      <g class="box app ephemeral" transform="translate(680 444)">
+        <rect width="170" height="100"/>
+        <text class="name" x="85" y="20">jjforge-pr-&lt;n&gt;</text>
+        <text class="big" x="85" y="36">chart at PR head</text>
+        <text class="is-violet" x="85" y="51">own Postgres, gone with PR</text>
+        <text class="is-rose" x="85" y="65">github-login · ghcr images only</text>
+        <text x="85" y="79">PR label: preview</text>
+      </g>
+      <g class="box app" transform="translate(870 444)">
+        <rect width="120" height="100"/>
+        <text class="name" x="60" y="20">ncaleague-prod</text>
+        <text class="big" x="60" y="36">ncaleague</text>
+        <text class="is-violet" x="60" y="51">Postgres</text>
+        <text class="is-cyan" x="60" y="65">public</text>
+        <text class="is-amber" x="60" y="79">backed up to fsn1</text>
+      </g>
+      <g class="box app" transform="translate(1010 444)">
+        <rect width="120" height="100"/>
+        <text class="name" x="60" y="20">ncaleague-dev</text>
+        <text class="big" x="60" y="36">ncaleague</text>
+        <text class="is-violet" x="60" y="51">Postgres</text>
+        <text class="is-rose" x="60" y="65">github-login</text>
+      </g>
+      <text class="note" x="530" y="562">each &lt;app&gt;-&lt;env&gt;: own AppProject · restricted Pod Security · default-deny policies · own stores</text>
+
+      <!-- Node, observability -->
+      <g class="box service" transform="translate(290 612)">
+        <rect width="130" height="56"/>
+        <text class="name" x="65" y="19">Beyla (Alloy)</text>
+        <text x="65" y="33">eBPF spans + RED</text>
+        <text x="65" y="45">dev + prod namespaces</text>
+      </g>
+      <g class="box service" transform="translate(440 612)">
+        <rect width="140" height="56"/>
+        <text class="name" x="70" y="19">OTel Collector</text>
+        <text x="70" y="33">OTLP :4317 :4318</text>
+        <text x="70" y="45">receives only</text>
+      </g>
+      <g class="box store" transform="translate(600 612)">
+        <rect width="130" height="56"/>
+        <text class="name" x="65" y="19">VictoriaMetrics</text>
+        <text x="65" y="33">90 d · vmbackup</text>
+        <text x="65" y="45">+ pod scrapes</text>
+      </g>
+      <g class="box store" transform="translate(750 612)">
+        <rect width="120" height="56"/>
+        <text class="name" x="60" y="19">VictoriaLogs</text>
+        <text x="60" y="33">30 d · rclone</text>
+        <text x="60" y="45">+ log collector</text>
+      </g>
+      <g class="box store" transform="translate(890 612)">
+        <rect width="110" height="56"/>
+        <text class="name" x="55" y="19">VictoriaTraces</text>
+        <text x="55" y="33">7 d · no backup</text>
+      </g>
+      <g class="box app" transform="translate(1020 612)">
+        <rect width="110" height="56"/>
+        <text class="name" x="55" y="19">Grafana</text>
+        <text x="55" y="33">GitHub login</text>
+        <text x="55" y="45">reads VM · VL · VT</text>
+      </g>
+      <g class="box service" transform="translate(290 704)">
+        <rect width="150" height="50"/>
+        <text class="name" x="75" y="20">github-alerts</text>
+        <text x="75" y="36">alert → GitHub issue</text>
+      </g>
+      <g class="box alert" transform="translate(460 704)">
+        <rect width="170" height="50"/>
+        <text class="name" x="85" y="20">vmalert + Alertmanager</text>
+        <text x="85" y="36">rules · always-on Watchdog</text>
+      </g>
+      <g class="box service" transform="translate(650 704)">
+        <rect width="170" height="50"/>
+        <text class="name" x="85" y="20">blackbox-exporter</text>
+        <text x="85" y="36">probes origin w/o client cert</text>
+      </g>
+
+      <!-- Object Storage -->
+      <g class="box cloud" transform="translate(240 812)">
+        <rect width="640" height="80"/>
+        <text class="name" x="320" y="20">Object Storage · fsn1 · off-site backups</text>
+        <text class="big" x="320" y="37">nca-backup-{jjforge-prod-db, ncaleague-prod-db, jjforge-prod-seaweedfs,</text>
+        <text class="big" x="320" y="50">jjforge-prod-redpanda, metrics, logs}</text>
+        <text class="is-amber" x="320" y="67">versioned · 30-day history · one key per bucket · restores itself onto an empty volume</text>
+      </g>
+      <g class="box cloud" transform="translate(900 812)">
+        <rect width="260" height="80"/>
+        <text class="name" x="130" y="20">nca-tofu · nbg1</text>
+        <text class="big" x="130" y="37">OpenTofu state, encrypted</text>
+        <text x="130" y="50">network · firewall · node · volume</text>
+        <text x="130" y="63">Cloudflare DNS · backup buckets</text>
+      </g>
+
+      <!-- Legend -->
+      <g class="legend">
+        <text class="legend-title" x="20" y="940">Legend</text>
+        <g class="box cloud" transform="translate(80 931)"><rect width="16" height="10"/></g>
+        <text x="102" y="939">Cloud service</text>
+        <g class="box service" transform="translate(190 931)"><rect width="16" height="10"/></g>
+        <text x="212" y="939">Platform service</text>
+        <g class="box app" transform="translate(315 931)"><rect width="16" height="10"/></g>
+        <text x="337" y="939">App or UI</text>
+        <g class="box store" transform="translate(405 931)"><rect width="16" height="10"/></g>
+        <text x="427" y="939">Data store</text>
+        <g class="box guard" transform="translate(500 931)"><rect width="16" height="10"/></g>
+        <text x="522" y="939">Security</text>
+        <g class="box alert" transform="translate(585 931)"><rect width="16" height="10"/></g>
+        <text x="607" y="939">Alerting</text>
+        <g class="box ext" transform="translate(670 931)"><rect width="16" height="10"/></g>
+        <text x="692" y="939">External</text>
+        <path class="flow signin" d="M 760 936 H 780"/>
+        <text x="786" y="939">Sign-in</text>
+        <path class="flow backup" d="M 850 936 H 870"/>
+        <text x="876" y="939">Backup</text>
+        <rect class="firewall" x="935" y="931" width="16" height="10"/>
+        <text x="957" y="939">Firewall</text>
+        <g class="box app ephemeral" transform="translate(1020 931)"><rect width="16" height="10"/></g>
+        <text x="1042" y="939">Ephemeral</text>
+      </g>
+    </svg>
+  </div>
+
+  <div class="cards">
+    <section class="card" style="--dot: var(--cyan)">
+      <h2>Request path</h2>
+      <ul>
+        <li>Cloudflare proxies the apex and *.nca-apprentices.dev to the one node.</li>
+        <li>The firewall admits 80 and 443 from Cloudflare only. Traefik also wants the zone's client certificate.</li>
+        <li>jjforge-prod and ncaleague-prod are public. Dev and previews pass github-login first.</li>
+        <li>Each ops tool has its own host. The ops login signs in through Argo CD's Dex.</li>
+      </ul>
+    </section>
+    <section class="card" style="--dot: var(--emerald)">
+      <h2>GitOps and secrets</h2>
+      <ul>
+        <li>OpenTofu creates the network, firewall, node, volume, DNS, and buckets.</li>
+        <li>apply:bootstrap installs Cilium and Argo CD. Argo CD owns the cluster after that.</li>
+        <li>root → platform/ → the apps ApplicationSet → one Application per apps/&lt;app&gt;/&lt;env&gt;.</li>
+        <li>SopsSecrets from Git decrypt in the cluster with the age key. The escrow key stays offline.</li>
+      </ul>
+    </section>
+    <section class="card" style="--dot: var(--violet)">
+      <h2>State, telemetry, and alerts</h2>
+      <ul>
+        <li>Six stores back up to fsn1: two Postgres clusters, SeaweedFS, Redpanda, metrics, and logs.</li>
+        <li>Apps send OTLP to the Collector. Beyla adds eBPF traces and RED metrics.</li>
+        <li>Alerts open GitHub issues. Watchdog posts a heartbeat to the status Worker.</li>
+        <li>The Worker runs on Cloudflare, so it reports a dead node or alert pipeline.</li>
+      </ul>
+    </section>
+  </div>
+
+  <footer>Source: cluster/platform/manifests/ops/architecture.html · releases: talos/versions.yaml and each Application</footer>
+</main>
+</html>

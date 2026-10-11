@@ -105,6 +105,7 @@ data:
         <li><a href="https://grafana.nca-apprentices.dev/"><strong>Grafana</strong><span>Dashboards of the metrics. Explore queries metrics and logs.</span><small>admins: edit. Others: view and Explore.</small></a></li>
         <li><a href="https://logs.nca-apprentices.dev/select/vmui/"><strong>VictoriaLogs</strong><span>Searches the logs of every pod.</span><small>Everyone: search.</small></a></li>
         <li><a href="https://headlamp.nca-apprentices.dev/"><strong>Headlamp</strong><span>Shows the Kubernetes objects in the cluster.</span><small>Everyone: read, except Secrets.</small></a></li>
+        <li><a href="/architecture.html"><strong>Architecture</strong><span>How requests, deployments, telemetry, and backups flow through the cluster.</span><small>Everyone: read.</small></a></li>
       </ul>
       <h2>jjforge-dev</h2>
       <ul>
@@ -144,8 +145,13 @@ spec:
             - { name: html, mountPath: /usr/share/nginx/html }
             - { name: tmp, mountPath: /tmp }
       volumes:
+        # The portal and the architecture page, which kustomization.yaml
+        # generates, share the one directory nginx serves.
         - name: html
-          configMap: { name: portal }
+          projected:
+            sources:
+              - configMap: { name: portal }
+              - configMap: { name: portal-architecture }
         - name: tmp
           emptyDir: {}
 ---

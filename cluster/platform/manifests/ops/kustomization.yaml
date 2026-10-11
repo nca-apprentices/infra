@@ -1,0 +1,13 @@
+# Argo CD applies only the files listed here. The architecture page is a
+# generated ConfigMap, so a change to it rolls the portal's pod.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - apps-login.yaml
+  - ops-login.yaml
+  - portal.yaml
+  - routes.yaml
+configMapGenerator:
+  - name: portal-architecture
+    namespace: ops
+    files: [architecture.html]
