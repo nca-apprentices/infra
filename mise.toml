@@ -39,4 +39,6 @@ vale = "3.24.0"
 TREEFMT_CONFIG = "{{config_root}}/.config/treefmt.toml"
 VALE_CONFIG_PATH = "{{config_root}}/.config/vale/vale.ini"
 # Written by `mise run apply:bootstrap`, or by talosctl when an operator is added.
-KUBECONFIG = "{{config_root}}/talos/clusterconfig/kubeconfig"
+# Every worktree uses the main checkout's copy, so a new one reaches the
+# cluster too.
+KUBECONFIG = "{{ exec(command='git rev-parse --path-format=absolute --git-common-dir') }}/../talos/clusterconfig/kubeconfig"

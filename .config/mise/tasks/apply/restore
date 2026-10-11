@@ -10,7 +10,6 @@ set -euo pipefail
 # the store holds.
 store=$1
 until=${2:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}
-export KUBECONFIG=talos/clusterconfig/kubeconfig
 version=$(yq '.spec.source.helm.valuesObject.vmsingle.spec.initContainers[0].image' cluster/platform/observability.yaml | cut -d: -f2)
 s3=https://fsn1.your-objectstorage.com
 k() { kubectl -n observability "$@"; }
