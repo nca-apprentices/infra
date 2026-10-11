@@ -233,25 +233,28 @@ get in, and two of its teams grant more:
 - `dev`: the apprentices. They also sync `jjforge-dev` and `ncaleague-dev` and
   set their Helm parameters in Argo CD.
 
-| Host            | Tool             | Signs in with                      | Everyone else in the organization                           |
-| --------------- | ---------------- | ---------------------------------- | ----------------------------------------------------------- |
-| `argocd`        | Argo CD          | Its own GitHub login               | Reads                                                       |
-| `grafana`       | Grafana          | Its own GitHub login               | Reads, searches logs and traces in Explore, and sees alerts |
-| `headlamp`      | Headlamp         | `oauth2-proxy`, then GitHub as you | What your Kubernetes roles allow                            |
-| `logs`          | VictoriaLogs     | `oauth2-proxy`                     | Searches the logs                                           |
-| `redpanda-dev`  | Redpanda Console | `oauth2-proxy`                     | Reads, writes, and deletes topics in `jjforge-dev`          |
-| `seaweedfs-dev` | SeaweedFS        | `oauth2-proxy`                     | Changes buckets, files, and S3 users in `jjforge-dev`       |
+| Host            | Tool             | Signs in with          | Everyone else in the organization                           |
+| --------------- | ---------------- | ---------------------- | ----------------------------------------------------------- |
+| `argocd`        | Argo CD          | Its own GitHub login   | Reads                                                       |
+| `grafana`       | Grafana          | Its own GitHub login   | Reads, searches logs and traces in Explore, and sees alerts |
+| `headlamp`      | Headlamp         | `oauth2-proxy`, as you | What your Kubernetes roles allow                            |
+| `logs`          | VictoriaLogs     | `oauth2-proxy`         | Searches the logs                                           |
+| `redpanda-dev`  | Redpanda Console | `oauth2-proxy`         | Reads, writes, and deletes topics in `jjforge-dev`          |
+| `seaweedfs-dev` | SeaweedFS        | `oauth2-proxy`         | Changes buckets, files, and S3 users in `jjforge-dev`       |
 
-The three logins share one GitHub OAuth app, so GitHub asks once. Grafana and
-the portal's Argo CD link then go to GitHub and back without a click. Only
+Argo CD and Grafana share one GitHub OAuth app, so GitHub asks once.
+`oauth2-proxy` signs in through Argo CD's Dex, which uses the same app. Every
+login after the first goes to GitHub and back without a click. Only
 members of `admins` silence alerts, in Alertmanager's own UI: run
 `kubectl -n observability port-forward svc/vmalertmanager-metrics 9093` and open
 <http://localhost:9093>. Grafana only reads from the stores, since every
 viewer can send any request through its data source proxy. The prod stores
 have no UI.
 
-Headlamp signs each person in to the Kubernetes API with GitHub, as kubectl
-does, so it shows what their roles allow, see [kubectl](#kubectl). Argo CD has
+Headlamp acts as the person who signed in to `oauth2-proxy`. Dex gives the
+login an ID token for the Kubernetes API, as it gives kubectl, and the ingress
+passes it to Headlamp alone. So Headlamp shows what each person's roles allow,
+see [kubectl](#kubectl). Argo CD has
 no administrator password, so the Talos certificate is the way in when the
 GitHub login fails.
 
@@ -381,8 +384,9 @@ the same name, with the cluster key.
 | `<store>-backup-s3`           | The store's     | See [Backups](#backups) | The store's key for its backup bucket                      |
 | `seaweedfs-s3-config`         | `<app>-<env>`   | `apps/<app>/<env>/`     | The S3 identities and the buckets each may use             |
 | `argocd-github`               | `argocd`        | `platform/`             | The GitHub OAuth 2.0 app of the ops portal                 |
+| `argocd-ops-login`            | `argocd`        | `platform/`             | The secret of Dex's `ops` client                           |
 | `grafana-github`              | `observability` | `platform/`             | The same OAuth 2.0 app                                     |
-| `oauth2-proxy`                | `ops`           | `platform/`             | The same OAuth 2.0 app, and a cookie secret                |
+| `oauth2-proxy`                | `ops`           | `platform/`             | Dex's `ops` client, and a cookie secret                    |
 | `oauth2-proxy-apps`           | `ops`           | `platform/`             | The apps' OAuth 2.0 app, and a cookie secret               |
 | `github-alerts`               | `observability` | `platform/`             | The token that opens alert issues, see [Alerts](#alerts)   |
 | `status-heartbeat`            | `observability` | `platform/`             | The token Watchdog posts to the status page with           |

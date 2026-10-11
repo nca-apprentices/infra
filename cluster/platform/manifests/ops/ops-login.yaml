@@ -1,4 +1,4 @@
-# GitHub returns to the ops login on the host that asked, see
+# Dex returns to the ops login on the host that asked, see
 # oauth2-proxy.yaml, so each tool's host keeps its own cookie. Argo CD and
 # Grafana sign in themselves and aren't listed.
 apiVersion: traefik.io/v1alpha1

@@ -51,8 +51,10 @@ spec:
     address: http://oauth2-proxy.ops.svc.cluster.local/
     trustForwardHeader: false
 ---
-# Headlamp signs each person in to the Kubernetes API with GitHub, see
-# platform/headlamp.yaml. Only Traefik, after the ops login, reaches it.
+# Headlamp acts as the person who signed in to the ops login, with the ID
+# token the login hands it, see platform/headlamp.yaml. Only Traefik reaches
+# it, and Traefik first drops the identity headers a client sent, so nobody
+# can pose as someone else.
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
@@ -63,8 +65,22 @@ spec:
   routes:
     - kind: Rule
       match: Host(`headlamp.nca-apprentices.dev`)
-      middlewares: [{ name: github-login }]
+      middlewares: [{ name: no-identity }, { name: github-login }]
       services: [{ name: headlamp, port: 80 }]
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: no-identity
+  namespace: headlamp
+spec:
+  headers:
+    customRequestHeaders:
+      Authorization: ""
+      X-Auth-Request-Preferred-Username: ""
+      X-Auth-Request-Email: ""
+      X-Auth-Request-Groups: ""
+      X-Forwarded-Id-Token: ""
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -75,6 +91,11 @@ spec:
   forwardAuth:
     address: http://oauth2-proxy.ops.svc.cluster.local/
     trustForwardHeader: false
+    authResponseHeaders:
+      - Authorization
+      - X-Auth-Request-Preferred-Username
+      - X-Auth-Request-Email
+      - X-Auth-Request-Groups
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy

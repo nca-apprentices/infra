@@ -1,6 +1,7 @@
 # The GitHub login in front of the ops portal and the ops tools without one of
-# their own. Traefik asks it about every request, see manifests/ops.
-# The app environments have their own login, see oauth2-proxy-apps.yaml.
+# their own, through Argo CD's Dex. Traefik asks it about every request, see
+# manifests/ops. The app environments have their own login, see
+# oauth2-proxy-apps.yaml.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -19,7 +20,7 @@ spec:
       releaseName: oauth2-proxy
       valuesObject:
         config:
-          # client-id, client-secret, and cookie-secret. See docs/operations.md.
+          # client-id, client-secret, and cookie-secret. See docs/bootstrap.md.
           existingSecret: oauth2-proxy
           # Answers 202 to a signed-in request, which Traefik then passes on.
           upstreams: ["static://202"]
@@ -27,12 +28,19 @@ spec:
           requests: { cpu: 5m, memory: 16Mi }
           limits: { memory: 128Mi }
         extraArgs:
-          provider: github
-          github-org: nca-apprentices
+          # Dex admits members of the organization alone, see
+          # cluster/bootstrap/kustomization.yaml.
+          provider: oidc
+          oidc-issuer-url: https://argocd.nca-apprentices.dev/api/dex
+          # The last scope adds the kubernetes client to the ID token's
+          # audience, so the API server accepts it. Traefik passes it to
+          # Headlamp alone, as the Authorization header that this sets.
+          scope: openid profile email groups audience:server:client_id:kubernetes
+          set-authorization-header: "true"
+          set-xauthrequest: "true"
           # Each tool's host signs in on its own: a redirect URL without a host
           # returns to the host that asked, see manifests/ops/ops-login.yaml.
-          # The GitHub OAuth app's callback is https://nca-apprentices.dev/oauth2
-          # with wildcard matching.
+          # Dex lists each host's callback.
           redirect-url: /oauth2/callback
           reverse-proxy: "true"
           skip-provider-button: "true"
@@ -42,7 +50,7 @@ spec:
           cookie-name: _ops_login
           # GitHub membership is checked at sign-in only, so a removed member
           # keeps access until the cookie expires: half a day, not the default
-          # week.
+          # week, as long as the ID token in it lasts.
           cookie-expire: 12h
   destination:
     server: https://kubernetes.default.svc

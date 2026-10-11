@@ -186,16 +186,14 @@ backup-secret metrics-backup-s3 observability platform
 backup-secret logs-backup-s3 observability platform
 ```
 
-The GitHub login of the ops tools, which Argo CD, Grafana, and `oauth2-proxy`
-share. Create an OAuth 2.0 app at
+The GitHub login of the ops tools, which Argo CD's Dex and Grafana share.
+Create an OAuth 2.0 app at
 <https://github.com/organizations/nca-apprentices/settings/applications/new>
 with the homepage `https://ops.nca-apprentices.dev`, add these callback URLs,
 and generate a client secret:
 
 - `https://argocd.nca-apprentices.dev/api/dex/callback`
 - `https://grafana.nca-apprentices.dev/login/github`
-- `https://nca-apprentices.dev/oauth2`, with **Enable wildcard matching**
-  checked, so each tool's host returns to its own `/oauth2/callback`
 
 ```fish
 read -P 'OAuth client ID: ' id
@@ -216,13 +214,29 @@ kubectl create secret generic grafana-github --namespace observability \
     yq --from-file secrets/sopssecret.yq |
     encrypt-to secrets/platform/grafana-github.enc.yaml
 
+```
+
+`oauth2-proxy` signs in through Dex as its `ops` client, whose secret both
+sides hold:
+
+```fish
+set ops (openssl rand -hex 32)
+
+kubectl create secret generic argocd-ops-login --namespace argocd \
+    --from-literal clientSecret=$ops \
+    --dry-run=client -o yaml |
+    kubectl label --local -f - app.kubernetes.io/part-of=argocd -o yaml |
+    yq --from-file secrets/sopssecret.yq |
+    encrypt-to secrets/platform/argocd-ops-login.enc.yaml
+
 kubectl create secret generic oauth2-proxy --namespace ops \
-    --from-literal client-id=$id \
-    --from-literal client-secret=$secret \
+    --from-literal client-id=ops \
+    --from-literal client-secret=$ops \
     --from-literal cookie-secret=(openssl rand -hex 16) \
     --dry-run=client -o yaml |
     yq --from-file secrets/sopssecret.yq |
     encrypt-to secrets/platform/oauth2-proxy.enc.yaml
+set -e ops
 ```
 
 The GitHub login of the app environments has an OAuth 2.0 app of its own, so

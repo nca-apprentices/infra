@@ -97,9 +97,14 @@ patches:
                 orgs:
                   - name: nca-apprentices
                 teamNameField: slug
-          # kubectl and Headlamp sign in to the Kubernetes API as the person,
-          # through this one public client, see docs/operations.md#kubectl.
-          # PKCE stands in for a secret, and only these redirects are allowed.
+          # kubectl signs in to the Kubernetes API as the person through this
+          # public client, see docs/operations.md#kubectl. PKCE stands in for
+          # a secret, and only these redirects are allowed.
+          #
+          # The ops login, platform/oauth2-proxy.yaml, signs every ops tool in
+          # through Dex as well. As a trusted peer it gets an ID token the API
+          # server accepts too, which Traefik hands to Headlamp alone, so
+          # Headlamp acts as the person without a login of its own.
           staticClients:
             - id: kubernetes
               name: Kubernetes
@@ -107,7 +112,16 @@ patches:
               redirectURIs:
                 - http://localhost:8000
                 - http://localhost:18000
-                - https://headlamp.nca-apprentices.dev/oidc-callback
+              trustedPeers: [ops]
+            - id: ops
+              name: Ops tools
+              secret: $argocd-ops-login:clientSecret
+              redirectURIs:
+                - https://ops.nca-apprentices.dev/oauth2/callback
+                - https://logs.nca-apprentices.dev/oauth2/callback
+                - https://headlamp.nca-apprentices.dev/oauth2/callback
+                - https://redpanda-dev.nca-apprentices.dev/oauth2/callback
+                - https://seaweedfs-dev.nca-apprentices.dev/oauth2/callback
           # GitHub teams are read at sign-in and on each refresh, so a member
           # removed from a team keeps its roles until the token expires: half a
           # day, as with oauth2-proxy's cookies, not the default day.

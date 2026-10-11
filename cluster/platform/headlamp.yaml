@@ -15,20 +15,21 @@ spec:
     helm:
       releaseName: headlamp
       valuesObject:
-        # Served at headlamp.nca-apprentices.dev behind the GitHub login in
-        # manifests/ops. Each person then signs in to the Kubernetes API with
-        # GitHub through Argo CD's Dex, as kubectl does, so Headlamp acts with
+        # Served at headlamp.nca-apprentices.dev behind the ops login in
+        # manifests/ops, which signs the person in through Argo CD's Dex.
+        # Traefik passes the login's ID token as the Authorization header,
+        # which Headlamp sends on to the Kubernetes API, so Headlamp acts with
         # their own roles and the audit log names them, see
-        # platform/manifests/access. The client is public, with PKCE.
+        # platform/manifests/access. The X-Auth-Request headers name them in
+        # the UI, which skips Headlamp's own login.
         config:
           baseURL: ""
           unsafeUseServiceAccountToken: false
-          oidc:
-            clientID: kubernetes
-            issuerURL: https://argocd.nca-apprentices.dev/api/dex
-            scopes: profile,email,groups
-            callbackURL: https://headlamp.nca-apprentices.dev/oidc-callback
-            usePKCE: true
+          extraArgs:
+            - -proxy-auth=true
+            - -proxy-auth-username-header=X-Auth-Request-Preferred-Username
+            - -proxy-auth-email-header=X-Auth-Request-Email
+            - -proxy-auth-group-header=X-Auth-Request-Groups
         # Headlamp's own account needs no roles any more.
         clusterRoleBinding: { create: false, clusterRoleName: view }
         ingress: { enabled: false }
