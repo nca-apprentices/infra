@@ -4,7 +4,7 @@ set -euo pipefail
 
 # The generated talosconfig names the node's private address, which only the
 # cloud network reaches. The public one comes from the tofu state.
-ip=$(sops exec-env secrets/tofu.enc.env "tofu -chdir=tofu output -raw node_ipv4")
-export TALOSCONFIG=${TALOSCONFIG:-talos/clusterconfig/talosconfig}
+ip=$(mise run tofu:output node_ipv4)
+export TALOSCONFIG=${TALOSCONFIG:-$(dirname "$KUBECONFIG")/talosconfig}
 
 exec talosctl -e "$ip" -n "$ip" "$@"

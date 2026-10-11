@@ -2,13 +2,14 @@
 #MISE description="Upgrade the node to the Talos release in talos/versions.yaml, which reboots it"
 set -euo pipefail
 
-ip=$(sops exec-env secrets/tofu.enc.env "tofu -chdir=tofu output -raw node_ipv4")
-export TALOSCONFIG=${TALOSCONFIG:-talos/clusterconfig/talosconfig}
+ip=$(mise run tofu:output node_ipv4)
+export TALOSCONFIG=${TALOSCONFIG:-$(dirname "$KUBECONFIG")/talosconfig}
 
 # The stock installer, from the empty Image Factory schematic that
 # apply:image uses. Since 1.14 Talos publishes no installer to ghcr.io. With
 # one node, every app is down until the node returns.
 schematic=376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba
+version=$(yq -e .talos talos/versions.yaml)
 talosctl -e "$ip" -n "$ip" upgrade \
-  --image "factory.talos.dev/metal-installer/$schematic:$(yq .talos talos/versions.yaml)"
+  --image "factory.talos.dev/metal-installer/$schematic:$version"
 talosctl -e "$ip" -n "$ip" health --k8s-endpoint "https://$ip:6443"

@@ -4,9 +4,8 @@ set -euo pipefail
 
 # Safe to rerun: each step checks first or converges.
 
-ip=$(sops exec-env secrets/tofu.enc.env "tofu -chdir=tofu output -raw node_ipv4")
-export TALOSCONFIG=talos/clusterconfig/talosconfig
-export KUBECONFIG=talos/clusterconfig/kubeconfig
+ip=$(mise run tofu:output node_ipv4)
+export TALOSCONFIG=${TALOSCONFIG:-$(dirname "$KUBECONFIG")/talosconfig}
 
 # etcd bootstraps once per cluster. A second call answers AlreadyExists, which
 # counts as done. Asking etcd status first doesn't work: it hangs until etcd
@@ -30,10 +29,12 @@ until kubectl get --raw /readyz >/dev/null 2>&1; do sleep 5; done
 # it, applying the chart again conflicts with Argo CD's fields.
 cilium=cluster/platform/cilium.yaml
 if ! kubectl -n argocd get application cilium >/dev/null 2>&1; then
+  repo=$(yq -e .spec.source.repoURL "$cilium")
+  version=$(yq -e .spec.source.targetRevision "$cilium")
   yq .spec.source.helm.valuesObject "$cilium" |
     helm template cilium cilium \
-      --repo "$(yq .spec.source.repoURL "$cilium")" \
-      --version "$(yq .spec.source.targetRevision "$cilium")" \
+      --repo "$repo" \
+      --version "$version" \
       --namespace kube-system \
       --values - |
     kubectl apply --server-side -f -

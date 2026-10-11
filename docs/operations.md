@@ -279,8 +279,9 @@ only, see `tofu/firewall.tf`.
 
 `mise.toml` still points `KUBECONFIG` at the Talos certificate with full
 access in `talos/clusterconfig/kubeconfig`, which the `mise` tasks need and
-which works when the GitHub sign-in is down. The audit log names it `admin`,
-so use it for those cases alone.
+which works when the GitHub sign-in is down. Every worktree uses the main
+checkout's copy. The audit log names it `admin`, so use it for those cases
+alone.
 
 ## First install
 

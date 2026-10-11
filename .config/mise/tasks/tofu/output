@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#MISE description="Print an output of the tofu state, such as node_ipv4"
+#MISE hide=true
+#MISE arg "<name>" help="The output to print"
+set -euo pipefail
+
+# A fresh checkout, such as a new worktree, has no tofu/.terraform, and
+# reading the state fails with "Backend initialization required". init sets
+# it up and is quick once it exists.
+sops exec-env secrets/tofu.enc.env "
+  tofu -chdir=tofu init -input=false >/dev/null &&
+  tofu -chdir=tofu output -raw $1
+"
