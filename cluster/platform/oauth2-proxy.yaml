@@ -38,6 +38,9 @@ spec:
           scope: openid profile email groups audience:server:client_id:kubernetes
           set-authorization-header: "true"
           set-xauthrequest: "true"
+          # Dex skips its consent page, see cluster/bootstrap/kustomization.yaml,
+          # unless the client forces it, as oauth2-proxy does by default.
+          approval-prompt: auto
           # Each tool's host signs in on its own: a redirect URL without a host
           # returns to the host that asked, see manifests/ops/ops-login.yaml.
           # Dex lists each host's callback.
