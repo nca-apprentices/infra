@@ -8,8 +8,12 @@ export TALOSCONFIG=${TALOSCONFIG:-$(dirname "$KUBECONFIG")/talosconfig}
 # The stock installer, from the empty Image Factory schematic that
 # apply:image uses. Since 1.14 Talos publishes no installer to ghcr.io. With
 # one node, every app is down until the node returns.
+#
+# Since 1.14 talosctl drains the node itself, through the private API server
+# address in the node's kubeconfig, which it can't reach and has no flag to
+# change. With one node a drain has nowhere to move the pods anyway.
 schematic=376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba
 version=$(yq -e .talos talos/versions.yaml)
-talosctl -e "$ip" -n "$ip" upgrade \
+talosctl -e "$ip" -n "$ip" upgrade --drain=false \
   --image "factory.talos.dev/metal-installer/$schematic:$version"
 talosctl -e "$ip" -n "$ip" health --k8s-endpoint "https://$ip:6443"
