@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+#MISE description="Show Hetzner usage: traffic, volumes, snapshots, and Object Storage per bucket"
+set -euo pipefail
+
+# The Hetzner and Object Storage credentials live in the encrypted tofu
+# environment, so the task runs itself again inside it.
+if [[ -z ${TF_VAR_hcloud_token:-} ]]; then
+  exec sops exec-env secrets/tofu.enc.env "$0"
+fi
+
+GIB=1073741824
+
+api() {
+  curl -fsS -H "Authorization: Bearer $TF_VAR_hcloud_token" "https://api.hetzner.cloud/v1/$1"
+}
+
+s3() {
+  local location=$1
+  shift
+  aws --output json --region "$location" \
+    --endpoint-url "https://$location.your-objectstorage.com" s3api "$@"
+}
+
+echo "Server traffic this billing month:"
+api servers | jq -r --argjson gib "$GIB" '.servers[] |
+  "\(.name) \(.server_type.name): out \(.outgoing_traffic / $gib * 100 | round / 100) GiB of \(.included_traffic / $gib | floor) GiB included, in \(.ingoing_traffic / $gib * 100 | round / 100) GiB"'
+
+echo
+echo "Volumes:"
+api volumes | jq -r '.volumes[] | "\(.name): \(.size) GB in \(.location.name)"'
+
+echo
+echo "Snapshots:"
+api 'images?type=snapshot' | jq -r '.images[] | "\(.description): \(.image_size * 100 | round / 100) GB"'
+
+# Versioning keeps replaced objects for 30 days, and Hetzner bills them too,
+# so they count apart from the current ones. Each location lists only its own
+# buckets.
+echo
+echo "Object Storage:"
+for location in nbg1 fsn1; do
+  for bucket in $(s3 "$location" list-buckets | jq -r '.Buckets[].Name'); do
+    s3 "$location" list-object-versions --bucket "$bucket" |
+      jq -r --arg name "$location/$bucket" --argjson gib "$GIB" '
+        (.Versions // []) as $v |
+        ($v | map(select(.IsLatest)) | map(.Size) | add // 0) as $current |
+        ($v | map(select(.IsLatest | not)) | map(.Size) | add // 0) as $old |
+        "\($name): \($current / $gib * 100 | round / 100) GiB current, \($old / $gib * 100 | round / 100) GiB old versions, \($v | length) objects"'
+  done
+done

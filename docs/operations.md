@@ -215,7 +215,10 @@ can use it.
   agent one component at a time, and moves one minor version at a time too.
 
 `mise run cluster:health` lists what isn't healthy: the node, pods, databases, and
-Argo CD Applications. `mise run cluster:talosctl <command>` runs talosctl against the
+Argo CD Applications. `mise run cluster:usage` shows the node's traffic this
+month, the volumes, the snapshots, and the size of each Object Storage bucket.
+It needs the age key. The Hetzner Console alone shows Object Storage egress and
+the invoice. `mise run cluster:talosctl <command>` runs talosctl against the
 node's public address, such as `mise run cluster:talosctl dashboard`.
 
 `mise run check` validates all of it without credentials, and CI runs it on
