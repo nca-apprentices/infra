@@ -17,3 +17,14 @@ resource "minio_s3_bucket_policy" "state" {
     ]
   })
 }
+
+# A failed or mistaken apply can leave a broken state, so the bucket keeps
+# every version tofu replaces.
+resource "minio_s3_bucket_versioning" "state" {
+  provider = minio.state
+  bucket   = "nca-tofu"
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}

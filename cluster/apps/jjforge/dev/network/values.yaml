@@ -2,5 +2,3 @@
 client: server
 # The Job that migrates the database before a rollout.
 databaseClients: [migrate]
-# Set true only while a restore drill runs: any pod here may claim the label.
-restoreDrill: false

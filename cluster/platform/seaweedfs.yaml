@@ -1,6 +1,6 @@
 # One SeaweedFS per environment that has stores/seaweedfs.yaml, such as
 # ../apps/jjforge/prod/stores/seaweedfs.yaml, named <app>-<env>-seaweedfs. It
-# runs in the environment's namespace under the environment's AppProject.
+# runs in the environment's namespace under the stores project, see stores.yaml.
 # stores/seaweedfs.yaml here holds the values every environment shares, and the
 # environment's file holds what differs.
 apiVersion: argoproj.io/v1alpha1
@@ -9,7 +9,7 @@ metadata:
   name: seaweedfs
   namespace: argocd
   annotations:
-    # With the apps: each needs its environment's namespace and AppProject.
+    # With the apps: each needs its environment's namespace.
     argocd.argoproj.io/sync-wave: "4"
 spec:
   goTemplate: true
@@ -27,7 +27,7 @@ spec:
     metadata:
       name: "{{ index .path.segments 2 }}-{{ index .path.segments 3 }}-seaweedfs"
     spec:
-      project: "{{ index .path.segments 2 }}-{{ index .path.segments 3 }}"
+      project: stores
       sources:
         - repoURL: https://seaweedfs.github.io/seaweedfs/helm
           chart: seaweedfs

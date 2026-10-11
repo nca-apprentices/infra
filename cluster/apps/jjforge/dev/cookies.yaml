@@ -1,7 +1,6 @@
 # Removes the Cookie header after github-login has checked it, so jjforge-dev
-# and its previews never see the GitHub login's cookie, which covers every
-# host under the domain. Code from a branch could otherwise read the session
-# of any member who opens it. The chart's Ingress names it after
+# and its previews never see the GitHub login's cookie for their host. Code
+# from a branch could otherwise read the session of any member who opens it. The chart's Ingress names it after
 # github-login in ingress.middlewares, see application.yaml.
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
