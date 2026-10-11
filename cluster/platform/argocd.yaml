@@ -1,0 +1,22 @@
+# Argo CD itself, from ../bootstrap, so a merge there upgrades or reconfigures
+# it. The bootstrap task installs it first, as the field manager Argo CD
+# applies with. No finalizer: deleting this Application leaves Argo CD running.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/nca-apprentices/infra.git
+    targetRevision: main
+    path: cluster/bootstrap
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ServerSideApply=true]
