@@ -55,7 +55,7 @@ kustomize build cluster/bootstrap | "${kubeconform[@]}"
   -ignore-filename-pattern '/network/' \
   -ignore-filename-pattern '/database/values' \
   -ignore-filename-pattern '/charts/' \
-  cluster/platform cluster/apps
+  cluster/bootstrap/root.yaml cluster/platform cluster/apps
 
 # Every third-party chart renders with the values its Application passes. The
 # jjforge chart is checked by the app CI before it is released.

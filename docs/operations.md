@@ -15,7 +15,8 @@ are namespaces in it, named `<app>-<env>`.
 | ------------------------------------- | --------------------------------------------------- | -------------------------------------------------- |
 | `tofu/`                               | Network, firewall, volume, node, DNS roots          | `mise run apply:cloud`                             |
 | `talos/`                              | Machine configuration, as a talosctl patch          | `mise run apply:cloud`                             |
-| `cluster/bootstrap/`                  | Argo CD and the root Application                    | `mise run apply:bootstrap`                         |
+| `cluster/bootstrap/`                  | Argo CD and its settings                            | `mise run apply:bootstrap`, then Argo CD           |
+| `cluster/bootstrap/root.yaml`         | The root Application                                | `mise run apply:bootstrap`                         |
 | `cluster/platform/`                   | One Argo CD Application per platform component      | Argo CD                                            |
 | `cluster/platform/manifests/`         | Plain manifests a platform Application points at    | Argo CD                                            |
 | `cluster/platform/charts/`            | Helm charts every environment renders               | Argo CD                                            |
@@ -261,9 +262,10 @@ In `jjforge-dev`, a Helm parameter set in the Argo CD UI, such as an image tag,
 stays until someone removes it. Git still sets the chart version and values.
 The `apps` ApplicationSet grants that to `dev` directories only.
 
-Argo CD reads its settings from `cluster/bootstrap/`, so a change there takes
-`mise run apply:bootstrap`, not a merge. The server reads `argocd-cmd-params-cm` only
-when it starts, so a change to it also takes
+The `argocd` Application syncs Argo CD from `cluster/bootstrap/`, so a merge
+there upgrades or reconfigures it. A change to `root.yaml` still takes
+`mise run apply:bootstrap`. The server reads `argocd-cmd-params-cm` only when
+it starts, so a change to it also takes
 `kubectl -n argocd rollout restart deployment argocd-server`.
 
 ## kubectl

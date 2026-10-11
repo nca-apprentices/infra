@@ -57,12 +57,12 @@ for secret in secrets/bootstrap/*.enc.yaml; do
   sops --decrypt "$secret" | "${apply[@]}"
 done
 
-# The root Application needs its CRD established, which the first apply of
-# the Argo CD manifests only starts.
-kubectl apply --server-side -k cluster/bootstrap || {
-  kubectl wait --for condition=established crd/applications.argoproj.io
-  kubectl apply --server-side -k cluster/bootstrap
-}
+# Argo CD goes in as the field manager it syncs itself with, so it alone owns
+# its fields, and a field removed from Git leaves the cluster. The root
+# Application needs its CRD established, which this apply only starts.
+kubectl apply --server-side --field-manager=argocd-controller -k cluster/bootstrap
+kubectl wait --for condition=established crd/applications.argoproj.io
+kubectl apply --server-side -f cluster/bootstrap/root.yaml
 
 # The server reads its settings once at start, and on a first install it can
 # start before the dex settings reach its cache, which leaves it without a

@@ -1,5 +1,9 @@
-# The only imperative step in the whole instance: install Argo CD, then hand it
-# the root application and never touch the cluster by hand again.
+# Argo CD and its settings. The bootstrap task installs them once, and the
+# argocd Application in ../platform syncs them after that.
+#
+# root.yaml stays out. As a resource here, root would be a child of its own
+# child, and each Application would take its health from the other, so a
+# Degraded state could never clear.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -8,7 +12,6 @@ namespace: argocd
 resources:
   - namespace.yaml
   - https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.3/manifests/install.yaml
-  - root.yaml
 
 # Sync waves order the child Applications only if Argo CD can tell when a child
 # is healthy, which it stopped doing by default in 1.8.
