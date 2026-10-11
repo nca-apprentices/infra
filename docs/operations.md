@@ -290,13 +290,15 @@ from `platform/manifests/access/`:
 
 ```fish
 cd ~/bb/infra
-set -x KUBECONFIG cluster/kubeconfig.yaml
+set -x KUBECONFIG cluster/kubeconfig.yaml:talos/clusterconfig/kubeconfig
 kubectl get pods -A
 ```
 
 The first command opens GitHub in the browser, and `kubectl oidc-login` keeps
-the token until it expires. The node's firewall admits the operator addresses
-only, see `tofu/firewall.tf`.
+the token until it expires. The node's address and CA come from
+`talos/clusterconfig/kubeconfig`, so the address stays out of the repository.
+The node's firewall admits the operator addresses only, see
+`tofu/firewall.tf`.
 
 `mise.toml` still points `KUBECONFIG` at the Talos certificate with full
 access in `talos/clusterconfig/kubeconfig`, which the `mise` tasks need and
