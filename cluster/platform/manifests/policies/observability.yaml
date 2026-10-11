@@ -43,11 +43,17 @@ spec:
         - matchLabels: { app.kubernetes.io/name: grafana }
       toPorts:
         - ports: [{ port: "8428", protocol: TCP }]
+          # Envoy rejects a regex whose RE2 program exceeds 100, and with it
+          # every policy update on the node, so no new pod gets a network.
+          # Short patterns stay well under it.
           rules:
             http:
               - method: GET|POST
-                path: >-
-                  /api/v1/(query|query_range|query_exemplars|series|labels|label/[^/?]+/values|metadata|rules|alerts|format_query|status/[a-z_]+)(\?.*)?
+                path: /api/v1/(query|query_range|query_exemplars)(\?.*)?
+              - method: GET|POST
+                path: /api/v1/(series|labels|metadata|format_query|rules|alerts)(\?.*)?
+              - method: GET|POST
+                path: /api/v1/(label/[^/?]+/values|status/[a-z_]+)(\?.*)?
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
