@@ -2,6 +2,7 @@
 #MISE description="Merge the nightly backup of metrics or logs into a store that already collects"
 #MISE arg "<store>" help="metrics or logs"
 #MISE arg "[until]" help="metrics: copy the samples before this RFC 3339 time, such as when the store started collecting"
+#MISE depends=["cluster:kubeconfig"]
 set -euo pipefail
 
 # A store on an empty volume restores itself, see docs/operations.md. This is

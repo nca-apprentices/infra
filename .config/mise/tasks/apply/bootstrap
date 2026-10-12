@@ -18,10 +18,7 @@ if ! out=$(talosctl -e "$ip" -n "$ip" bootstrap 2>&1); then
   fi
 fi
 
-# The generated kubeconfig names the private address. The public one is in the
-# API server certificate too, and the firewall admits the operator to it.
-talosctl -e "$ip" -n "$ip" kubeconfig --force "$KUBECONFIG"
-kubectl config set-cluster nca --server "https://$ip:6443"
+mise run cluster:kubeconfig
 until kubectl get --raw /readyz >/dev/null 2>&1; do sleep 5; done
 
 # Nothing schedules without a CNI, Argo CD included. Cilium goes in first, with
