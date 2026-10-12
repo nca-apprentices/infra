@@ -20,6 +20,21 @@ data "hcloud_image" "talos" {
   most_recent       = true
 }
 
+# The node's public IPv4 address outlives the node, so a replacement keeps the
+# address every operator's kubeconfig and talosconfig name.
+resource "hcloud_primary_ip" "node" {
+  count             = var.node_count
+  name              = "nca-${count.index + 1}"
+  type              = "ipv4"
+  location          = var.location
+  auto_delete       = false
+  delete_protection = true
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 resource "hcloud_server" "node" {
   count       = var.node_count
   name        = "nca-${count.index + 1}"
@@ -42,6 +57,7 @@ resource "hcloud_server" "node" {
 
   public_net {
     ipv4_enabled = true
+    ipv4         = hcloud_primary_ip.node[count.index].id
     ipv6_enabled = true
   }
 
@@ -54,8 +70,9 @@ resource "hcloud_server" "node" {
   lifecycle {
     # The image is only the installer and the user data only the first
     # configuration. Talos upgrades and config changes go through talosctl, so
-    # drift in either must not rebuild a working node.
-    ignore_changes  = [image, user_data]
+    # drift in either must not rebuild a working node. The primary IP counts
+    # only when a node is created: reassigning it powers the node off.
+    ignore_changes  = [image, user_data, public_net]
     prevent_destroy = true
   }
 }
