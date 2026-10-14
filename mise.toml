@@ -4,6 +4,7 @@
 #   apply:*    change the cloud, the node, or the cluster, or restore data
 #   upgrade:*  move the node to the Talos or Kubernetes release in talos/versions.yaml
 #   cluster:*  show the cluster's state and Hetzner usage, and reach the node
+#   secrets:*  re-encrypt the secrets after a change to .sops.yaml
 #   check      validate everything without credentials, as CI does
 #   fmt        format every file
 [tools]

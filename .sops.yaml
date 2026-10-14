@@ -14,6 +14,7 @@
 keys:
   - &escrow age19dktsaqcp6xdhqwtq4qygk0y5ea5uc8y20dtez4jjua2nv4r0alslxp6s5
   - &kevin-nca age1u8xgtntlm6ynx4lf6xsaeaya8wt5cy3ur2j46k7f5njq6nqpu92s8sf7ht
+  - &beingflo age1ffttsmart4z4ld99nw8fm3da69nl26j8hzrvnp4kc9qxgvts0ctskcgu4v
   - &cluster age1p6j54pjgnjgfw9hv6ephcsasphcv3rdwz7zr9c5980w2j395n3rqyc3z37
 
 # The first rule that matches a path wins. The cluster key decrypts only the
@@ -24,12 +25,12 @@ creation_rules:
   # them. Only the values are encrypted, so a diff shows which secret changed.
   - path_regex: secrets/bootstrap/.*\.enc\.yaml$
     encrypted_regex: "^(data|stringData)$"
-    age: [*escrow, *kevin-nca]
+    age: [*escrow, *kevin-nca, *beingflo]
   # SopsSecrets, which Argo CD syncs and the operator decrypts.
   - path_regex: secrets/.*\.enc\.yaml$
     encrypted_regex: "^(data|stringData)$"
-    age: [*escrow, *kevin-nca, *cluster]
+    age: [*escrow, *kevin-nca, *beingflo, *cluster]
   # Everything else is encrypted whole: the tofu credentials and the Talos
   # cluster secrets.
   - path_regex: (secrets/.*\.enc\.env|talos/secrets\.sops\.yaml)$
-    age: [*escrow, *kevin-nca]
+    age: [*escrow, *kevin-nca, *beingflo]

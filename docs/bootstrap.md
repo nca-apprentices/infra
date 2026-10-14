@@ -376,9 +376,7 @@ Kubernetes kubeconfig with full access.
    every file to the new set of keys:
 
    ```fish
-   for f in secrets/**.enc.* talos/secrets.sops.yaml
-       sops updatekeys --yes $f
-   end
+   mise run secrets:updatekeys
    ```
 
 3. Add the address to `TF_VAR_operator_cidrs`, then apply:
@@ -418,7 +416,7 @@ Kubernetes kubeconfig with full access.
 
 ### Remove an operator
 
-1. Remove their key from `.sops.yaml` and run the `sops updatekeys` loop.
+1. Remove their key from `.sops.yaml` and run `mise run secrets:updatekeys`.
 2. Rotate every credential in `secrets/`, and replace the cluster key as
    [operations.md](operations.md#in-the-cluster) describes. They could read
    them in plain text.
