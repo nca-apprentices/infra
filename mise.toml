@@ -9,7 +9,7 @@
 #   fmt        format every file
 
 # The release the tasks and mise.lock were tested with.
-min_version = "2026.10.9"
+min_version = "2026.10.8"
 
 [settings]
 # Records each tool's download URL and checksum per platform in mise.lock.
