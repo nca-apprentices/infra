@@ -221,6 +221,14 @@
     },
     {
       "customType": "regex",
+      "description": "The dprint plugin that formats YAML.",
+      "managerFilePatterns": ["/^\\.config/dprint\\.json$/"],
+      "matchStrings": ["g-plane/pretty_yaml-(?<currentValue>v[\\d.]+)\\.wasm"],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "g-plane/pretty_yaml"
+    },
+    {
+      "customType": "regex",
       "description": "The Vale style package that check:prose lints against.",
       "managerFilePatterns": ["/^\\.config/vale/vale\\.ini$/"],
       "matchStrings": [

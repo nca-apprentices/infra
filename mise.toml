@@ -46,7 +46,7 @@ rumdl = "0.2.78"
 shfmt = "3.14.1"
 taplo = "0.10.0"
 vale = "3.24.0"
-"npm:prettier" = "3.9.9"
+dprint = "0.60.1"
 
 # Tool configuration lives under .config. mise finds its tasks in
 # .config/mise/tasks without help, and rumdl finds .config/rumdl.toml.
