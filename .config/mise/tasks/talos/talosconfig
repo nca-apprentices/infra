@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+#MISE description="Write the talosconfig that talosctl and the tasks use"
+#MISE hide=true
+set -euo pipefail
+
+# Rendered from the encrypted secrets, so a fresh clone needs only the sops
+# key. It names the node's private address, so the tasks pass the public
+# one to talosctl themselves.
+scratch=$(mktemp -d)
+trap 'rm -rf "$scratch"' EXIT
+sops exec-file talos/secrets.sops.yaml "mise run talos:config {} $scratch"
+
+mkdir -p "$(dirname "$KUBECONFIG")"
+cp "$scratch/talosconfig" "$(dirname "$KUBECONFIG")/talosconfig"

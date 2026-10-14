@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Run talosctl against the node, such as `mise run cluster:talosctl dashboard`"
+#MISE depends=["talos:talosconfig"]
 set -euo pipefail
 
 # The generated talosconfig names the node's private address, which only the
