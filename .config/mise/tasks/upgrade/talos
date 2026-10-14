@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 #MISE description="Upgrade the node to the Talos release in talos/versions.yaml, which reboots it"
+#MISE depends=["talos:talosconfig"]
+#MISE confirm="Upgrading Talos reboots the node, and every app is down until it returns. Continue?"
 set -euo pipefail
 
 ip=$(mise run tofu:output node_ipv4)
-export TALOSCONFIG=${TALOSCONFIG:-$(dirname "$KUBECONFIG")/talosconfig}
 
 # The stock installer, from the empty Image Factory schematic that
 # apply:image uses. Since 1.14 Talos publishes no installer to ghcr.io. With

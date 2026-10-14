@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #MISE description="Bootstrap Talos, install Cilium and Argo CD, apply the pre-sync secrets"
+#MISE depends=["talos:talosconfig"]
 set -euo pipefail
 
 # Safe to rerun: each step checks first or converges.
 
 ip=$(mise run tofu:output node_ipv4)
-export TALOSCONFIG=${TALOSCONFIG:-$(dirname "$KUBECONFIG")/talosconfig}
 
 # etcd bootstraps once per cluster. A second call answers AlreadyExists, which
 # counts as done. Asking etcd status first doesn't work: it hangs until etcd

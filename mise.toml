@@ -7,6 +7,16 @@
 #   secrets:*  re-encrypt the secrets after a change to .sops.yaml
 #   check      validate everything without credentials, as CI does
 #   fmt        format every file
+
+# The release the tasks and mise.lock were tested with.
+min_version = "2026.10.9"
+
+[settings]
+# Records each tool's download URL and checksum per platform in mise.lock.
+# CI installs only what the lockfile records.
+lockfile = true
+lockfile_platforms = ["linux-x64", "linux-arm64", "macos-arm64", "macos-x64"]
+
 [tools]
 age = "1.3.2"
 # `mise run cluster:usage` reads Object Storage with it.
@@ -17,6 +27,8 @@ kubeconform = "0.8.0"
 kubectl = "1.36.5"
 # kubectl oidc-login, which cluster/kubeconfig.yaml signs in with.
 "aqua:int128/kubelogin" = "1.36.4"
+# `mise run cluster:usage` reads the Hetzner API with it.
+jq = "1.8.2"
 kustomize = "5.8.2"
 opentofu = "1.13.1"
 sops = "3.13.3"
@@ -45,3 +57,6 @@ VALE_CONFIG_PATH = "{{config_root}}/.config/vale/vale.ini"
 # Every worktree uses the main checkout's copy, so a new one reaches the
 # cluster too.
 KUBECONFIG = "{{ exec(command='git rev-parse --path-format=absolute --git-common-dir') }}/../talos/clusterconfig/kubeconfig"
+# Written by `mise run talos:talosconfig`, next to the kubeconfig. An operator's
+# own TALOSCONFIG, as docs/bootstrap.md sets it up, takes precedence.
+TALOSCONFIG = { default = "{{ exec(command='git rev-parse --path-format=absolute --git-common-dir') }}/../talos/clusterconfig/talosconfig" }

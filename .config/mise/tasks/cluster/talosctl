@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #MISE description="Run talosctl against the node, such as `mise run cluster:talosctl dashboard`"
 #MISE depends=["talos:talosconfig"]
+#MISE raw_args=true
 set -euo pipefail
 
 # The generated talosconfig names the node's private address, which only the
 # cloud network reaches. The public one comes from the tofu state.
 ip=$(mise run tofu:output node_ipv4)
-export TALOSCONFIG=${TALOSCONFIG:-$(dirname "$KUBECONFIG")/talosconfig}
 
 exec talosctl -e "$ip" -n "$ip" "$@"

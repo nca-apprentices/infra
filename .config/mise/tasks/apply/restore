@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 #MISE description="Merge the nightly backup of metrics or logs into a store that already collects"
-#MISE arg "<store>" help="metrics or logs"
+#USAGE arg "<store>" help="The store to merge the backup into" {
+#USAGE   choices "metrics" "logs"
+#USAGE }
 #MISE arg "[until]" help="metrics: copy the samples before this RFC 3339 time, such as when the store started collecting"
 #MISE depends=["cluster:kubeconfig"]
 set -euo pipefail
@@ -156,9 +158,5 @@ spec:
 YAML
   k wait --for condition=complete job/restore-logs --timeout=2h
   k logs job/restore-logs | tail -5
-  ;;
-*)
-  echo "usage: mise run apply:restore metrics [until] | logs" >&2
-  exit 1
   ;;
 esac

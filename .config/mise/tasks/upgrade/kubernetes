@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #MISE description="Upgrade Kubernetes to the release in talos/versions.yaml"
+#MISE depends=["talos:talosconfig"]
 set -euo pipefail
 
 ip=$(mise run tofu:output node_ipv4)
-export TALOSCONFIG=${TALOSCONFIG:-$(dirname "$KUBECONFIG")/talosconfig}
 
 # Without --endpoint, upgrade-k8s dials the API server at the private address
 # in the cluster config and times out.

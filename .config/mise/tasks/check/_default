@@ -23,6 +23,9 @@ fi
 treefmt --ci
 mise run check:prose
 
+# The mise tasks: dependency cycles, missing tasks, and broken usage specs.
+mise tasks validate --errors-only
+
 # Secrets in plain text anywhere in the history, not only in secrets/, and
 # workflows that leak tokens or run unpinned actions.
 gitleaks git --no-banner --redact .

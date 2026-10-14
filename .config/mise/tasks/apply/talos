@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #MISE description="Show how talos/patch.yaml differs from the node, then apply it"
+#MISE depends=["talos:talosconfig"]
 set -euo pipefail
 
 ip=$(mise run tofu:output node_ipv4)
-export TALOSCONFIG=${TALOSCONFIG:-$(dirname "$KUBECONFIG")/talosconfig}
 
 # The node config only, in a scratch directory, so the talosconfig that
 # `mise run apply:cloud` generated stays as it is.
