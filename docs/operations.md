@@ -140,8 +140,8 @@ cert-manager then deletes the TLS secret.
 
 A labeled PR from a fork gets a preview too, from the fork's chart. The
 `preview-images` admission policy in `platform/manifests/policies/` lets a
-preview's pods run only `ghcr.io/nca-apprentices/jjforge-*` and CloudNativePG
-images, so a fork can't bring an image of its own. A ResourceQuota caps what
+preview's pods run only `ghcr.io/nca-apprentices/jjforge-*`, CloudNativePG, and
+cert-manager's HTTP-01 solver images, so a fork can't bring an image of its own. A ResourceQuota caps what
 the preview requests and admits no pod with the `prod` or a system priority
 class. Label a fork's PR only after reading its chart and its code.
 
