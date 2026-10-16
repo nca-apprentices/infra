@@ -41,6 +41,21 @@ spec:
       middlewares: [{ name: github-login }]
       services: [{ name: logs-victoria-logs-single-server, port: 9428 }]
 ---
+# VictoriaTraces has no login either, and outside /select/ it takes spans and
+# deletes them. Only the read-only /select/ part is routed.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traces
+  namespace: observability
+spec:
+  entryPoints: [websecure]
+  routes:
+    - kind: Rule
+      match: Host(`traces.nca-apprentices.dev`) && PathPrefix(`/select/`)
+      middlewares: [{ name: github-login }]
+      services: [{ name: traces, port: 10428 }]
+---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:

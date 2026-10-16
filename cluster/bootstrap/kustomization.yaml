@@ -119,6 +119,7 @@ patches:
               redirectURIs:
                 - https://ops.nca-apprentices.dev/oauth2/callback
                 - https://logs.nca-apprentices.dev/oauth2/callback
+                - https://traces.nca-apprentices.dev/oauth2/callback
                 - https://headlamp.nca-apprentices.dev/oauth2/callback
                 - https://redpanda-dev.nca-apprentices.dev/oauth2/callback
                 - https://seaweedfs-dev.nca-apprentices.dev/oauth2/callback

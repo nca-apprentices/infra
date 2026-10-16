@@ -244,6 +244,7 @@ get in, and two of its teams grant more:
 | `grafana`       | Grafana          | Its own GitHub login   | Reads, searches logs and traces in Explore, and sees alerts |
 | `headlamp`      | Headlamp         | `oauth2-proxy`, as you | What your Kubernetes roles allow                            |
 | `logs`          | VictoriaLogs     | `oauth2-proxy`         | Searches the logs                                           |
+| `traces`        | VictoriaTraces   | `oauth2-proxy`         | Searches the traces                                         |
 | `redpanda-dev`  | Redpanda Console | `oauth2-proxy`         | Reads, writes, and deletes topics in `jjforge-dev`          |
 | `seaweedfs-dev` | SeaweedFS        | `oauth2-proxy`         | Changes buckets, files, and S3 users in `jjforge-dev`       |
 
