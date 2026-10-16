@@ -11,6 +11,9 @@ volume:
       maxVolumes: 38
 filer:
   data: { size: 1Gi }
+  # The repositories of vcs's sync/v1, see ../application.yaml. The hook
+  # creates the bucket after each sync and skips it once it exists.
+  s3: { createBuckets: [{ name: jjforge }] }
 # The admin UI, served at seaweedfs-dev.nca-apprentices.dev behind the GitHub
 # login. Everyone who passes it may change buckets and S3 users.
 # It has no password of its own, which the chart refuses on a non-loopback

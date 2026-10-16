@@ -1,0 +1,62 @@
+# The issuer whose tokens vcs trusts for sync/v1, until jjforge's server
+# issues its own, as jjforge's ADR 0002 decides. It signs a token for anyone
+# who asks, so only the namespace reaches it, and a member with cluster
+# access mints one through a port forward. Every token may push to and create
+# repositories in the one organization, 019a0000-0000-7000-8000-000000000001:
+#
+#   kubectl -n jjforge-dev port-forward svc/oidc 8090:80
+#   curl -s localhost:8090/nca/token -H 'Host: oidc' -d grant_type=client_credentials \
+#     -d client_id=jf -d client_secret=jf -d subject=$USER | jq -r .access_token
+#
+# The Host header makes the token name the issuer that vcs reaches,
+# http://oidc/nca. The image ships default signing keys that anyone can
+# read, so the oidc Secret holds the config with a key of dev's own, see
+# secrets/apps/jjforge/dev/oidc.enc.yaml.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oidc
+  namespace: jjforge-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: oidc }
+  template:
+    metadata:
+      labels: { app: oidc }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: oidc
+          image: ghcr.io/navikt/mock-oauth2-server:6.0.5
+          env:
+            - { name: JSON_CONFIG_PATH, value: /config/oidc.json }
+            - { name: JAVA_TOOL_OPTIONS, value: -XX:MaxRAMPercentage=75 }
+          ports:
+            - { name: http, containerPort: 8080 }
+          readinessProbe:
+            httpGet: { path: /nca/.well-known/openid-configuration, port: http }
+          resources:
+            requests: { cpu: 10m, memory: 128Mi }
+            limits: { memory: 384Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: config, mountPath: /config, readOnly: true }
+      volumes:
+        - name: config
+          secret: { secretName: oidc }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oidc
+  namespace: jjforge-dev
+spec:
+  selector: { app: oidc }
+  ports:
+    - { name: http, port: 80, targetPort: http }

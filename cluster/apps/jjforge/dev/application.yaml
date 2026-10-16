@@ -14,13 +14,15 @@ spec:
   project: jjforge-dev
   source:
     repoURL: oci://ghcr.io/nca-apprentices/charts/jjforge
-    targetRevision: 0.5.0
+    targetRevision: 0.6.0
     path: .
     helm:
       valuesObject:
         ingress:
           host: jjforge-dev.nca-apprentices.dev
           middlewares: [github-login, no-cookies]
+          # jf passes no login page, see the ingress-hosts admission policy.
+          syncMiddlewares: [no-cookies]
         # Half of prod's requests, with prod's limits.
         server:
           resources:
@@ -29,6 +31,14 @@ spec:
           # The app secret of database/values.yaml's cluster. A chart without
           # it ignores it.
           database: { secretName: jjforge-db-app }
+        # sync/v1 on stores/seaweedfs.yaml's bucket, for the tokens of
+        # oidc.yaml's issuer.
+        vcs:
+          sync:
+            store: s3://jjforge
+            endpoint: http://seaweedfs-s3:8333
+            secretName: jjforge-vcs-s3
+            tokenIssuers: [019a0000-0000-7000-8000-000000000001=http://oidc/nca]
         # Traces to the OpenTelemetry Collector of platform/telemetry.yaml,
         # as jjforge's ADR 0005 decides. A chart without them ignores them.
         telemetry:
