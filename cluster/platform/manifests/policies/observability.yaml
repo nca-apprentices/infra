@@ -1,8 +1,8 @@
 # VictoriaMetrics, VictoriaLogs, and VictoriaTraces take writes and deletes,
 # Alertmanager takes silences, and github-alerts opens GitHub issues, all
-# without a login. Only the namespace itself, the log and eBPF collectors,
-# Traefik with the GitHub login in front, and the API server's webhook calls
-# reach them. Grafana is the exception, see grafana-reads below.
+# without a login. Only the namespace itself, the log collector, Traefik
+# with the GitHub login in front, and the API server's webhook calls reach
+# them. Grafana is the exception, see grafana-reads below.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -21,9 +21,6 @@ spec:
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: node-agents
             app.kubernetes.io/name: victoria-logs-collector
-        - matchLabels:
-            k8s:io.kubernetes.pod.namespace: node-agents
-            app.kubernetes.io/instance: ebpf-collector
     - fromEntities: [kube-apiserver]
 ---
 # Every member signs in to Grafana as at least a Viewer, and its data source

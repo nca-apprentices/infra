@@ -526,11 +526,6 @@ The Collector only receives, so every pod in the cluster reaches it on ports
 `trace_id` field links to its trace. `TelemetryExportFailing` fires when a
 store refuses what the Collector sends.
 
-Beyla, in `platform/ebpf-collector.yaml`, traces the HTTP, gRPC, SQL, Redis,
-and Kafka calls of every app in a `-dev` or `-prod` namespace through eBPF,
-without a change to the app. It sends the spans to the Collector, and writes
-request rate, error, and duration metrics to VictoriaMetrics.
-
 ## Alerts
 
 The rules live in `cluster/platform/manifests/alerts/`, next to the scrapes and

@@ -161,8 +161,6 @@
 
       <path class="flow backup" d="M 290 525 H 272 V 810"/>
 
-      <path class="flow otlp" d="M 420 640 H 438"/>
-
       <path class="flow telemetry bus" d="M 510 668 V 686 H 945"/>
       <path class="flow telemetry" d="M 665 686 V 670"/>
       <path class="flow telemetry" d="M 810 686 V 670"/>
@@ -350,12 +348,6 @@
       <text class="note" x="530" y="562">each &lt;app&gt;-&lt;env&gt;: own AppProject · restricted Pod Security · default-deny policies · own stores</text>
 
       <!-- Node, observability -->
-      <g class="box service" transform="translate(290 612)">
-        <rect width="130" height="56"/>
-        <text class="name" x="65" y="19">Beyla (Alloy)</text>
-        <text x="65" y="33">eBPF spans + RED</text>
-        <text x="65" y="45">dev + prod namespaces</text>
-      </g>
       <g class="box service" transform="translate(440 612)">
         <rect width="140" height="56"/>
         <text class="name" x="70" y="19">OTel Collector</text>
@@ -469,7 +461,7 @@
       <h2>State, telemetry, and alerts</h2>
       <ul>
         <li>Six stores back up to fsn1: two Postgres clusters, SeaweedFS, Redpanda, metrics, and logs.</li>
-        <li>Apps send OTLP to the Collector. Beyla adds eBPF traces and RED metrics.</li>
+        <li>Apps send OTLP to the Collector.</li>
         <li>Alerts open GitHub issues. Watchdog posts a heartbeat to the status Worker.</li>
         <li>The Worker runs on Cloudflare, so it reports a dead node or alert pipeline.</li>
       </ul>
