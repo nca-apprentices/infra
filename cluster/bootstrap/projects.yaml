@@ -13,3 +13,14 @@ spec:
     - { server: https://kubernetes.default.svc, namespace: "*" }
   clusterResourceWhitelist:
     - { group: "*", kind: "*" }
+---
+# Argo CD creates default with no limits. Empty, it admits nothing, so an
+# Application left in it deploys nothing instead of everything.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: default
+spec:
+  sourceRepos: []
+  destinations: []
+  clusterResourceWhitelist: []
