@@ -25,7 +25,7 @@ are namespaces in it, named `<app>-<env>`.
 | `cluster/apps/<app>/<env>/stores/`    | Helm values of the environment's stores             | Argo CD                                            |
 | `cluster/apps/<app>/<env>/network/`   | Helm values of its network policies                 | Argo CD                                            |
 | `cluster/apps/<app>/<env>/database/`  | Helm values of its Postgres cluster                 | Argo CD                                            |
-| `cluster/apps/jjforge/preview/`       | The ApplicationSets of jjforge's PR previews        | Argo CD                                            |
+| `cluster/apps/jjforge/preview/`       | The ApplicationSet of jjforge's PR previews         | Argo CD                                            |
 | `secrets/bootstrap/`                  | SOPS-encrypted Secrets Argo CD needs to start       | `mise run apply:bootstrap`                         |
 | `secrets/platform/`                   | SOPS-encrypted platform credentials, as SopsSecrets | Argo CD                                            |
 | `secrets/apps/<app>/<env>/`           | SOPS-encrypted app credentials, as SopsSecrets      | Argo CD                                            |
@@ -105,7 +105,7 @@ the environment's project, with WAL archiving and a nightly backup where
 volumes go with it. A preview's cluster sets `keep: false`, so it goes with
 the preview.
 
-Every ApplicationSet but the three of jjforge's previews keeps what it deployed
+Every ApplicationSet but the one of jjforge's previews keeps what it deployed
 when one of its Applications disappears, such as after a renamed directory.
 
 ### Previews
@@ -114,15 +114,16 @@ A jjforge PR with the `preview` label runs at
 `https://jjforge-pr-<number>.nca-apprentices.dev`, behind the GitHub login.
 jjforge's CI pushes the images of the head commit of the PR, tagged with
 the commit. The `jjforge-preview` ApplicationSet in `apps/jjforge/preview/` asks
-GitHub for labeled PRs every minute and creates `jjforge-pr-<number>` from the
-chart at that commit. Each new commit on the PR replaces the images in place.
+GitHub for labeled PRs every minute and creates `jjforge-pr-<number>-environment`
+for each, which deploys `jjforge-pr-<number>` from the chart at that commit.
+Each new commit on the PR replaces the images in place.
 
 A preview runs the code of a PR, so it gets a namespace of its own,
-`jjforge-pr-<number>`, and reaches no Secret of dev or of another preview. The
-`jjforge-preview-environment` ApplicationSet creates the namespace from
-`platform/charts/preview`, with its limits, `github-login`, and `no-cookies`,
-and its network policies from `platform/charts/network`, under the platform's
-project. The app and its database run there under a project of their own,
+`jjforge-pr-<number>`, and reaches no Secret of dev or of another preview. Like
+`app-<app>-<env>` for dev and prod, `jjforge-pr-<number>-environment` creates
+the namespace from `platform/charts/preview`, with its limits, `github-login`,
+`no-cookies`, its project, and the app's Application, and its network policies
+from `platform/charts/network`, under the platform's project. The app and its database run there under a project of their own,
 which admits that namespace alone and forbids `traefik.io` objects, so the chart of
 the PR can neither reach another namespace nor replace its login. The
 environment also holds a Postgres cluster of its

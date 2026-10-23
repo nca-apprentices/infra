@@ -1,1 +1,3 @@
-# The chart takes no values: the release's namespace names everything.
+# The release's namespace names everything. source is the Argo CD source of
+# the PR's chart, which templates/application.yaml deploys.
+source: null

@@ -1,13 +1,16 @@
-# One Application per open jjforge PR with the preview label, named
-# jjforge-pr-<number> and served at jjforge-pr-<number>.nca-apprentices.dev
-# behind the GitHub login. It runs the chart and images of the PR's head commit
-# in a namespace of its own, see environment.yaml, so the PR's code reaches no
-# Secret of dev.
-# jjforge's CI pushes the images, tagged with the commit. Its database comes
-# from environment.yaml, so its migrations never touch dev's.
+# One preview per open jjforge PR with the preview label, served at
+# jjforge-pr-<number>.nca-apprentices.dev behind the GitHub login. Like
+# app-<app>-<env> for dev and prod, jjforge-pr-<number>-environment creates
+# the namespace, its limits and login, its project, and the app's Application
+# jjforge-pr-<number>, from the chart in platform/charts/preview. It also
+# holds the network policies and a Postgres cluster of its own. It runs under
+# the platform's project, since the app projects may create neither
+# namespaces nor network policies.
+# The app runs the chart and images of the PR's head commit, which jjforge's
+# CI pushes, tagged with the commit.
 #
 # Once the PR merges, closes, or loses the label, the generator drops the
-# Application, and Argo CD deletes everything it deployed. Unlike the apps
+# environment, and Argo CD deletes everything it deployed. Unlike the apps
 # ApplicationSet, this one preserves nothing.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
@@ -33,48 +36,73 @@ spec:
         requeueAfterSeconds: 60
   template:
     metadata:
-      name: "jjforge-pr-{{ .number }}"
-      annotations:
-        # A GitHub deployment per head commit, see cluster/bootstrap/.
-        notifications.argoproj.io/subscribe.deployment.github: ""
+      name: "jjforge-pr-{{ .number }}-environment"
     spec:
-      project: "jjforge-pr-{{ .number }}"
-      source:
-        repoURL: https://github.com/nca-apprentices/jjforge.git
-        targetRevision: "{{ .head_sha }}"
-        path: shared/deploy/chart
-        helm:
-          valuesObject:
-            # A preview requests little, may use what prod does, and goes
-            # first when memory runs short.
-            priorityClassName: preview
-            server:
-              image: { tag: "{{ .head_sha }}" }
+      project: platform
+      sources:
+        - repoURL: https://github.com/nca-apprentices/infra.git
+          targetRevision: main
+          path: cluster/platform/charts/preview
+          helm:
+            releaseName: preview
+            valuesObject:
+              source:
+                repoURL: https://github.com/nca-apprentices/jjforge.git
+                targetRevision: "{{ .head_sha }}"
+                path: shared/deploy/chart
+                helm:
+                  valuesObject:
+                    # A preview requests little, may use what prod does, and
+                    # goes first when memory runs short.
+                    priorityClassName: preview
+                    server:
+                      image: { tag: "{{ .head_sha }}" }
+                      resources:
+                        requests: { cpu: 100m, memory: 256Mi }
+                        limits: { memory: 768Mi }
+                      database:
+                        secretName: "jjforge-pr-{{ .number }}-db-app"
+                    vcs:
+                      image: { tag: "{{ .head_sha }}" }
+                    ingress:
+                      host: "jjforge-pr-{{ .number }}.nca-apprentices.dev"
+                      middlewares: [github-login, no-cookies]
+                      # cert-manager issues the certificate from the Ingress
+                      # and deletes it, with its secret, along with the
+                      # Ingress.
+                      tls:
+                        secretName: "jjforge-pr-{{ .number }}-tls"
+                        issuer: letsencrypt
+                    telemetry:
+                      tracesEndpoint: http://telemetry.observability.svc:4318/v1/traces
+                      environment: "pr-{{ .number }}"
+        # As in jjforge-dev.
+        - repoURL: https://github.com/nca-apprentices/infra.git
+          targetRevision: main
+          path: cluster/platform/charts/network
+          helm:
+            releaseName: network
+            valuesObject:
+              client: server
+              databaseClients: [migrate]
+        # A preview migrates its own database, jjforge-pr-<number>-db, so a
+        # PR's migrations never reach dev's.
+        - repoURL: https://github.com/nca-apprentices/infra.git
+          targetRevision: main
+          path: cluster/platform/charts/database
+          helm:
+            releaseName: database
+            valuesObject:
+              name: "jjforge-pr-{{ .number }}"
+              keep: false
+              # A preview holds test data only.
+              priorityClassName: preview
               resources:
-                requests: { cpu: 100m, memory: 256Mi }
-                limits: { memory: 768Mi }
-              database: { secretName: "jjforge-pr-{{ .number }}-db-app" }
-            vcs:
-              image: { tag: "{{ .head_sha }}" }
-            ingress:
-              host: "jjforge-pr-{{ .number }}.nca-apprentices.dev"
-              middlewares: [github-login, no-cookies]
-              # cert-manager issues the certificate from the Ingress and
-              # deletes it, with its secret, along with the Ingress.
-              tls:
-                secretName: "jjforge-pr-{{ .number }}-tls"
-                issuer: letsencrypt
-            telemetry:
-              tracesEndpoint: http://telemetry.observability.svc:4318/v1/traces
-              environment: "pr-{{ .number }}"
+                requests: { cpu: 10m, memory: 128Mi }
+                limits: { memory: 256Mi }
       destination:
         server: https://kubernetes.default.svc
         namespace: "jjforge-pr-{{ .number }}"
       syncPolicy:
         automated: { prune: true, selfHeal: true }
         syncOptions: [ServerSideApply=true]
-        # The migration Job fails until the preview's database accepts
-        # connections, which takes a minute after the PR is labeled.
-        retry:
-          limit: 10
-          backoff: { duration: 30s, factor: 2, maxDuration: 5m }

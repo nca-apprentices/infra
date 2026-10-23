@@ -1,4 +1,4 @@
 apiVersion: v2
 name: preview
-description: The namespace of a preview environment, with its limits and login
+description: A preview environment, with its limits, login, project, and app
 version: 0.1.0

@@ -1,0 +1,28 @@
+# The preview itself: the PR's chart from .Values.source, under the preview's
+# own project. It has no deletion finalizer: its resources all live in the
+# namespace, which goes with the preview and takes them along.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ .Release.Namespace }}
+  namespace: argocd
+  annotations:
+    # After the project it names.
+    argocd.argoproj.io/sync-wave: "2"
+    # A GitHub deployment per head commit, see cluster/bootstrap/.
+    notifications.argoproj.io/subscribe.deployment.github: ""
+spec:
+  project: {{ .Release.Namespace }}
+  source:
+    {{- required "source is the PR's chart" .Values.source | toYaml | nindent 4 }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ .Release.Namespace }}
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [ServerSideApply=true]
+    # The migration Job fails until the preview's database accepts
+    # connections, which takes a minute after the PR is labeled.
+    retry:
+      limit: 10
+      backoff: { duration: 30s, factor: 2, maxDuration: 5m }

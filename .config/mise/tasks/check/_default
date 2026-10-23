@@ -111,7 +111,8 @@ for values in cluster/apps/*/*/database/values.yaml; do
     "${kubeconform[@]}"
 done
 
-# A preview's namespace renders from its chart, as environment.yaml in
-# apps/jjforge/preview passes it.
-helm template preview cluster/platform/charts/preview --namespace jjforge-pr-1 |
+# A preview's environment renders from its chart, with the values
+# applicationset.yaml in apps/jjforge/preview passes it.
+yq '.spec.template.spec.sources[0].helm.valuesObject' cluster/apps/jjforge/preview/applicationset.yaml |
+  helm template preview cluster/platform/charts/preview --namespace jjforge-pr-1 --values - |
   "${kubeconform[@]}"
