@@ -1,0 +1,15 @@
+# The project of root and of every Application root's children create outside
+# an app's own project. The platform installs operators, CRDs, and cluster-wide
+# policies from many charts, so it may deploy anything anywhere. It lives here,
+# not in ../platform, so it exists before root does.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+spec:
+  description: The platform, from cluster/platform
+  sourceRepos: ["*"]
+  destinations:
+    - { server: https://kubernetes.default.svc, namespace: "*" }
+  clusterResourceWhitelist:
+    - { group: "*", kind: "*" }
