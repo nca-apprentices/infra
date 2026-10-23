@@ -1,6 +1,6 @@
 # What ncaleague-prod's Applications may deploy: its chart and its directory
 # here, into its own namespace only. The namespace comes from this directory
-# under the platform's project, so the app creates no cluster-scoped objects
+# under the environments project, so the app creates no cluster-scoped objects
 # itself.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject

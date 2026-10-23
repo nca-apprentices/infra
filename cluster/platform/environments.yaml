@@ -1,0 +1,34 @@
+# What the apps ApplicationSet's Applications may deploy from an environment's
+# directory: its namespace, its project and Applications, and the platform's
+# limits and login in front of it. A stray file of any other kind fails the
+# sync instead of applying with the platform's rights. This bounds mistakes
+# only: a directory may still create a project of its own, so CODEOWNERS
+# guards what merges.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: environments
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  description: Each app's environment directories, from cluster/apps
+  sourceRepos:
+    - https://github.com/nca-apprentices/infra.git
+  destinations:
+    - { server: https://kubernetes.default.svc, namespace: argocd }
+    - { server: https://kubernetes.default.svc, namespace: "*-dev" }
+    - { server: https://kubernetes.default.svc, namespace: "*-prod" }
+  clusterResourceWhitelist:
+    - { group: "", kind: Namespace }
+  # The Deployment and Service are jjforge-dev's token issuer, see
+  # ../apps/jjforge/dev/oidc.yaml.
+  namespaceResourceWhitelist:
+    - { group: argoproj.io, kind: AppProject }
+    - { group: argoproj.io, kind: Application }
+    - { group: argoproj.io, kind: ApplicationSet }
+    - { group: cert-manager.io, kind: Certificate }
+    - { group: traefik.io, kind: Middleware }
+    - { group: "", kind: LimitRange }
+    - { group: "", kind: Service }
+    - { group: apps, kind: Deployment }

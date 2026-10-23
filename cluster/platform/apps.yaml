@@ -31,7 +31,7 @@ spec:
         # cluster/bootstrap/.
         notifications.argoproj.io/subscribe.deployment.github: ""
     spec:
-      project: default
+      project: environments
       source:
         repoURL: https://github.com/nca-apprentices/infra.git
         targetRevision: main

@@ -48,7 +48,8 @@ objects nor Roles and RoleBindings. A `dev` Application can't deploy into
 `prod`. Redpanda and SeaweedFS run under the `stores` project instead, since
 Redpanda's chart needs Roles. The namespace itself
 lives in the environment's directory, where the `apps` ApplicationSet applies
-it under the platform's project.
+it under the `environments` project, which admits only the kinds such a
+directory holds.
 
 The platform also sets three limits in each environment's directory, outside
 the app's reach:
