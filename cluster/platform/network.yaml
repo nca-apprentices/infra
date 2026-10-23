@@ -26,7 +26,7 @@ spec:
     metadata:
       name: "{{ index .path.segments 2 }}-{{ index .path.segments 3 }}-network"
     spec:
-      project: default
+      project: platform
       sources:
         - repoURL: https://github.com/nca-apprentices/infra.git
           targetRevision: main

@@ -8,7 +8,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "2"
 spec:
-  project: default
+  project: platform
   source:
     repoURL: https://victoriametrics.github.io/helm-charts
     chart: victoria-traces-single

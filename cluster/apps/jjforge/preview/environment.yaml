@@ -27,7 +27,7 @@ spec:
     metadata:
       name: "jjforge-pr-{{ .number }}-environment"
     spec:
-      project: default
+      project: platform
       sources:
         - repoURL: https://github.com/nca-apprentices/infra.git
           targetRevision: main

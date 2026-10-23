@@ -9,7 +9,7 @@ metadata:
     # The dev bindings name the app namespaces, which wave 4 creates.
     argocd.argoproj.io/sync-wave: "5"
 spec:
-  project: default
+  project: platform
   source:
     repoURL: https://github.com/nca-apprentices/infra.git
     targetRevision: main

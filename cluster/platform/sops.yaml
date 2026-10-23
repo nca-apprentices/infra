@@ -14,7 +14,7 @@ metadata:
     # With Cilium: every platform secret depends on it.
     argocd.argoproj.io/sync-wave: "0"
 spec:
-  project: default
+  project: platform
   source:
     repoURL: https://isindir.github.io/sops-secrets-operator/
     chart: sops-secrets-operator

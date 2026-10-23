@@ -11,7 +11,7 @@ metadata:
     # After the tools it routes to and the login in front of them.
     argocd.argoproj.io/sync-wave: "3"
 spec:
-  project: default
+  project: platform
   source:
     repoURL: https://github.com/nca-apprentices/infra.git
     targetRevision: main

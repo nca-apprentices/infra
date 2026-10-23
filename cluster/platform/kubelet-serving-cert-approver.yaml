@@ -12,7 +12,7 @@ metadata:
     # Before metrics-server, which needs the certificates it approves.
     argocd.argoproj.io/sync-wave: "1"
 spec:
-  project: default
+  project: platform
   source:
     repoURL: https://github.com/alex1989hu/kubelet-serving-cert-approver.git
     # The commit and image digest of a release, not its tag, since the
