@@ -49,7 +49,7 @@ spec:
               source:
                 repoURL: https://github.com/nca-apprentices/jjforge.git
                 targetRevision: "{{ .head_sha }}"
-                path: shared/deploy/chart
+                path: deploy/chart
                 helm:
                   valuesObject:
                     # A preview requests little, may use what prod does, and
