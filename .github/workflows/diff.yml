@@ -30,13 +30,21 @@ jobs:
       # The chart version installs the Argo CD that cluster/bootstrap/ pins.
       # The image gets the Docker socket, which is root on the runner, so it
       # is pinned by digest and runs in a job without a write token.
+      # The chart pulls Redis from ECR Public, which rate-limits the runners'
+      # shared IPs, so Redis comes from Google's Docker Hub mirror instead.
       - name: Render the diff
         run: |
+          cat >values.yaml <<'EOF'
+          redis:
+            image:
+              repository: mirror.gcr.io/library/redis
+          EOF
           docker run --network=host \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v "$PWD/base:/base-branch" \
             -v "$PWD/head:/target-branch" \
             -v "$PWD/output:/output" \
+            -v "$PWD/values.yaml:/argocd-config/values.yaml" \
             -e REPO=${{ github.repository }} \
             -e TARGET_BRANCH=refs/pull/${{ github.event.number }}/merge \
             -e ARGOCD_CHART_VERSION=10.9.6 \
