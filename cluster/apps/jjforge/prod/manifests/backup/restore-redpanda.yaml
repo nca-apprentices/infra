@@ -101,7 +101,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       initContainers:
         - name: topics
-          image: rclone/rclone:1.75.1
+          image: rclone/rclone:1.75.2@sha256:2687085f718d3c628f7fdfb77c52a1d344332aed543110bb88088f2c70d43eb5
           command: [sh, /etc/connect/topics.sh]
           securityContext:
             allowPrivilegeEscalation: false
@@ -136,7 +136,7 @@ spec:
             - { name: work, mountPath: /work }
       containers:
         - name: connect
-          image: docker.redpanda.com/redpandadata/connect:4.111.0
+          image: docker.redpanda.com/redpandadata/connect:4.115.1@sha256:d9b5388444c4c4d79a5867a8be534d0f6de2be1e54cee746b79e282fb4ff2dbb
           args: [run, /work/connect.yaml]
           securityContext:
             allowPrivilegeEscalation: false
