@@ -122,7 +122,7 @@ spec:
             - { name: work, mountPath: /work }
         - name: prepare
           # The broker's own image, for rpk.
-          image: docker.redpanda.com/redpandadata/redpanda:v25.1.12
+          image: docker.redpanda.com/redpandadata/redpanda:v26.2.6@sha256:8b1076e0d61bfceb66594dc01536427ce0b529f8ead35fdab9763ab6085891ce
           command: [sh, /etc/connect/prepare.sh]
           securityContext:
             allowPrivilegeEscalation: false
