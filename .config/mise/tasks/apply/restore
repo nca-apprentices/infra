@@ -137,7 +137,7 @@ spec:
       securityContext: { runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, fsGroup: 2000, seccompProfile: { type: RuntimeDefault } }
       containers:
         - name: rclone
-          image: rclone/rclone:1.75.1
+          image: rclone/rclone:1.75.2
           command: [sh, /scripts/restore.sh]
           env:
             - { name: RCLONE_CONFIG_HETZNER_TYPE, value: s3 }
