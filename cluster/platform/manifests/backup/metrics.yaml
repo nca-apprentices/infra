@@ -23,7 +23,7 @@ spec:
           containers:
             - name: vmbackup
               # Same version as the VMSingle in observability.yaml.
-              image: victoriametrics/vmbackup:v1.153.0@sha256:7508e0be1809a32ca8fe799ec448f2879784e48ad67a38c88562197bd2ccbb4a
+              image: victoriametrics/vmbackup:v1.156.0@sha256:f2b1c03f4ca75392e9e8a67dc88d51f7eb7e950dbe0fa14e8c78b5f34f3c40ea
               args:
                 - -storageDataPath=/victoria-metrics-data
                 - -snapshot.createURL=http://vmsingle-metrics:8428/snapshot/create

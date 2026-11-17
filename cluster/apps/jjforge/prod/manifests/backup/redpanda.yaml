@@ -62,7 +62,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: connect
-          image: docker.redpanda.com/redpandadata/connect:4.111.0
+          image: docker.redpanda.com/redpandadata/connect:4.117.0@sha256:b6df7ca0c506578c8cc8b0cd223c117366bbeac84365f95944d339f0165b551c
           args: [run, /etc/connect/connect.yaml]
           securityContext:
             allowPrivilegeEscalation: false

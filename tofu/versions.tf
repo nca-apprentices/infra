@@ -39,19 +39,19 @@ terraform {
   required_providers {
     hcloud = {
       source  = "hetznercloud/hcloud"
-      version = "1.69.0"
+      version = "1.70.2"
     }
     cloudflare = {
       source  = "cloudflare/cloudflare"
-      version = "5.27.0"
+      version = "5.28.1"
     }
     minio = {
       source  = "aminueza/minio"
-      version = "3.44.0"
+      version = "3.46.3"
     }
     tls = {
       source  = "hashicorp/tls"
-      version = "4.4.1"
+      version = "4.4.2"
     }
   }
 }

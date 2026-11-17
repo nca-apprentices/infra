@@ -11,7 +11,7 @@ spec:
   source:
     repoURL: https://victoriametrics.github.io/helm-charts
     chart: victoria-logs-single
-    targetRevision: "0.13.10"
+    targetRevision: "0.13.12"
     helm:
       releaseName: logs
       valuesObject:
@@ -27,7 +27,7 @@ spec:
           # collects anything. The store picks the directories up on start.
           initContainers:
             - name: restore
-              image: rclone/rclone:1.75.1
+              image: rclone/rclone:1.76.0@sha256:7cbeec24a44f206067597c0368be4de90ae19a64d5113c7d1938bd737a81e466
               command: [sh, -c]
               args:
                 - |
