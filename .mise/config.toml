@@ -8,11 +8,11 @@
 #   check      validate everything without credentials, as CI does
 #   fmt        format every file
 
-# The release the tasks and mise.lock were tested with.
+# The release the tasks and .mise/mise.lock were tested with.
 min_version = "2026.10.8"
 
 [settings]
-# Records each tool's download URL and checksum per platform in mise.lock.
+# Records each tool's download URL and checksum per platform in .mise/mise.lock.
 # CI installs only what the lockfile records.
 lockfile = true
 lockfile_platforms = ["linux-x64", "linux-arm64", "macos-arm64", "macos-x64"]
@@ -48,11 +48,11 @@ taplo = "0.10.0"
 vale = "3.26.0"
 dprint = "0.64.3"
 
-# Tool configuration lives under .config. mise finds its tasks in
-# .config/mise/tasks without help, and rumdl finds .config/rumdl.toml.
+# Tool configuration lives under .mise. mise finds its tasks in .mise/tasks
+# without help.
 [env]
-TREEFMT_CONFIG = "{{config_root}}/.config/treefmt.toml"
-VALE_CONFIG_PATH = "{{config_root}}/.config/vale/vale.ini"
+TREEFMT_CONFIG = "{{config_root}}/.mise/treefmt.toml"
+VALE_CONFIG_PATH = "{{config_root}}/.mise/vale/vale.ini"
 # Written by `mise run apply:bootstrap`, or by talosctl when an operator is added.
 # Every worktree uses the main checkout's copy, so a new one reaches the
 # cluster too.

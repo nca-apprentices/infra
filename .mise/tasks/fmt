@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Format every file with the formatters in .mise/treefmt.toml"
+set -euo pipefail
+
+treefmt
