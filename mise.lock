@@ -91,9 +91,11 @@ backend = "aqua:aws/aws-cli"
 specifiers = ["2.37.12"]
 
 [tools.aws-cli."platforms.linux-arm64"]
+checksum = "sha256:829c76096e05f743267d75098bc7cc7cfae799fc7e568554ebaa6d78e6aba753"
 url = "https://awscli.amazonaws.com/awscli-exe-linux-aarch64-2.37.12.zip"
 
 [tools.aws-cli."platforms.linux-x64"]
+checksum = "sha256:e6d3c672fb36ed4b12c354c39a993eee2b34da1437cafb10bac4480840cfa83f"
 url = "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.37.12.zip"
 
 [tools.aws-cli."platforms.macos-arm64"]
@@ -101,6 +103,7 @@ checksum = "blake3:2bb2d828c9e31a2d79f4db60fde7232af0b252b9e7d3a3b3c4c1e29998e14
 url = "https://awscli.amazonaws.com/AWSCLIV2-2.37.12.pkg"
 
 [tools.aws-cli."platforms.macos-x64"]
+checksum = "sha256:c2290ff2f067bb548088c9210dfbce088ec10095d809aacfa556a2cf9929de88"
 url = "https://awscli.amazonaws.com/AWSCLIV2-2.37.12.pkg"
 
 [[tools.dprint]]
@@ -471,10 +474,12 @@ backend = "aqua:tamasfe/taplo"
 specifiers = ["0.10.0"]
 
 [tools.taplo."platforms.linux-arm64"]
+checksum = "sha256:033681d01eec8376c3fd38fa3703c79316f5e14bb013d859943b60a07bccdcc3"
 url = "https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-linux-aarch64.gz"
 url_api = "https://api.github.com/repos/tamasfe/taplo/releases/assets/257322597"
 
 [tools.taplo."platforms.linux-x64"]
+checksum = "sha256:8fe196b894ccf9072f98d4e1013a180306e17d244830b03986ee5e8eabeb6156"
 url = "https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-linux-x86_64.gz"
 url_api = "https://api.github.com/repos/tamasfe/taplo/releases/assets/257322600"
 
@@ -484,6 +489,7 @@ url = "https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-darwin-aa
 url_api = "https://api.github.com/repos/tamasfe/taplo/releases/assets/257323110"
 
 [tools.taplo."platforms.macos-x64"]
+checksum = "sha256:898122cde3a0b1cd1cbc2d52d3624f23338218c91b5ddb71518236a4c2c10ef2"
 url = "https://github.com/tamasfe/taplo/releases/download/0.10.0/taplo-darwin-x86_64.gz"
 url_api = "https://api.github.com/repos/tamasfe/taplo/releases/assets/257323116"
 
