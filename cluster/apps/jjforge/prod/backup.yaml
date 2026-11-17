@@ -7,6 +7,9 @@ metadata:
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "2"
+    # The server-side diff dry-runs the new Job template, which Kubernetes
+    # rejects as immutable before ignoreDifferences can apply.
+    argocd.argoproj.io/compare-options: ServerSideDiff=false
 spec:
   project: jjforge-prod
   source:
@@ -16,6 +19,13 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: jjforge-prod
+  # The restore Jobs run once per cluster, and a Job's template can't change
+  # after it's created. Without this, an image update to either Job fails
+  # every sync, and the backups' own updates never reach the cluster.
+  ignoreDifferences:
+    - group: batch
+      kind: Job
+      jsonPointers: [/spec/template]
   syncPolicy:
     automated: { prune: true, selfHeal: true }
-    syncOptions: [ServerSideApply=true]
+    syncOptions: [ServerSideApply=true, RespectIgnoreDifferences=true]
