@@ -55,6 +55,8 @@ spec:
 # Redpanda checks no credentials, so whoever reaches it may delete topics.
 # The client and the backup get the client ports. The admin API and the
 # internal RPC stay with Redpanda's own pods, the console, and the platform.
+# Since chart 25.2, the Job that applies the cluster configuration labels its
+# pods redpanda-configuration instead of redpanda.
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
@@ -73,6 +75,7 @@ spec:
             - { port: "8082", protocol: TCP }
     - fromEndpoints:
         - matchLabels: { app.kubernetes.io/name: redpanda }
+        - matchLabels: { app.kubernetes.io/name: redpanda-configuration }
         - matchLabels: { app.kubernetes.io/name: console }
         - matchLabels:
             k8s:io.kubernetes.pod.namespace: observability
