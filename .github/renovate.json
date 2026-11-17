@@ -93,7 +93,7 @@
       "enabled": false
     },
     {
-      "description": "required_version in tofu/ constrains OpenTofu, which mise.toml pins, not Terraform, whose versions Renovate would write there.",
+      "description": "required_version in tofu/ constrains OpenTofu, which .mise/config.toml pins, not Terraform, whose versions Renovate would write there.",
       "matchDepNames": ["hashicorp/terraform"],
       "enabled": false
     },
@@ -182,7 +182,7 @@
     {
       "customType": "regex",
       "description": "Images with a fixed tag in the mise tasks, such as rclone in restore.",
-      "managerFilePatterns": ["/^\\.config/mise/tasks/.+$/"],
+      "managerFilePatterns": ["/^\\.mise/tasks/.+$/"],
       "matchStrings": [
         "image: (?<depName>[a-z0-9./-]+):(?<currentValue>\\d+\\.\\d+\\.\\d+)\\s"
       ],
@@ -222,7 +222,7 @@
     {
       "customType": "regex",
       "description": "The dprint plugin that formats YAML.",
-      "managerFilePatterns": ["/^\\.config/dprint\\.json$/"],
+      "managerFilePatterns": ["/^\\.mise/dprint\\.json$/"],
       "matchStrings": ["g-plane/pretty_yaml-(?<currentValue>v[\\d.]+)\\.wasm"],
       "datasourceTemplate": "github-releases",
       "depNameTemplate": "g-plane/pretty_yaml"
@@ -230,7 +230,7 @@
     {
       "customType": "regex",
       "description": "The Vale style package that check:prose lints against.",
-      "managerFilePatterns": ["/^\\.config/vale/vale\\.ini$/"],
+      "managerFilePatterns": ["/^\\.mise/vale/vale\\.ini$/"],
       "matchStrings": [
         "errata-ai/Google/releases/download/(?<currentValue>v[\\d.]+)/"
       ],

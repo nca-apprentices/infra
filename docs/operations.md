@@ -303,7 +303,7 @@ the token until it expires. The node's address and CA come from
 The node's firewall admits the operator addresses only, see
 `tofu/firewall.tf`.
 
-`mise.toml` still points `KUBECONFIG` at the Talos certificate with full
+`.mise/config.toml` still points `KUBECONFIG` at the Talos certificate with full
 access in `talos/clusterconfig/kubeconfig`, which the `mise` tasks need and
 which works when the GitHub sign-in is down. Every worktree uses the main
 checkout's copy. The audit log names it `admin`, so use it for those cases
