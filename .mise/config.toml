@@ -33,7 +33,7 @@ kustomize = "5.8.3"
 opentofu = "1.13.9"
 sops = "3.13.3"
 # Follows talos in talos/versions.yaml.
-talosctl = "1.14.2"
+talosctl = "1.14.6"
 yq = "4.54.3"
 # `mise run check` lints the workflows and scans the history for secrets.
 actionlint = "1.7.12"
