@@ -14,15 +14,21 @@ spec:
   project: jjforge-dev
   source:
     repoURL: oci://ghcr.io/nca-apprentices/charts/jjforge
-    targetRevision: 0.7.0
+    targetRevision: 0.8.0
     path: .
     helm:
       valuesObject:
         ingress:
           host: jjforge-dev.nca-apprentices.dev
-          middlewares: [github-login, no-cookies]
+          className: traefik
+          # The Middlewares of login.yaml and cookies.yaml.
+          annotations:
+            traefik.ingress.kubernetes.io/router.entrypoints: websecure
+            traefik.ingress.kubernetes.io/router.middlewares: jjforge-dev-github-login@kubernetescrd,jjforge-dev-no-cookies@kubernetescrd
           # jf passes no login page, see the ingress-hosts admission policy.
-          syncMiddlewares: [no-cookies]
+          syncAnnotations:
+            traefik.ingress.kubernetes.io/router.entrypoints: websecure
+            traefik.ingress.kubernetes.io/router.middlewares: jjforge-dev-no-cookies@kubernetescrd
         # Half of prod's requests, with prod's limits.
         server:
           resources:

@@ -14,13 +14,16 @@ spec:
   project: jjforge-prod
   source:
     repoURL: oci://ghcr.io/nca-apprentices/charts/jjforge
-    targetRevision: 0.7.0
+    targetRevision: 0.8.0
     path: .
     helm:
       valuesObject:
         ingress:
           host: jjforge.nca-apprentices.dev
-          middlewares: [no-cookies]
+          className: traefik
+          annotations:
+            traefik.ingress.kubernetes.io/router.entrypoints: websecure
+            traefik.ingress.kubernetes.io/router.middlewares: jjforge-prod-no-cookies@kubernetescrd
         priorityClassName: prod
         # Memory requested and limited alike, so only its own limit can end a
         # pod. The JVM sizes its heap from the limit.

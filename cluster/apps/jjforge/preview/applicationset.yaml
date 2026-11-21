@@ -66,13 +66,16 @@ spec:
                       image: { tag: "{{ .head_sha }}" }
                     ingress:
                       host: "jjforge-pr-{{ .number }}.nca-apprentices.dev"
-                      middlewares: [github-login, no-cookies]
+                      className: traefik
                       # cert-manager issues the certificate from the Ingress
                       # and deletes it, with its secret, along with the
                       # Ingress.
+                      annotations:
+                        traefik.ingress.kubernetes.io/router.entrypoints: websecure
+                        traefik.ingress.kubernetes.io/router.middlewares: "jjforge-pr-{{ .number }}-github-login@kubernetescrd,jjforge-pr-{{ .number }}-no-cookies@kubernetescrd"
+                        cert-manager.io/cluster-issuer: letsencrypt
                       tls:
                         secretName: "jjforge-pr-{{ .number }}-tls"
-                        issuer: letsencrypt
                     telemetry:
                       tracesEndpoint: http://telemetry.observability.svc:4318/v1/traces
                       environment: "pr-{{ .number }}"
