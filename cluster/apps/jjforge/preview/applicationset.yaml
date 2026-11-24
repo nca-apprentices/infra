@@ -64,6 +64,8 @@ spec:
                         secretName: "jjforge-pr-{{ .number }}-db-app"
                     vcs:
                       image: { tag: "{{ .head_sha }}" }
+                    web:
+                      image: { tag: "{{ .head_sha }}" }
                     ingress:
                       host: "jjforge-pr-{{ .number }}.nca-apprentices.dev"
                       className: traefik
